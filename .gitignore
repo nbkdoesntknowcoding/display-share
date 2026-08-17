@@ -1,0 +1,25 @@
+.DS_Store
+
+# Swift / SwiftPM
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Spike output
+spike-frames/
+*.h264
+*.mov
+
+# Node / Tauri (Phase 3)
+node_modules/
+dist/
+windows/src-tauri/target/
+
+# Secrets — signing identities, notarization creds, updater keys
+*.p12
+*.cer
+*.provisionprofile
+.env
+.env.*
