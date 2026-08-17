@@ -175,6 +175,8 @@ public struct ControlMessage: Codable, Equatable, Sendable {
     public var deviceName: String?
     public var pin: String?
     public var token: String?
+    /// Forwarded input batch (SPEC §4.10).
+    public var events: [ForwardedInputEvent]?
 
     public init(type: String) { self.type = type }
 

@@ -258,7 +258,62 @@ A paired receiver includes its identity in `hello`:
 If `token` is valid for `deviceId`, the sender proceeds straight to `welcome`.
 Otherwise it replies `error` / `pairing_required` and shows a PIN.
 
-### 4.10 `error` — server → client
+### 4.10 `input` — client → server
+
+Forwarded mouse and keyboard events, **batched**:
+
+```json
+{
+  "type": "input",
+  "events": [
+    { "k": "move",   "x": 0.5123, "y": 0.2341, "t": 1284 },
+    { "k": "down",   "b": 0,                    "t": 1290 },
+    { "k": "up",     "b": 0,                    "t": 1361 },
+    { "k": "scroll", "dx": 0, "dy": -3,         "t": 1400 },
+    { "k": "key",    "code": "KeyA", "down": true,
+      "mods": { "shift": false, "ctrl": false, "alt": false, "meta": true },
+      "t": 1450 }
+  ]
+}
+```
+
+Batching is required, not cosmetic: a 60 Hz mouse produces 60 messages/second per
+axis of motion, and one WebSocket text frame each would compete with video for
+the same socket. The receiver SHOULD flush at most once per animation frame, and
+MUST preserve event order within and across batches.
+
+`t` is milliseconds from an arbitrary receiver-side origin, used only to preserve
+ordering and to measure intra-batch spacing. It is **not** comparable to §3.2
+timestamps, which come from the sender's clock.
+
+#### Coordinates
+
+`x` and `y` are **normalised 0.0–1.0 within the displayed video rectangle**, not
+the window. The receiver letterboxes the video when its window aspect differs
+from the stream, so window-relative coordinates would land in the wrong place;
+normalising against the video rect makes the mapping correct regardless of window
+size, scaling or letterboxing. Values outside 0–1 mean the pointer left the video
+area and MUST be dropped by the receiver rather than clamped.
+
+#### Keys
+
+`code` is the **physical** key identifier from the DOM `KeyboardEvent.code`
+(`"KeyA"`, `"Digit1"`, `"ArrowLeft"`, `"Enter"`). Physical rather than logical, so
+the sender maps to a macOS virtual keycode without needing to know the receiver's
+keyboard layout. `mods` carries the modifier state at the time of the event, since
+a modifier may be held from before forwarding was enabled.
+
+Buttons: `0` left, `1` middle, `2` right.
+
+#### Safety
+
+The sender MUST ignore `input` from a receiver that has not completed the
+handshake and pairing (§4.9). Input injection is a far stronger capability than
+screen viewing — it can drive any application on the Mac — so it is gated on the
+same authorisation and additionally requires macOS Accessibility permission,
+which the user grants explicitly.
+
+### 4.11 `error` — server → client
 
 ```json
 { "type": "error", "code": "busy", "message": "another receiver is connected" }
@@ -272,6 +327,7 @@ Otherwise it replies `error` / `pairing_required` and shows a PIN.
 | `capture_unavailable` | the sender cannot capture (e.g. permission not granted) |
 | `pairing_required` | this receiver is not paired; the sender is showing a PIN |
 | `pair_rejected` | wrong PIN, or too many attempts |
+| `input_unavailable` | input was forwarded but macOS Accessibility permission is not granted |
 | `internal` | anything else; `message` carries detail |
 
 ---

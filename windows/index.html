@@ -35,11 +35,20 @@
   #pin-row { display:none; gap:8px; }
   #pin { width:90px; text-align:center; font:20px ui-monospace, monospace; letter-spacing:4px; }
   #pin-message { display:none; font-size:13px; max-width:380px; }
+  /* Input forwarding is a strong capability; its state must be unmissable. */
+  #input-badge {
+    position:fixed; top:12px; left:50%; transform:translateX(-50%);
+    padding:6px 14px; border-radius:999px; font:12px/1 ui-monospace, monospace;
+    letter-spacing:.5px; color:#08130a; background:#34d399; display:none;
+    box-shadow:0 2px 12px rgba(0,0,0,.4); pointer-events:none;
+  }
+  #input-badge.active { display:block; }
 </style>
 </head>
 <body>
   <canvas id="screen"></canvas>
   <div id="hud">starting…</div>
+  <div id="input-badge"></div>
   <div id="overlay">
     <div id="message">Looking for senders…</div>
     <div id="senders"></div>

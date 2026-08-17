@@ -51,6 +51,8 @@ public final class WebSocketServer: @unchecked Sendable {
     public var onClientDisconnected: (() -> Void)?
     /// (roundTripMillis, dropRate) from each receiver `stats` message.
     public var onReceiverReport: ((Double, Double) -> Void)?
+    /// A batch of forwarded input events from an authorised receiver.
+    public var onInput: (([ForwardedInputEvent]) -> Void)?
 
     /// Current encoded format, reported in `welcome`.
     public var videoFormat: VideoFormat?
@@ -283,6 +285,19 @@ public final class WebSocketServer: @unchecked Sendable {
             case .noPairingInProgress:
                 send(control: .error(code: "pair_rejected", message: "No pairing in progress."), on: connection)
             }
+
+        case "input":
+            // SPEC §4.10 safety: input is a far stronger capability than
+            // viewing, so it is refused unless the receiver is authorised.
+            // Checking here rather than downstream keeps the gate at the boundary.
+            lock.lock()
+            let allowed = client === connection && authorised
+            lock.unlock()
+            guard allowed else {
+                log("ignoring input from an unauthorised receiver")
+                return
+            }
+            if let events = message.events { onInput?(events) }
 
         case "request_keyframe":
             onKeyframeRequested?()

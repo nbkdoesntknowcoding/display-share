@@ -39,6 +39,9 @@ public final class DisplayShareController: ObservableObject {
     /// Watches for sleep/wake, network drops and display reconfiguration.
     public let supervisor = SessionSupervisor()
 
+    /// Validates and dispatches forwarded input (Task 5.1).
+    public let inputSink: InputEventSink
+
     /// Devices allowed to connect, and the PIN flow for new ones.
     public let pairing: PairingStore
     /// PIN currently displayed to the user, nil when no pairing is pending.
@@ -54,11 +57,19 @@ public final class DisplayShareController: ObservableObject {
         self.port = port
         let store = PairingStore()
         self.pairing = store
+        // --log-input turns on the per-event logging Task 5.1 is verified with.
+        self.inputSink = InputEventSink(
+            logging: CommandLine.arguments.contains("--log-input"))
         self.pipeline = StreamPipeline(
             socketServer: WebSocketServer(pairing: requirePairing ? store : nil),
             codec: codec)
         store.onPINChanged = { [weak self] pin in
             Task { @MainActor in self?.pairingPIN = pin }
+        }
+
+        // Task 5.1: decode, order-check and log forwarded input.
+        pipeline.socketServer.onInput = { [weak self] events in
+            self?.inputSink.ingest(events)
         }
 
         // Task 4.2: keep the session alive across sleep/wake, Wi-Fi drops and

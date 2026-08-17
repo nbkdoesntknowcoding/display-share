@@ -6,6 +6,7 @@ import {
   type ControlMessage,
   type ReceiverPanel,
 } from "./protocol";
+import { InputCapture } from "./input";
 
 /**
  * Display Share receiver frontend.
@@ -226,6 +227,12 @@ listen<string>("ds://control", (event) => {
       setStatus("Paired. Connecting…");
       break;
     case "error":
+      if (message.code === "input_unavailable") {
+        // Forwarding is on but the Mac cannot inject; say so and stop pretending.
+        input.setEnabled(false);
+        setStatus(`${message.message}`);
+        break;
+      }
       if (message.code === "pairing_required") {
         showPinPrompt(message.message ?? "Enter the PIN shown on the Mac.");
       } else if (message.code === "pair_rejected") {
@@ -241,6 +248,21 @@ listen<string>("ds://control", (event) => {
 });
 
 listen("ds://disconnected", () => setStatus("Disconnected. Reconnecting…"));
+
+// --- Input forwarding (SPEC §4.10) ------------------------------------------
+
+const inputBadge = document.getElementById("input-badge") as HTMLDivElement;
+
+const input = new InputCapture({
+  canvas,
+  send: (events) => void sendControl({ type: "input", events }),
+  onEnabledChanged: (enabled) => {
+    // Unmissable state: driving the Mac by accident is worse than an ugly badge.
+    inputBadge.textContent = enabled ? "⌨ INPUT → MAC  ·  F8 to release" : "";
+    inputBadge.classList.toggle("active", enabled);
+    if (!enabled) input.releaseAll();
+  },
+});
 
 // --- HUD --------------------------------------------------------------------
 
@@ -284,6 +306,8 @@ setInterval(() => {
 
 let fullscreen = false;
 addEventListener("keydown", (event) => {
+  // While forwarding, letters belong to the Mac — only F8 is ours.
+  if (input.isEnabled && event.code !== "F8") return;
   switch (event.key.toLowerCase()) {
     case "f":
       fullscreen = !fullscreen;
@@ -294,6 +318,11 @@ addEventListener("keydown", (event) => {
       break;
     case "k":
       void sendControl({ type: "request_keyframe" });
+      break;
+    case "f8":
+      // Deliberately not a plain letter: those are forwarded to the Mac while
+      // input is active, so the release key must be one we never forward.
+      input.toggle();
       break;
     case "a": {
       // Round-trip the decode path so the trade-off can be measured here.
