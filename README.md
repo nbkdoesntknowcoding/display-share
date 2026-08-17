@@ -28,7 +28,7 @@ over the LAN.
 | 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
 | 4 | Session robustness | ✅ complete |
 | 5 | Input injection | ✅ complete |
-| 6 | Packaging & signing | not started |
+| 6 | Packaging & signing | ⚠️ pipeline done, **blocked on certificates** |
 | 7 | VPS, updates & release | not started |
 
 ---
@@ -129,6 +129,28 @@ gate and inside the send path.
 
 Manage or revoke paired devices by deleting
 `~/Library/Application Support/DisplayShare/paired-devices.json`.
+
+---
+
+## Installing
+
+There is no signed release yet. `mac/scripts/package-macos.sh` produces a
+universal `.dmg`, but **without an Apple Developer ID certificate it is unsigned**,
+so macOS will warn on first open. The script says so explicitly rather than
+handing you a DMG that looks shippable:
+
+```bash
+cd mac && ./scripts/package-macos.sh
+```
+
+```
+universal:  yes (arm64 + x86_64)
+signed:     NO — ad-hoc only
+notarized:  NO
+```
+
+See [docs/signing.md](docs/signing.md) for what the certificates cost, how to
+wire them, and why Windows starts with an OV rather than EV certificate.
 
 ---
 
