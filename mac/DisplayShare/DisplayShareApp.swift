@@ -48,6 +48,20 @@ private struct MenuContent: View {
             Text("Re-attached to an existing display")
         }
 
+        if controller.needsScreenRecordingPermission {
+            Button("Grant Screen Recording Permission…") {
+                controller.openScreenRecordingSettings()
+            }
+        }
+
+        if let url = controller.streamURL {
+            Text("Open on receiver: \(url)")
+            Button("Copy URL") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(url, forType: .string)
+            }
+        }
+
         Divider()
 
         if controller.state.isActive {

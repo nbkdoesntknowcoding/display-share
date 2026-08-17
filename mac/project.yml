@@ -50,6 +50,10 @@ targets:
     sources:
       - path: DisplayShareCore
       - path: Shared
+    dependencies:
+      - sdk: ScreenCaptureKit.framework
+      - sdk: CoreMedia.framework
+      - sdk: CoreVideo.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: in.theboringpeople.displayshare.core
@@ -84,3 +88,39 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
+
+  # ----------------------------------------------------------- probe (dev)
+  # Acceptance harness for Task 1.2. Not shipped in the .dmg.
+  dsprobe:
+    type: tool
+    platform: macOS
+    sources:
+      - path: dsprobe
+    dependencies:
+      - target: DisplayShareCore
+    settings:
+      base:
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path"
+
+  # ----------------------------------------------------------------- tests
+  DisplayShareCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: DisplayShareCoreTests
+    dependencies:
+      - target: DisplayShareCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: in.theboringpeople.displayshare.core.tests
+
+schemes:
+  DisplayShareCore:
+    build:
+      targets:
+        DisplayShareCore: all
+        DisplayShareCoreTests: [test]
+    test:
+      targets:
+        - DisplayShareCoreTests

@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -26,10 +27,18 @@ public final class DisplayShareController: ObservableObject {
     /// True when we adopted a display held by a helper that survived a crash.
     @Published public private(set) var reattached = false
 
-    private let client: HelperClient
+    /// LAN URL to open on the receiver. nil until the stream is up.
+    @Published public private(set) var streamURL: String?
+    /// Drives the actionable "grant permission" affordance in the menu.
+    @Published public private(set) var needsScreenRecordingPermission = false
 
-    public init(client: HelperClient = HelperClient()) {
+    private let client: HelperClient
+    private let pipeline = StreamPipeline()
+    private let port: UInt16
+
+    public init(client: HelperClient = HelperClient(), port: UInt16 = 8787) {
         self.client = client
+        self.port = port
         self.client.onDisplayTerminated = { [weak self] in
             Task { @MainActor in self?.state = .failed("macOS removed the display") }
         }
@@ -51,13 +60,34 @@ public final class DisplayShareController: ObservableObject {
             let hadDisplay = existing?.displayID != nil
             let displayID = try client.createDisplay(configuration)
             reattached = hadDisplay
+            // Capture + encode + serve. The display exists regardless of whether
+            // streaming succeeds, so surface those failures separately.
+            try pipeline.start(displayID: displayID, fps: Int(configuration.refreshRate))
+            streamURL = "http://\(Self.primaryIPv4Address() ?? "localhost"):\(port)"
             state = .active(displayID: displayID)
+        } catch let error as CaptureSession.CaptureError {
+            FileHandle.standardError.write(Data("[DisplayShare] capture failed: \(error)\n".utf8))
+            // The display itself is fine; only capture failed. Keep the URL so
+            // the user can still reach the page, and say what to do about it.
+            streamURL = "http://\(Self.primaryIPv4Address() ?? "localhost"):\(port)"
+            state = .failed(error.description)
+            needsScreenRecordingPermission = (error == .permissionDenied)
         } catch {
+            FileHandle.standardError.write(Data("[DisplayShare] start failed: \(error)\n".utf8))
             state = .failed("\(error)")
         }
     }
 
+    /// Opens the exact System Settings pane, rather than making the user hunt.
+    public func openScreenRecordingSettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+        NSWorkspace.shared.open(url)
+    }
+
     public func stop() {
+        pipeline.stop()
+        pipeline.stopServer()
+        streamURL = nil
         client.shutdown()
         reattached = false
         state = .idle
@@ -78,6 +108,32 @@ public final class DisplayShareController: ObservableObject {
 
     /// Called from applicationWillTerminate so a clean quit never leaves a display.
     public func shutdownForQuit() {
+        pipeline.stop()
+        pipeline.stopServer()
         client.shutdown()
+    }
+
+    public var statistics: MJPEGServer.Statistics { pipeline.server.statistics }
+
+    /// Best-effort LAN address so the menu can show a URL the receiver can open.
+    static func primaryIPv4Address() -> String? {
+        var head: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&head) == 0, let first = head else { return nil }
+        defer { freeifaddrs(head) }
+        var candidate: String?
+        for ptr in sequence(first: first, next: { $0.pointee.ifa_next }) {
+            let flags = Int32(ptr.pointee.ifa_flags)
+            guard flags & IFF_UP != 0, flags & IFF_LOOPBACK == 0 else { continue }
+            guard ptr.pointee.ifa_addr?.pointee.sa_family == UInt8(AF_INET) else { continue }
+            let name = String(cString: ptr.pointee.ifa_name)
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(ptr.pointee.ifa_addr, socklen_t(ptr.pointee.ifa_addr.pointee.sa_len),
+                              &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else { continue }
+            let address = String(cString: host)
+            // Prefer Ethernet/Wi-Fi over virtual interfaces.
+            if name.hasPrefix("en") { return address }
+            if candidate == nil { candidate = address }
+        }
+        return candidate
     }
 }
