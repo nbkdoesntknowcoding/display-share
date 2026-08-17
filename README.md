@@ -7,13 +7,14 @@ creates a **real virtual display** on the Mac — macOS believes a monitor is
 attached — captures it, encodes it in hardware, and streams it to the receiver
 over the LAN.
 
-> **Status: in development.** Phases 0–4 are complete: the Mac sender creates a
+> **Status: in development.** Phases 0–5 are complete: the Mac sender creates a
 > virtual display, captures it, encodes H.264 and serves it over WebSocket, and
 > the Tauri receiver decodes and paints it while negotiating its own panel
 > geometry. Sessions are discovered over Bonjour, paired with a PIN, and survive
 > network drops, sleep/wake and display reconfiguration, with adaptive bitrate.
-> The receiver has been verified as a running app; producing the Windows `.exe`
-> still needs a Windows host or CI (see below).
+> Mouse and keyboard can drive the Mac from the receiver. The receiver has been
+> verified as a running app; producing the Windows `.exe` still needs a Windows
+> host or CI (see below).
 
 ---
 
@@ -26,7 +27,7 @@ over the LAN.
 | 2 | H.264 pipeline | ✅ complete |
 | 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
 | 4 | Session robustness | ✅ complete |
-| 5 | Input injection | not started |
+| 5 | Input injection | ✅ complete |
 | 6 | Packaging & signing | not started |
 | 7 | VPS, updates & release | not started |
 
@@ -131,6 +132,22 @@ Manage or revoke paired devices by deleting
 
 ---
 
+## Remote control
+
+Press **F8** on the receiver to forward mouse and keyboard to the Mac; a badge
+across the top shows when it is live, and F8 releases it. Losing window focus
+releases every held key, so a modifier cannot get stuck down on the Mac.
+
+This needs **Accessibility** permission in addition to Screen Recording — macOS
+silently discards synthetic events without it, so Display Share tells the
+receiver `input_unavailable` rather than accepting input and appearing to do
+nothing. The menu bar offers a direct link to the right Settings pane.
+
+Input is refused from any receiver that has not paired, checked at the socket
+boundary: driving the Mac is a far stronger capability than viewing it.
+
+---
+
 ## Permissions
 
 Display Share needs **Screen Recording** permission to capture the display it
@@ -189,6 +206,8 @@ python3 scripts/ws-acceptance.py        # wire protocol over WebSocket
 python3 scripts/pairing-acceptance.py   # discovery + PIN pairing
 python3 scripts/robustness-soak.py      # drops, reconfiguration, recovery
 python3 scripts/abr-acceptance.py       # adaptive bitrate
+python3 scripts/input-acceptance.py     # input forwarding + auth gate
+python3 scripts/injection-acceptance.py # CGEvent injection vs the real cursor
 
 # receiver
 cd ../windows && npm install
