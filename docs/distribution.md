@@ -72,7 +72,7 @@ is not hard.
 ```bash
 # macOS sender
 brew install xcodegen create-dmg
-cd mac && ./scripts/package-macos.sh      # produces .release/DisplayShare-<v>.dmg
+cd mac && ./scripts/package-macos.sh      # produces dist/DisplayShare-<v>.dmg
 
 # or just build and run, no packaging
 xcodegen generate && xcodebuild -scheme DisplayShare -configuration Release \
