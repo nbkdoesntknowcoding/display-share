@@ -7,11 +7,13 @@ creates a **real virtual display** on the Mac — macOS believes a monitor is
 attached — captures it, encodes it in hardware, and streams it to the receiver
 over the LAN.
 
-> **Status: in development.** Phases 0–3 are complete: the Mac sender creates a
+> **Status: in development.** Phases 0–4 are complete: the Mac sender creates a
 > virtual display, captures it, encodes H.264 and serves it over WebSocket, and
 > the Tauri receiver decodes and paints it while negotiating its own panel
-> geometry. The receiver has been verified as a running app; producing the
-> Windows `.exe` still needs a Windows host or CI (see below).
+> geometry. Sessions are discovered over Bonjour, paired with a PIN, and survive
+> network drops, sleep/wake and display reconfiguration, with adaptive bitrate.
+> The receiver has been verified as a running app; producing the Windows `.exe`
+> still needs a Windows host or CI (see below).
 
 ---
 
@@ -23,7 +25,7 @@ over the LAN.
 | 1 | Mac sender MVP (MJPEG) | ✅ complete |
 | 2 | H.264 pipeline | ✅ complete |
 | 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
-| 4 | Session robustness | not started |
+| 4 | Session robustness | ✅ complete |
 | 5 | Input injection | not started |
 | 6 | Packaging & signing | not started |
 | 7 | VPS, updates & release | not started |
@@ -110,6 +112,25 @@ Network: 5 GHz Wi-Fi or Ethernet. 2.4 GHz jitter is visible.
 
 ---
 
+## Pairing
+
+The sender advertises itself over Bonjour (`_displayshare._tcp`), so the receiver
+finds it without an IP being typed in. A new receiver is shown a 4-digit PIN on
+the Mac; entering it issues a token the receiver stores, making later connections
+one click.
+
+A 4-digit PIN is only 10,000 possibilities, so the real protection is **rate
+limiting**: three attempts per minute per device, applied to correct PINs too
+while active. Tokens are 32 random bytes, stored only as a SHA-256 hash,
+compared in constant time, and bound to the device that earned them. An unpaired
+receiver gets **no video at all** — authorisation is checked both at the encode
+gate and inside the send path.
+
+Manage or revoke paired devices by deleting
+`~/Library/Application Support/DisplayShare/paired-devices.json`.
+
+---
+
 ## Permissions
 
 Display Share needs **Screen Recording** permission to capture the display it
@@ -165,6 +186,9 @@ xcodebuild -scheme DisplayShareCore -derivedDataPath ./.build test
 # acceptance
 ./scripts/test-helper-lifecycle.sh      # vd_helper lifecycle
 python3 scripts/ws-acceptance.py        # wire protocol over WebSocket
+python3 scripts/pairing-acceptance.py   # discovery + PIN pairing
+python3 scripts/robustness-soak.py      # drops, reconfiguration, recovery
+python3 scripts/abr-acceptance.py       # adaptive bitrate
 
 # receiver
 cd ../windows && npm install
