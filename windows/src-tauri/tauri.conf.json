@@ -48,12 +48,14 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
       "dialog": true,
       "endpoints": [
         "https://github.com/nbkdoesntknowcoding/display-share/releases/latest/download/latest.json"
       ],
-      "pubkey": ""
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyRUU5RjBBM0E2MUIwQzAKUldUQXNHRTZDcC91d21ucjVYUTlZYy8rMFBTL2d1WEtwR0dHalR2a3JOWmU3bEtCYmlIS2tJUkYK",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

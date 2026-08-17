@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"Permissions the receiver actually uses. Tauri v2 denies any plugin command not listed here, at runtime — so an omission here looks like a silent no-op, not a build error.","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-set-fullscreen","updater:default","process:allow-restart"]}}

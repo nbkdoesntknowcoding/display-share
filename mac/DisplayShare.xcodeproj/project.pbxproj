@@ -29,6 +29,7 @@
 		67012DB12D2BD95FE3C87EEE /* InputEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73BA65C147F0759185CF603 /* InputEvents.swift */; };
 		67ACE413F33E8A4FD236FA66 /* vd_helper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = D64520181389425E0876F924 /* vd_helper */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		72AE37F09E9422CA303C32F8 /* AdaptiveBitrate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A807FA4085741AD0E902444 /* AdaptiveBitrate.swift */; };
+		7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */; };
 		800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */; };
 		815F1C5BBB65A0FE36CEFCAE /* AnimatedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */; };
 		8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
@@ -53,6 +54,7 @@
 		EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */; };
 		F0B4E39F1D44621B65EDBBAF /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */; };
 		F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913024711DF4B033F3E182DC /* SessionSupervisor.swift */; };
+		F4793C68F0B993918D1D9F34 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */; };
 		F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */; };
 		F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */; };
 		F7DD5E0BFFA814811DAC0215 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */; };
@@ -137,6 +139,7 @@
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
 		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
 		55BD527AC059AAE5E481689F /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckerTests.swift; sourceTree = "<group>"; };
 		5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjector.swift; sourceTree = "<group>"; };
 		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
@@ -173,6 +176,7 @@
 		E73BA65C147F0759185CF603 /* InputEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputEvents.swift; sourceTree = "<group>"; };
 		EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStoreTests.swift; sourceTree = "<group>"; };
 		EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		FA1B0B69621DBEF69E22243A /* DisplayShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -251,6 +255,7 @@
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
 				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
+				5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */,
 				D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */,
 			);
 			path = DisplayShareCoreTests;
@@ -359,6 +364,7 @@
 				92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */,
 				913024711DF4B033F3E182DC /* SessionSupervisor.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
+				F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */,
 				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
 				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
 			);
@@ -534,6 +540,7 @@
 				58225362C3D56AD46027DBB6 /* PermissionMonitor.swift in Sources */,
 				F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
+				F4793C68F0B993918D1D9F34 /* UpdateChecker.swift in Sources */,
 				95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */,
 				069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */,
 				0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */,
@@ -572,6 +579,7 @@
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
 				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
+				7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */,
 				0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

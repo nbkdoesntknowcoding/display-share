@@ -135,6 +135,68 @@ reputation builds with downloads.
 
 ---
 
+## Updates
+
+Both apps check **GitHub Releases**; there is no server to run.
+
+| | macOS | Windows |
+|---|---|---|
+| Mechanism | GitHub releases API, notify + link | Tauri updater |
+| Downloads automatically | no | only after you click **Update and restart** |
+| Installs automatically | **no** — opens the release page | yes, after you agree |
+| Signature on the payload | n/a | required, minisign keypair |
+
+**Neither updates silently, on purpose.** Display Share ships unsigned, so a
+self-replacing binary that downloads and installs without asking is exactly the
+behaviour a user should distrust. The Mac app deliberately does **not** use
+Sparkle: Sparkle's value is silent signed installation, which is the part we
+cannot do honestly here. If a Developer ID certificate ever appears, revisit —
+signed auto-update is a different risk calculation.
+
+### The updater keypair is not a code signing certificate
+
+Tauri refuses to apply an update whose payload is not signed with its own
+minisign key. That key is **free** and unrelated to Authenticode or Developer
+ID: it proves the update came from this repo's CI, not that Microsoft or Apple
+vouches for the app.
+
+* Public key: in `windows/src-tauri/tauri.conf.json`, safe to publish.
+* Private key: repository secret `TAURI_SIGNING_PRIVATE_KEY`. It exists only in
+  GitHub's encrypted secret store — it is not in the repo and was removed from
+  disk after generation.
+
+To rotate it:
+
+```bash
+cd windows && npx tauri signer generate -w /tmp/key -p ""
+gh secret set TAURI_SIGNING_PRIVATE_KEY < /tmp/key
+# put the .pub contents into tauri.conf.json -> plugins.updater.pubkey
+rm -P /tmp/key
+```
+
+Rotating invalidates updates for anyone still on an older build; they must
+download manually once.
+
+### Rollback
+
+There is no in-app downgrade. To roll a bad release back:
+
+1. **Stop the bleeding.** Mark the bad release as a pre-release on GitHub, or
+   delete it. `releases/latest` then resolves to the previous good release, and
+   `latest.json` with it — so Windows clients stop being offered the bad build
+   and the Mac check stops reporting it.
+2. **Re-point users.** Anyone already updated installs the previous version from
+   its release page. The Windows installer overwrites in place; on macOS, drag
+   the older `.app` over the newer one.
+3. **Fix forward.** Land the fix, let release-please cut a new version, and
+   publish. A version *above* the bad one is the only thing that reaches clients
+   automatically — re-publishing the same number will not.
+
+Because artifacts are immutable once attached to a release, the previous build
+is always still downloadable at its own release page.
+
+---
+
 ## Also not on the Mac App Store
 
 Separate from signing: Display Share uses the private `CGVirtualDisplay` API and

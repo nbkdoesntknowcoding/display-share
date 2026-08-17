@@ -28,3 +28,10 @@ rand = "0.8"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+# Updater: checks GitHub Releases for a newer build. Payloads are verified
+# against the keypair above — Tauri requires this even though the installer
+# itself is unsigned, and the updater keypair is free.
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

@@ -39,6 +39,22 @@ public final class DisplayShareController: ObservableObject {
     /// Watches for sleep/wake, network drops and display reconfiguration.
     public let supervisor = SessionSupervisor()
 
+    /// Update availability (Task 7.2). Notify-and-link, never silent install.
+    private let updateChecker = UpdateChecker()
+    @Published public private(set) var availableUpdate: UpdateChecker.Release?
+
+    public func checkForUpdate() async {
+        let result = await updateChecker.check()
+        if case .updateAvailable(let release) = result {
+            availableUpdate = release
+        }
+    }
+
+    public func openUpdatePage() {
+        guard let release = availableUpdate else { return }
+        updateChecker.openReleasePage(release)
+    }
+
     /// Validates and dispatches forwarded input (Task 5.1).
     public let inputSink: InputEventSink
     /// Turns accepted input into CGEvents (Task 5.2).

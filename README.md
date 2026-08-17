@@ -133,6 +133,16 @@ the setting and measure it on your own hardware.
 
 ---
 
+## Updates
+
+Both apps check GitHub Releases at launch. **Neither updates silently** — the
+Mac app links you to the release page, and the Windows app downloads only after
+you click *Update and restart*. For an unsigned app, a self-replacing binary is
+the wrong default. See [docs/distribution.md](docs/distribution.md#updates) for
+the rollback path.
+
+---
+
 ## Privacy
 
 Display Share captures **only the virtual display it creates**, never your real

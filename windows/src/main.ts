@@ -7,6 +7,7 @@ import {
   type ReceiverPanel,
 } from "./protocol";
 import { InputCapture } from "./input";
+import { applyUpdate, checkForUpdate } from "./updater";
 
 /**
  * Display Share receiver frontend.
@@ -435,6 +436,37 @@ if (identity) {
 
 setStatus("Looking for senders…");
 void scanForSenders();
+
+// --- Updates (Task 7.2) -----------------------------------------------------
+// Checked once at launch, never applied without the user agreeing: this app
+// ships unsigned, so a silent auto-update is exactly what a user should
+// distrust.
+void (async () => {
+  const status = await checkForUpdate();
+  if (!status.available || !status.version) return;
+
+  const bar = document.createElement("div");
+  bar.id = "update-bar";
+  bar.innerHTML = `<span>Version ${status.version} is available.</span>`;
+  const install = document.createElement("button");
+  install.textContent = "Update and restart";
+  install.addEventListener("click", () => {
+    install.disabled = true;
+    install.textContent = "Downloading… 0%";
+    void applyUpdate((pct) => {
+      install.textContent = pct < 100 ? `Downloading… ${pct}%` : "Restarting…";
+    }).catch((e) => {
+      install.disabled = false;
+      install.textContent = `Update failed: ${e}`;
+    });
+  });
+  const dismiss = document.createElement("button");
+  dismiss.textContent = "Later";
+  dismiss.className = "ghost";
+  dismiss.addEventListener("click", () => bar.remove());
+  bar.append(install, dismiss);
+  document.body.appendChild(bar);
+})();
 
 // Auto-connect when a host is remembered AND we hold a token, so a paired
 // receiver reconnects without interaction.

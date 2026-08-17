@@ -47,6 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
 
+        // Check once at launch. Never downloads or installs on its own — this
+        // app is unsigned, so a silent self-replacing binary would be exactly
+        // the behaviour a user should distrust.
+        Task { await controller.checkForUpdate() }
+
         permissions.refresh()
         // Show onboarding when it has never been completed, or when the required
         // permission is missing — a user who revoked it needs the explanation
@@ -222,6 +227,13 @@ private struct ControlPanel: View {
             }
 
             controls
+
+            if let update = controller.availableUpdate {
+                Button("Update available — \(update.version)") {
+                    controller.openUpdatePage()
+                }
+                Divider()
+            }
 
             if let url = controller.streamURL {
                 Divider()
