@@ -29,6 +29,10 @@ final class VirtualDisplayHost {
         }
     }
 
+    /// Ceiling declared at creation; bounds every mode applied later.
+    static let maxSupportedWidth: UInt32 = 3840
+    static let maxSupportedHeight: UInt32 = 2160
+
     private(set) var configuration: DisplayConfiguration?
     private(set) var displayID: CGDirectDisplayID = 0
     private var display: CGVirtualDisplay?
@@ -50,11 +54,18 @@ final class VirtualDisplayHost {
         descriptor.queue = queue
         descriptor.name = config.name
 
-        // maxPixels bounds the PIXEL framebuffer while modes are in points, so a
-        // HiDPI mode needs 2x headroom in each axis.
+        // maxPixels bounds the PIXEL framebuffer and is IMMUTABLE once the
+        // display exists — applySettings: cannot raise it later. Sizing it to
+        // the initial mode would therefore cap live resolution changes to that
+        // mode; measured: applying 2560x1440 to a display created at 1920x1080
+        // fails with "CoreGraphics rejected the mode".
+        //
+        // So declare a generous ceiling up front. This costs nothing (it is a
+        // bound, not an allocation) and lets Task 1.4's live switching and Task
+        // 3.3's receiver negotiation pick any mode up to 4K.
         let scale: UInt32 = config.hiDPI ? 2 : 1
-        descriptor.maxPixelsWide = config.width * scale
-        descriptor.maxPixelsHigh = config.height * scale
+        descriptor.maxPixelsWide = max(Self.maxSupportedWidth, config.width * scale)
+        descriptor.maxPixelsHigh = max(Self.maxSupportedHeight, config.height * scale)
         descriptor.sizeInMillimeters = sizeInMillimeters(for: config)
 
         descriptor.vendorID = 0x444D  // "DM"

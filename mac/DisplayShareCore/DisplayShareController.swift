@@ -93,17 +93,48 @@ public final class DisplayShareController: ObservableObject {
         state = .idle
     }
 
-    /// Live resolution change — applied to the existing display so the user's
-    /// windows are not scattered.
+    /// Live resolution / refresh change.
+    ///
+    /// The helper applies the mode to the EXISTING display rather than
+    /// destroying and recreating it, so macOS keeps the user's windows where
+    /// they were. Only the capture stream is rebuilt, and the HTTP server is
+    /// left running so connected viewers are not dropped.
     public func update(configuration new: DisplayConfiguration) {
+        let previous = configuration
         configuration = new
         guard state.isActive else { return }
         do {
             let displayID = try client.applyMode(new)
+            if new.width != previous.width || new.height != previous.height
+                || new.refreshRate != previous.refreshRate
+            {
+                try pipeline.reconfigureCapture(displayID: displayID, fps: Int(new.refreshRate))
+            }
             state = .active(displayID: displayID)
         } catch {
+            FileHandle.standardError.write(Data("[DisplayShare] reconfigure failed: \(error)\n".utf8))
             state = .failed("\(error)")
         }
+    }
+
+    public func setResolution(width: UInt32, height: UInt32) {
+        var next = configuration
+        next.width = width
+        next.height = height
+        update(configuration: next)
+    }
+
+    public func setFrameRate(_ fps: Int) {
+        var next = configuration
+        next.refreshRate = Double(fps)
+        update(configuration: next)
+    }
+
+    /// JPEG quality is a pure encoder setting — it needs no display or stream
+    /// restart, so it can move under the user's finger.
+    public var jpegQuality: Double {
+        get { pipeline.quality }
+        set { pipeline.quality = newValue; objectWillChange.send() }
     }
 
     /// Called from applicationWillTerminate so a clean quit never leaves a display.

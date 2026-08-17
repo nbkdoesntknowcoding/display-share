@@ -91,6 +91,38 @@ public final class StreamPipeline: @unchecked Sendable {
         session?.updateFrameRate(fps)
     }
 
+    /// Rebuilds the capture stream for a new display geometry WITHOUT touching
+    /// the server, so connected viewers stay connected across a resolution
+    /// change. The virtual display itself is never destroyed (the helper applies
+    /// the mode in place), so the user's window arrangement survives.
+    public func reconfigureCapture(displayID: CGDirectDisplayID, fps: Int) throws {
+        lock.lock()
+        running = false
+        let old = capture
+        capture = nil
+        lock.unlock()
+        old?.stop()
+
+        let session = CaptureSession(configuration: .init(displayID: displayID, fps: fps))
+        try session.start()
+
+        lock.lock()
+        capture = session
+        running = true
+        lock.unlock()
+
+        let thread = Thread { [weak self] in self?.drain(session) }
+        thread.name = "DisplayShare.encode"
+        thread.qualityOfService = .userInitiated
+        thread.start()
+        worker = thread
+    }
+
+    public var quality: Double {
+        get { encoder.quality }
+        set { encoder.quality = newValue }
+    }
+
     public func stop() {
         lock.lock()
         running = false
