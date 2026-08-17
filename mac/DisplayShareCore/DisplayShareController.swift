@@ -36,6 +36,9 @@ public final class DisplayShareController: ObservableObject {
     private let pipeline: StreamPipeline
     private let port: UInt16
 
+    /// Watches for sleep/wake, network drops and display reconfiguration.
+    public let supervisor = SessionSupervisor()
+
     /// Devices allowed to connect, and the PIN flow for new ones.
     public let pairing: PairingStore
     /// PIN currently displayed to the user, nil when no pairing is pending.
@@ -56,6 +59,20 @@ public final class DisplayShareController: ObservableObject {
             codec: codec)
         store.onPINChanged = { [weak self] pin in
             Task { @MainActor in self?.pairingPIN = pin }
+        }
+
+        // Task 4.2: keep the session alive across sleep/wake, Wi-Fi drops and
+        // display reconfiguration.
+        supervisor.frameCountProvider = { [weak self] in self?.pipeline.framesProcessed ?? 0 }
+        supervisor.hasReceiver = { [weak self] in self?.pipeline.socketServer.hasAuthorisedClient ?? false }
+        supervisor.onRecoverCapture = { [weak self] in
+            guard let self else { return false }
+            // Recreate the display ONLY if its geometry changed; otherwise just
+            // restart capture, so the user's windows stay where they are.
+            return self.pipeline.restartCapture()
+        }
+        pipeline.onCaptureStopped = { [weak self] error in
+            self?.supervisor.noteCaptureStopped(error)
         }
         // Task 3.3: size the virtual display to the receiver's actual panel so
         // the image is neither letterboxed nor stretched.
@@ -86,6 +103,8 @@ public final class DisplayShareController: ObservableObject {
             // Capture + encode + serve. The display exists regardless of whether
             // streaming succeeds, so surface those failures separately.
             try pipeline.start(displayID: displayID, fps: Int(configuration.refreshRate))
+            supervisor.start()
+            supervisor.noteSessionStarted()
             streamURL = "http://\(Self.primaryIPv4Address() ?? "localhost"):\(port)"
             state = .active(displayID: displayID)
         } catch let error as CaptureSession.CaptureError {
@@ -108,6 +127,7 @@ public final class DisplayShareController: ObservableObject {
     }
 
     public func stop() {
+        supervisor.stop()
         pipeline.stop()
         pipeline.stopServers()
         streamURL = nil
@@ -217,6 +237,7 @@ public final class DisplayShareController: ObservableObject {
 
     /// Called from applicationWillTerminate so a clean quit never leaves a display.
     public func shutdownForQuit() {
+        supervisor.stop()
         pipeline.stop()
         pipeline.stopServers()
         client.shutdown()

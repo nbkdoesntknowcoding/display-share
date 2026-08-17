@@ -42,6 +42,7 @@
 		EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
 		EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */; };
 		F0B4E39F1D44621B65EDBBAF /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */; };
+		F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913024711DF4B033F3E182DC /* SessionSupervisor.swift */; };
 		F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */; };
 		F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */; };
 		F7DD5E0BFFA814811DAC0215 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */; };
@@ -131,6 +132,7 @@
 		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
 		8B126213B277A3A9D373A955 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
 		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
+		913024711DF4B033F3E182DC /* SessionSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupervisor.swift; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
 		A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareApp.swift; sourceTree = "<group>"; };
 		AC488CEB9617F6DD850B63E1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -327,6 +329,7 @@
 				1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
 				6012B810C82DD746CEF5E434 /* PairingStore.swift */,
+				913024711DF4B033F3E182DC /* SessionSupervisor.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
 				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
 				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
@@ -491,6 +494,7 @@
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */,
+				F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
 				95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */,
 				069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */,

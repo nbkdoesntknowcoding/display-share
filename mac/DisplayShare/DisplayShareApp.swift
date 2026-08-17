@@ -45,6 +45,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--test-cycle") {
             runLiveReconfigurationCycle()
         }
+
+        // Test-only: exercises the recovery path the wake notification triggers,
+        // without suspending the machine running the test.
+        if let index = CommandLine.arguments.firstIndex(of: "--test-recover-after"),
+            index + 1 < CommandLine.arguments.count,
+            let delay = Double(CommandLine.arguments[index + 1])
+        {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.controller.supervisor.recover(reason: "test hook (wake path)")
+            }
+        }
     }
 
     private func note(_ message: String) {

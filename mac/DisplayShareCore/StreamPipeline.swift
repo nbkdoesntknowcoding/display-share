@@ -37,6 +37,8 @@ public final class StreamPipeline: @unchecked Sendable {
     /// Task 3.3: the receiver's panel geometry, reported in `hello`. The
     /// controller decides whether to adopt it.
     public var onReceiverPanel: ((ReceiverPanel) -> Void)?
+    /// SCStream died on its own (display gone, permission revoked, post-wake).
+    public var onCaptureStopped: ((Error) -> Void)?
 
     public init(
         httpServer: MJPEGServer = MJPEGServer(),
@@ -71,6 +73,34 @@ public final class StreamPipeline: @unchecked Sendable {
         }
     }
 
+    /// Cumulative frames handed downstream since the pipeline started. Used by
+    /// SessionSupervisor to tell "working" from "quietly dead".
+    public var framesProcessed: Int {
+        codec == .h264
+            ? h264Encoder.statistics.framesEncoded
+            : httpServer.statistics.framesSent
+    }
+
+    /// Rebuilds capture (and the encoder) for the display already in use,
+    /// forcing a keyframe. Does NOT touch the virtual display or the servers, so
+    /// window arrangement and any attached receiver survive.
+    @discardableResult
+    public func restartCapture() -> Bool {
+        lock.lock()
+        let session = capture
+        let fps = currentFPS
+        lock.unlock()
+        guard let displayID = session?.configuration.displayID else { return false }
+        do {
+            try reconfigureCapture(displayID: displayID, fps: fps)
+            return true
+        } catch {
+            FileHandle.standardError.write(
+                Data("[DisplayShare] restartCapture failed: \(error)\n".utf8))
+            return false
+        }
+    }
+
     public var isRunning: Bool {
         lock.lock(); defer { lock.unlock() }
         return running
@@ -93,6 +123,7 @@ public final class StreamPipeline: @unchecked Sendable {
 
         let session = CaptureSession(
             configuration: .init(displayID: displayID, fps: fps, pixelFormat: pixelFormat))
+        session.onStreamStopped = { [weak self] error in self?.onCaptureStopped?(error) }
         try session.start()
 
         if codec == .h264 {
@@ -181,6 +212,7 @@ public final class StreamPipeline: @unchecked Sendable {
         currentFPS = fps
         let session = CaptureSession(
             configuration: .init(displayID: displayID, fps: fps, pixelFormat: pixelFormat))
+        session.onStreamStopped = { [weak self] error in self?.onCaptureStopped?(error) }
         try session.start()
 
         if codec == .h264 {
