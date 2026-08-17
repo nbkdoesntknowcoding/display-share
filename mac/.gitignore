@@ -1,0 +1,4 @@
+
+# Release packaging output (Task 6.1)
+.release/
+.release-build.log

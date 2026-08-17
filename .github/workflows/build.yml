@@ -1,0 +1,146 @@
+name: Build
+
+# Tasks 6.1 and 6.2: produce signed, notarized artifacts for both platforms.
+# Tag-triggered releases and release-please land in Task 7.1; this workflow is
+# the build and signing half, runnable on demand and on every push to main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: "Sign and notarize (requires secrets)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ------------------------------------------------------------------ macOS
+  # MUST run on macOS: notarytool and stapler are macOS-only, so the Linux VPS
+  # cannot do this step no matter how the rest is deployed.
+  macos:
+    name: macOS (universal .dmg)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tooling
+        run: brew install xcodegen create-dmg
+
+      - name: Run unit tests
+        working-directory: mac
+        run: |
+          xcodegen generate --spec project.yml
+          xcodebuild -project DisplayShare.xcodeproj -scheme DisplayShareCore \
+            -configuration Debug -derivedDataPath ./.build test
+
+      - name: Verify protocol vectors against the TypeScript parser
+        working-directory: windows
+        run: |
+          npm ci
+          node scripts/verify-vectors.mjs
+
+      # Signing only when the secrets exist. A fork PR has none, and must still
+      # get a green build rather than a confusing failure.
+      - name: Import Developer ID certificate
+        if: ${{ secrets.MACOS_CERTIFICATE != '' }}
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}
+        run: |
+          # Ephemeral keychain: never touches the runner's default keychain, and
+          # dies with the runner.
+          echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import /tmp/certificate.p12 -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          # Without this, codesign blocks on a UI prompt that never appears.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm -f /tmp/certificate.p12
+
+      - name: Package
+        working-directory: mac
+        env:
+          DS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          DS_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DS_APPLE_ID: ${{ secrets.APPLE_ID }}
+          DS_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: ./scripts/package-macos.sh
+
+      - name: Fail if a release build is unsigned
+        # A tagged build that silently ships unsigned is worse than a red build.
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: mac
+        run: |
+          DMG="$(ls .release/*.dmg | head -1)"
+          spctl -a -vvv -t install "$DMG" 2>&1 | tee /tmp/spctl.txt
+          grep -q "accepted" /tmp/spctl.txt || {
+            echo "::error::DMG is not Gatekeeper-accepted — signing or notarization did not run"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: mac/.release/*.dmg
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- Windows
+  windows:
+    name: Windows (NSIS .exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: windows/src-tauri
+
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci
+
+      - name: Type-check and verify protocol vectors
+        working-directory: windows
+        run: |
+          npm run build
+          node scripts/verify-vectors.mjs
+
+      # tauri-action reads the signing certificate from these env vars. Left
+      # unset, it produces an UNSIGNED installer — which SmartScreen will warn
+      # about until the certificate's reputation is established (see
+      # docs/signing.md for the OV vs EV decision).
+      - name: Build installer
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          projectPath: windows
+          includeUpdaterJson: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            windows/src-tauri/target/release/bundle/nsis/*.exe
+            windows/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
