@@ -33,6 +33,9 @@ public final class WebSocketServer: @unchecked Sendable {
     /// be advisory and an unpaired device would still receive the stream.
     private var authorised = false
     private var stats = Statistics()
+    /// Previous cumulative counters, so drop rate is measured per interval.
+    private var previousDecodedFrames = 0
+    private var previousDroppedFrames = 0
 
     private var windowStart = CFAbsoluteTimeGetCurrent()
     private var windowFrames = 0
@@ -46,6 +49,8 @@ public final class WebSocketServer: @unchecked Sendable {
     public var onKeyframeRequested: (() -> Void)?
     public var onResizeRequested: ((Int, Int) -> Void)?
     public var onClientDisconnected: (() -> Void)?
+    /// (roundTripMillis, dropRate) from each receiver `stats` message.
+    public var onReceiverReport: ((Double, Double) -> Void)?
 
     /// Current encoded format, reported in `welcome`.
     public var videoFormat: VideoFormat?
@@ -128,6 +133,9 @@ public final class WebSocketServer: @unchecked Sendable {
         } else {
             client = connection
             authorised = false
+            // A new receiver starts its counters from zero.
+            previousDecodedFrames = 0
+            previousDroppedFrames = 0
             stats.connected = true
         }
         lock.unlock()
@@ -290,9 +298,37 @@ public final class WebSocketServer: @unchecked Sendable {
             // round trip measured entirely against our own clock.
             if let echoed = message.lastTimestamp {
                 let now = UInt64(CFAbsoluteTimeGetCurrent() * 1_000_000)
-                if now > echoed { stats.roundTripMillis = Double(now - echoed) / 1000.0 }
+                if now > echoed {
+                    let millis = Double(now - echoed) / 1000.0
+                    // Sanity bound. The echo is supposed to be a timestamp WE
+                    // minted; anything implausible means a confused or hostile
+                    // receiver, and accepting it would let a bogus echo drive our
+                    // bitrate to the floor. Treat it as unmeasured instead.
+                    stats.roundTripMillis = millis < 5_000 ? millis : 0
+                } else {
+                    // Echo is in our future: also not a usable measurement.
+                    stats.roundTripMillis = 0
+                }
             }
+            let rtt = stats.roundTripMillis
+            let decoded = message.decodedFrames ?? 0
+            let dropped = message.droppedFrames ?? 0
             lock.unlock()
+
+            // Task 4.3: drop rate must come from the DELTA between reports, not
+            // cumulative totals. Using totals means a receiver that ever dropped
+            // frames reports an elevated rate forever, so the controller can only
+            // ever ratchet downward and never sees the link clear again.
+            lock.lock()
+            let deltaDecoded = max(0, decoded - previousDecodedFrames)
+            let deltaDropped = max(0, dropped - previousDroppedFrames)
+            previousDecodedFrames = decoded
+            previousDroppedFrames = dropped
+            lock.unlock()
+
+            let windowTotal = deltaDecoded + deltaDropped
+            let dropRate = windowTotal > 0 ? Double(deltaDropped) / Double(windowTotal) : 0
+            onReceiverReport?(rtt, dropRate)
 
         default:
             // SPEC §4: unknown types are ignored so either side can add

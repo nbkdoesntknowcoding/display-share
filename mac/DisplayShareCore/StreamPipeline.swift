@@ -40,6 +40,15 @@ public final class StreamPipeline: @unchecked Sendable {
     /// SCStream died on its own (display gone, permission revoked, post-wake).
     public var onCaptureStopped: ((Error) -> Void)?
 
+    private var bitrate = AdaptiveBitrateController()
+    private let bitrateLock = NSLock()
+
+    /// Current adaptive target, for the HUD.
+    public var targetBitrate: Int {
+        bitrateLock.lock(); defer { bitrateLock.unlock() }
+        return bitrate.currentBitrate
+    }
+
     public init(
         httpServer: MJPEGServer = MJPEGServer(),
         socketServer: WebSocketServer = WebSocketServer(),
@@ -61,6 +70,27 @@ public final class StreamPipeline: @unchecked Sendable {
         }
         self.socketServer.onKeyframeRequested = { [weak self] in
             self?.h264Encoder.requestKeyframe()
+        }
+        // Adaptive bitrate: degrade sharpness under congestion rather than let
+        // latency accumulate. Queue depth is bounded elsewhere, so this only
+        // ever changes quality.
+        self.socketServer.onReceiverReport = { [weak self] rtt, dropRate in
+            guard let self else { return }
+            self.bitrateLock.lock()
+            let decision = self.bitrate.ingest(
+                .init(roundTripMillis: rtt, dropRate: dropRate, at: Date()))
+            let target = self.bitrate.currentBitrate
+            self.bitrateLock.unlock()
+
+            switch decision {
+            case .hold:
+                break
+            case .decrease, .increase:
+                self.h264Encoder.setBitrate(target)
+                FileHandle.standardError.write(Data(
+                    String(format: "[DisplayShare] bitrate -> %.1f Mbps (rtt %.0fms, drops %.1f%%)\n",
+                           Double(target) / 1e6, rtt, dropRate * 100).utf8))
+            }
         }
         self.h264Encoder.onEncodedFrame = { [weak self] frame in
             guard let self else { return }
