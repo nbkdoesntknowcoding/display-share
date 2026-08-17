@@ -301,9 +301,3 @@ private func report(
     print("\nVERDICT: \(pass ? "GO ✅ — ScreenCaptureKit captures the virtual display." : "INVESTIGATE ⚠️")")
     exit(pass ? 0 : 1)
 }
-
-// Task 0.3 — implemented next.
-func runBench(_ args: Args) {
-    print("`bench` lands with Task 0.3.")
-    exit(2)
-}
