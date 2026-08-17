@@ -1,8 +1,11 @@
 name: Build
 
-# Tasks 6.1 and 6.2: produce signed, notarized artifacts for both platforms.
-# Tag-triggered releases and release-please land in Task 7.1; this workflow is
-# the build and signing half, runnable on demand and on every push to main.
+# Builds artifacts for both platforms.
+#
+# Display Share is OPEN SOURCE and ships UNSIGNED by decision — no Apple
+# Developer ID, no Windows OV certificate. The signing steps below are kept
+# because they cost nothing when the secrets are absent, and would start working
+# the day someone donates a certificate. Nothing here gates on a signature.
 
 on:
   push:
@@ -76,17 +79,21 @@ jobs:
           DS_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: ./scripts/package-macos.sh
 
-      - name: Fail if a release build is unsigned
-        # A tagged build that silently ships unsigned is worse than a red build.
-        if: startsWith(github.ref, 'refs/tags/')
+      # Report the Gatekeeper verdict but do NOT gate on it. Display Share is
+      # open source and ships unsigned by decision, so "rejected" is the
+      # expected state, not a build failure.
+      - name: Report Gatekeeper status
         working-directory: mac
         run: |
           DMG="$(ls .release/*.dmg | head -1)"
-          spctl -a -vvv -t install "$DMG" 2>&1 | tee /tmp/spctl.txt
-          grep -q "accepted" /tmp/spctl.txt || {
-            echo "::error::DMG is not Gatekeeper-accepted — signing or notarization did not run"
-            exit 1
-          }
+          echo "### macOS artifact" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          spctl -a -vvv -t install "$DMG" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if ! spctl -a -t install "$DMG" >/dev/null 2>&1; then
+            echo "Unsigned build — users must use Privacy & Security -> Open Anyway." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:

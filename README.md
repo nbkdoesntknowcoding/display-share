@@ -28,7 +28,7 @@ over the LAN.
 | 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
 | 4 | Session robustness | ✅ complete |
 | 5 | Input injection | ✅ complete |
-| 6 | Packaging & signing | ⚠️ pipeline done, **blocked on certificates** |
+| 6 | Packaging | ✅ pipeline done; ships unsigned by design |
 | 7 | VPS, updates & release | not started |
 
 ---
@@ -149,8 +149,9 @@ signed:     NO — ad-hoc only
 notarized:  NO
 ```
 
-See [docs/signing.md](docs/signing.md) for what the certificates cost, how to
-wire them, and why Windows starts with an OV rather than EV certificate.
+Display Share is open source and ships **unsigned by decision** — see
+[docs/distribution.md](docs/distribution.md) for exactly what each OS warns and
+what to click, plus how building from source avoids the warning entirely.
 
 ---
 
