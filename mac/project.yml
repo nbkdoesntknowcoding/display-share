@@ -54,6 +54,7 @@ targets:
       - sdk: ScreenCaptureKit.framework
       - sdk: CoreMedia.framework
       - sdk: CoreVideo.framework
+      - sdk: VideoToolbox.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: in.theboringpeople.displayshare.core

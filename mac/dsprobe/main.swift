@@ -72,6 +72,29 @@ if let raw = ProcessInfo.processInfo.environment["DS_CONTENT_DISPLAY"],
     exit(0)
 }
 
+// H.264 dump mode (Task 2.1): creates its own display, animates it, encodes.
+if let dumpPath = ProcessInfo.processInfo.environment["DS_H264_DUMP"] {
+    let seconds = Double(ProcessInfo.processInfo.environment["DS_SECONDS"] ?? "6") ?? 6
+    let fps = Int(ProcessInfo.processInfo.environment["DS_FPS"] ?? "60") ?? 60
+    let bitrate = Int(ProcessInfo.processInfo.environment["DS_BITRATE"] ?? "12000000") ?? 12_000_000
+    let client = HelperClient()
+    try! client.connect()
+    var cfg = DisplayConfiguration()
+    cfg.name = "Display Share (H264 Probe)"
+    cfg.refreshRate = Double(fps)
+    let id = try! client.createDisplay(cfg)
+    print("=== Task 2.1 — VideoToolbox H.264 ===")
+    print("display 0x\(String(id, radix: 16)) \(cfg.width)x\(cfg.height) @ \(fps)fps, target \(bitrate / 1_000_000) Mbps")
+    Thread.sleep(forTimeInterval: 1.0)
+    let content = AnimatedContent()
+    content.start(on: id)
+    RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+    runH264Dump(displayID: id, seconds: seconds, fps: fps, bitrate: bitrate, path: dumpPath)
+    content.stop()
+    client.shutdown()
+    exit(0)
+}
+
 print("=== Task 1.2 — CaptureSession acceptance ===")
 
 let client = HelperClient()
