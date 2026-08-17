@@ -24,6 +24,12 @@ struct DisplayShareApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // --codec mjpeg selects the Phase 1 path, for the Task 2.4 comparison.
+    let permissions = PermissionMonitor()
+    /// Owned directly rather than as a SwiftUI Window scene: showing and hiding a
+    /// scene from an AppDelegate depends on private selectors, and this window
+    /// must appear reliably on a genuinely fresh install.
+    private var onboardingWindow: NSWindow?
+
     let controller = DisplayShareController(
         codec: CommandLine.arguments.contains("mjpeg") ? .mjpeg : .h264,
         // --no-pairing is for automated tests only; pairing is on by default.
@@ -32,6 +38,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
+
+        permissions.refresh()
+        // Show onboarding when it has never been completed, or when the required
+        // permission is missing — a user who revoked it needs the explanation
+        // again, not a silently broken app.
+        // Use the SYNCHRONOUS flag: permissions.screenRecording is still
+        // .unknown here because its capture probe is async.
+        let hasScreenRecording = PermissionMonitor.screenRecordingFlag
+        let needsOnboarding = !OnboardingRecord.isComplete || !hasScreenRecording
+        log(
+            "complete=\(OnboardingRecord.isComplete) screenRecordingFlag=\(hasScreenRecording) -> needsOnboarding=\(needsOnboarding)")
+        if needsOnboarding && !CommandLine.arguments.contains("--skip-onboarding") {
+            showOnboarding()
+        }
 
         // Lets the lifecycle acceptance tests (and later CI) drive the app
         // without a human clicking the menu bar.
@@ -86,6 +106,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.note("\(label) -> \(state)")
             }
             delay += 4
+        }
+    }
+
+    func showOnboarding() {
+        log("showing onboarding")
+        // A window needs a regular activation policy to come forward; drop back
+        // to accessory afterwards so no Dock icon lingers.
+        NSApp.setActivationPolicy(.regular)
+
+        if onboardingWindow == nil {
+            let hosting = NSHostingController(
+                rootView: OnboardingView(monitor: permissions) { [weak self] in
+                    self?.finishOnboarding()
+                })
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "Welcome to Display Share"
+            window.styleMask = [.titled, .closable, .fullSizeContentView]
+            window.isReleasedWhenClosed = false
+            window.center()
+            onboardingWindow = window
+        }
+        // Present on the NEXT run-loop turn. An LSUIElement app switching to
+        // .regular during applicationDidFinishLaunching is not yet foreground-
+        // capable, so ordering front in the same turn silently does nothing.
+        DispatchQueue.main.async { [weak self] in
+            guard let window = self?.onboardingWindow else { return }
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            NSApp.activate(ignoringOtherApps: true)
+            self?.log("window visible=\(window.isVisible) frame=\(window.frame)")
+        }
+    }
+
+    private func dismissOnboardingWindow() {
+        onboardingWindow?.close()
+    }
+
+    private func log(_ text: String) {
+        FileHandle.standardError.write(Data("[DisplayShare] onboarding: \(text)\n".utf8))
+    }
+
+    func finishOnboarding() {
+        log("finished by user")
+        OnboardingRecord.markComplete()
+        dismissOnboardingWindow()
+        NSApp.setActivationPolicy(.accessory)
+        permissions.stopMonitoring()
+        // Start immediately when possible, so "reaches a working second display"
+        // needs no further clicks.
+        if permissions.screenRecordingGranted, !controller.state.isActive {
+            controller.start()
         }
     }
 

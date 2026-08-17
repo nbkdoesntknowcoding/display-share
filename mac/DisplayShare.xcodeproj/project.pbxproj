@@ -22,6 +22,7 @@
 		538D6BCFCF9A2FCD29027A70 /* KeyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFCD764FE6F912C36764995 /* KeyMap.swift */; };
 		55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A22D3E32B880B7AF932726 /* StreamPipeline.swift */; };
 		56969C6631C6A54308D8E9F0 /* JPEGEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */; };
+		58225362C3D56AD46027DBB6 /* PermissionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */; };
 		595404DCE6EA66ED667D0235 /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
 		5DC2EAF03A230AB3D347B690 /* H264Encoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */; };
 		65A1F628B5ECC64A36C7CC02 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC488CEB9617F6DD850B63E1 /* main.swift */; };
@@ -46,6 +47,7 @@
 		D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */; };
 		DD962C55C3C38AC2A9AF55A1 /* H264Dump.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF94B2E6662744A3FC80AFC4 /* H264Dump.swift */; };
 		DF0C3D4E25ABBD661C7130B5 /* CGVirtualDisplayPrivate.m in Sources */ = {isa = PBXBuildFile; fileRef = 82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */; };
+		E01AE605E5EFA57FF0029F2A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */; };
 		E88DB9F175455A43FCCBE0E7 /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
 		EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */; };
@@ -146,8 +148,10 @@
 		8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyMapTests.swift; sourceTree = "<group>"; };
 		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
 		913024711DF4B033F3E182DC /* SessionSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupervisor.swift; sourceTree = "<group>"; };
+		92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionMonitor.swift; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
 		A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareApp.swift; sourceTree = "<group>"; };
+		AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		AC488CEB9617F6DD850B63E1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperClient.swift; sourceTree = "<group>"; };
 		AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
@@ -284,6 +288,7 @@
 				8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */,
 				A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */,
 				D00D23447A81B9127D65D8BC /* Info.plist */,
+				AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */,
 				72DC0F3675ECF4A8329202AA /* Resources */,
 			);
 			path = DisplayShare;
@@ -351,6 +356,7 @@
 				CFFCD764FE6F912C36764995 /* KeyMap.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
 				6012B810C82DD746CEF5E434 /* PairingStore.swift */,
+				92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */,
 				913024711DF4B033F3E182DC /* SessionSupervisor.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
 				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
@@ -499,6 +505,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */,
+				E01AE605E5EFA57FF0029F2A /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -521,6 +528,7 @@
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */,
+				58225362C3D56AD46027DBB6 /* PermissionMonitor.swift in Sources */,
 				F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
 				95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */,
