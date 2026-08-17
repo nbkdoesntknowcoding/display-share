@@ -21,6 +21,8 @@ let package = Package(
                 .linkedFramework("CoreMedia"),
                 .linkedFramework("CoreVideo"),
                 .linkedFramework("AppKit"),
+                .linkedFramework("ImageIO"),
+                .linkedFramework("CoreImage"),
             ]
         ),
     ]
