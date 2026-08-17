@@ -25,6 +25,7 @@
 		815F1C5BBB65A0FE36CEFCAE /* AnimatedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */; };
 		8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
 		941013BA6101FDE4B6506AEF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C13B96E4B22FF0CF33F72A36 /* CoreVideo.framework */; };
+		95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */; };
 		98FB5B2C8C2D6B48C8040358 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */; };
 		A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */; };
 		A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
@@ -115,6 +116,7 @@
 		0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264Encoder.swift; sourceTree = "<group>"; };
 		1BBFA61E802ABC429B866EB8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGEncoder.swift; sourceTree = "<group>"; };
+		247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerPages.swift; sourceTree = "<group>"; };
 		3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueueTests.swift; sourceTree = "<group>"; };
 		4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
@@ -320,6 +322,7 @@
 				1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
+				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
 				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
 			);
 			path = DisplayShareCore;
@@ -482,6 +485,7 @@
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
+				95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */,
 				069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */,
 				0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */,
 			);

@@ -23,7 +23,9 @@ struct DisplayShareApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let controller = DisplayShareController()
+    // --codec mjpeg selects the Phase 1 path, for the Task 2.4 comparison.
+    let controller = DisplayShareController(
+        codec: CommandLine.arguments.contains("mjpeg") ? .mjpeg : .h264)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu bar only — no Dock icon, no main window.

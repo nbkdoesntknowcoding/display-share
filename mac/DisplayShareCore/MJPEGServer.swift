@@ -41,8 +41,12 @@ public final class MJPEGServer: @unchecked Sendable {
 
     public private(set) var isRunning = false
 
-    public init(port: UInt16 = 8787) {
+    /// Where the viewer page should point its WebSocket.
+    public var webSocketPort: UInt16
+
+    public init(port: UInt16 = 8787, webSocketPort: UInt16 = 8788) {
         self.port = NWEndpoint.Port(rawValue: port)!
+        self.webSocketPort = webSocketPort
     }
 
     public var statistics: Statistics {
@@ -89,7 +93,9 @@ public final class MJPEGServer: @unchecked Sendable {
                 return
             }
             let request = String(decoding: data, as: UTF8.self)
-            let path = request.split(separator: " ").dropFirst().first.map(String.init) ?? "/"
+            // Strip the query string: "/?hw=software" must still route to "/".
+            let target = request.split(separator: " ").dropFirst().first.map(String.init) ?? "/"
+            let path = target.split(separator: "?", maxSplits: 1).first.map(String.init) ?? "/"
 
             switch path {
             case "/stream":
@@ -97,6 +103,10 @@ public final class MJPEGServer: @unchecked Sendable {
             case "/stats":
                 self.sendJSON(self.statistics, on: connection)
             case "/", "/index.html":
+                // Task 2.4 default: the H.264 WebCodecs client.
+                self.sendHTML(ViewerPages.webCodecs(socketPort: self.webSocketPort), on: connection)
+            case "/mjpeg":
+                // Phase 1 path, kept for the side-by-side latency comparison.
                 self.sendHTML(Self.viewerPage, on: connection)
             default:
                 self.sendPlain("404 not found", status: "404 Not Found", on: connection)
@@ -210,7 +220,11 @@ public final class MJPEGServer: @unchecked Sendable {
 
         guard !targets.isEmpty else { return }
 
-        var payload = Data("--\(boundary)\r\nContent-Type: image/jpeg\r\nContent-Length: \(jpeg.count)\r\n\r\n".utf8)
+        // X-Sent-Micros lets a fetch-based client measure one-way latency
+        // exactly as the WebCodecs client does, so the two paths compare fairly.
+        let sentMicros = UInt64(CFAbsoluteTimeGetCurrent() * 1_000_000)
+        var payload = Data(
+            "--\(boundary)\r\nContent-Type: image/jpeg\r\nContent-Length: \(jpeg.count)\r\nX-Sent-Micros: \(sentMicros)\r\n\r\n".utf8)
         payload.append(jpeg)
         payload.append(Data("\r\n".utf8))
 
@@ -237,13 +251,17 @@ public final class MJPEGServer: @unchecked Sendable {
 
     /// Viewer page: fullscreen image plus the debug HUD the build plan requires
     /// from Phase 1 onward. Press H to hide it, F for fullscreen.
+    /// Phase 1 MJPEG client, kept for the Task 2.4 latency comparison.
+    ///
+    /// Uses fetch + ReadableStream rather than an <img> tag so it can read the
+    /// per-part X-Sent-Micros header. An <img> gives no per-frame hook, which
+    /// would make the two paths impossible to compare on equal terms.
     static let viewerPage = """
         <!doctype html>
         <html lang="en">
         <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Display Share</title>
+        <title>Display Share — MJPEG</title>
         <style>
           :root { color-scheme: dark; }
           html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
@@ -254,66 +272,108 @@ public final class MJPEGServer: @unchecked Sendable {
             color:#e8e8e8; background:rgba(0,0,0,.62); border:1px solid rgba(255,255,255,.16);
             border-radius:8px; backdrop-filter:blur(8px); pointer-events:none; white-space:pre;
           }
-          #hud.hidden { display:none; }
-          .k { color:#8b96a5; }
         </style>
         </head>
         <body>
-        <img id="screen" src="/stream" alt="Remote display">
+        <canvas id="screen"></canvas>
         <div id="hud">connecting…</div>
         <script>
-          const hud = document.getElementById('hud');
-          const img = document.getElementById('screen');
+        const canvas = document.getElementById('screen');
+        const ctx = canvas.getContext('2d');
+        const hud = document.getElementById('hud');
+        const CF_EPOCH_OFFSET_MS = 978307200000;
+        const sameMachine = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
 
-          // Client-side arrival rate, measured independently of what the
-          // server thinks it sent.
-          let arrivals = [], lastPaint = performance.now();
-          const tick = () => {
-            const now = performance.now();
-            arrivals.push(now - lastPaint);
-            lastPaint = now;
-            if (arrivals.length > 60) arrivals.shift();
-            requestAnimationFrame(tick);
+        let painted = 0, frames = 0, bytes = 0, decodeMs = 0;
+        let windowStart = performance.now(), fps = 0, mbps = 0;
+        let latencySamples = [];
+
+        function median(a) {
+          if (!a.length) return 0;
+          const s = [...a].sort((x, y) => x - y);
+          return s[Math.floor(s.length / 2)];
+        }
+
+        // Minimal multipart/x-mixed-replace reader.
+        async function run() {
+          const res = await fetch('/stream', { cache: 'no-store' });
+          const reader = res.body.getReader();
+          let buf = new Uint8Array(0);
+          const enc = new TextEncoder();
+          const BOUNDARY = enc.encode('--displayshareframe');
+
+          const indexOf = (hay, needle, from) => {
+            outer: for (let i = from; i <= hay.length - needle.length; i++) {
+              for (let j = 0; j < needle.length; j++) if (hay[i+j] !== needle[j]) continue outer;
+              return i;
+            }
+            return -1;
           };
-          requestAnimationFrame(tick);
 
-          const pad = (s, n) => String(s).padStart(n);
-          async function refresh() {
-            try {
-              const r = await fetch('/stats', { cache: 'no-store' });
-              const s = await r.json();
-              const avg = arrivals.length
-                ? arrivals.reduce((a, b) => a + b, 0) / arrivals.length : 0;
-              hud.textContent =
-                `capture   ${pad(s.captureFPS, 6)} fps\\n` +
-                `sent      ${pad(s.sentFPS, 6)} fps\\n` +
-                `encode    ${pad(s.encodeMs, 6)} ms\\n` +
-                `frame     ${pad(s.frameKB, 6)} KB\\n` +
-                `bandwidth ${pad(s.mbps, 6)} Mbps\\n` +
-                `dropped   ${pad(s.dropped, 6)}\\n` +
-                `clients   ${pad(s.clients, 6)}\\n` +
-                `paint     ${pad(avg.toFixed(1), 6)} ms`;
-            } catch (e) {
-              hud.textContent = 'stats unavailable';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const merged = new Uint8Array(buf.length + value.length);
+            merged.set(buf); merged.set(value, buf.length);
+            buf = merged;
+
+            while (true) {
+              const start = indexOf(buf, BOUNDARY, 0);
+              if (start < 0) break;
+              const headerEnd = indexOf(buf, enc.encode('\\r\\n\\r\\n'), start);
+              if (headerEnd < 0) break;
+              const headerText = new TextDecoder().decode(buf.subarray(start, headerEnd));
+              const lenMatch = /Content-Length:\\s*(\\d+)/i.exec(headerText);
+              const tsMatch = /X-Sent-Micros:\\s*(\\d+)/i.exec(headerText);
+              if (!lenMatch) break;
+              const bodyStart = headerEnd + 4;
+              const bodyLen = parseInt(lenMatch[1], 10);
+              if (buf.length < bodyStart + bodyLen) break;
+
+              const jpeg = buf.subarray(bodyStart, bodyStart + bodyLen);
+              bytes += bodyLen; frames++;
+              const t0 = performance.now();
+              const bmp = await createImageBitmap(new Blob([jpeg], { type: 'image/jpeg' }));
+              decodeMs = performance.now() - t0;
+              if (canvas.width !== bmp.width) { canvas.width = bmp.width; canvas.height = bmp.height; }
+              ctx.drawImage(bmp, 0, 0);
+              bmp.close();
+              painted++;
+
+              if (sameMachine && tsMatch) {
+                const sentMs = Number(tsMatch[1]) / 1000 + CF_EPOCH_OFFSET_MS;
+                const oneWay = Date.now() - sentMs;
+                if (oneWay >= 0 && oneWay < 2000) {
+                  latencySamples.push(oneWay);
+                  if (latencySamples.length > 120) latencySamples.shift();
+                }
+              }
+              buf = buf.subarray(bodyStart + bodyLen);
             }
           }
-          setInterval(refresh, 500);
-          refresh();
+        }
 
-          addEventListener('keydown', (e) => {
-            const k = e.key.toLowerCase();
-            if (k === 'h') hud.classList.toggle('hidden');
-            if (k === 'f') {
-              if (document.fullscreenElement) document.exitFullscreen();
-              else document.documentElement.requestFullscreen();
-            }
-          });
+        setInterval(() => {
+          const now = performance.now();
+          const elapsed = (now - windowStart) / 1000;
+          if (elapsed >= 1) {
+            fps = painted / elapsed;
+            mbps = bytes * 8 / elapsed / 1e6;
+            painted = 0; bytes = 0; windowStart = now;
+          }
+          const pad = (s, n) => String(s).padStart(n);
+          hud.textContent =
+            `codec     ${pad('mjpeg', 12)}\\n` +
+            `painted   ${pad(fps.toFixed(1), 12)} fps\\n` +
+            `decode    ${pad(decodeMs.toFixed(2), 12)} ms\\n` +
+            `bandwidth ${pad(mbps.toFixed(2), 12)} Mbps\\n` +
+            `frames    ${pad(frames, 12)}\\n` +
+            (sameMachine
+              ? `latency   ${pad(median(latencySamples).toFixed(1), 12)} ms  (one-way, shared clock)`
+              : `latency   ${pad('n/a', 12)}  (needs shared clock)`);
+        }, 500);
 
-          // MJPEG connections die when the sender restarts; reconnect rather
-          // than leaving the user on a frozen frame.
-          img.addEventListener('error', () => {
-            setTimeout(() => { img.src = '/stream?t=' + Date.now(); }, 500);
-          });
+        run().catch(e => { hud.textContent = 'stream error: ' + e; });
         </script>
         </body>
         </html>

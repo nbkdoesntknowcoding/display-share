@@ -33,12 +33,17 @@ public final class DisplayShareController: ObservableObject {
     @Published public private(set) var needsScreenRecordingPermission = false
 
     private let client: HelperClient
-    private let pipeline = StreamPipeline()
+    private let pipeline: StreamPipeline
     private let port: UInt16
 
-    public init(client: HelperClient = HelperClient(), port: UInt16 = 8787) {
+    public init(
+        client: HelperClient = HelperClient(),
+        port: UInt16 = 8787,
+        codec: StreamPipeline.Codec = .h264
+    ) {
         self.client = client
         self.port = port
+        self.pipeline = StreamPipeline(codec: codec)
         self.client.onDisplayTerminated = { [weak self] in
             Task { @MainActor in self?.state = .failed("macOS removed the display") }
         }
