@@ -1,0 +1,622 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4452539B527C7C5CF2BD3B4F /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		65A1F628B5ECC64A36C7CC02 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC488CEB9617F6DD850B63E1 /* main.swift */; };
+		67ACE413F33E8A4FD236FA66 /* vd_helper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = D64520181389425E0876F924 /* vd_helper */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
+		A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */; };
+		A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
+		B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
+		C0DFBAE215C36C3B6887B58C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
+		D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */; };
+		DF0C3D4E25ABBD661C7130B5 /* CGVirtualDisplayPrivate.m in Sources */ = {isa = PBXBuildFile; fileRef = 82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */; };
+		EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
+		F0B4E39F1D44621B65EDBBAF /* HelperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */; };
+		F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */; };
+		F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		23FC0AEA18DF0F30BB3BA38A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 240CDAE9FB1D2815EBBF2BC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6CEB66452E137FABF849A584;
+			remoteInfo = DisplayShareCore;
+		};
+		6681B2B7838B3BD2113C05E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 240CDAE9FB1D2815EBBF2BC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 493F0795C8C3A9373F097CA9;
+			remoteInfo = vd_helper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5F321B7505A8817435FF4CBD /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4452539B527C7C5CF2BD3B4F /* DisplayShareCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED46D3E4BA9C2D1EE288A830 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				67ACE413F33E8A4FD236FA66 /* vd_helper in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
+		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
+		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
+		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
+		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
+		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
+		A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareApp.swift; sourceTree = "<group>"; };
+		AC488CEB9617F6DD850B63E1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperClient.swift; sourceTree = "<group>"; };
+		B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualDisplayHost.swift; sourceTree = "<group>"; };
+		D00D23447A81B9127D65D8BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D64520181389425E0876F924 /* vd_helper */ = {isa = PBXFileReference; includeInIndex = 0; path = vd_helper; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DisplayShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		E3F83080C1F57F9924D89B3C /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		FA1B0B69621DBEF69E22243A /* DisplayShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7FBC888652CB274E3AA5DEE8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E43265F5B1B4BAC7FE144D24 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0DFBAE215C36C3B6887B58C /* DisplayShareCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0751CF8F66D92A193A42AEE9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FA1B0B69621DBEF69E22243A /* DisplayShare.app */,
+				E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */,
+				D64520181389425E0876F924 /* vd_helper */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0EB31CA3991E4D37C91F7AC9 /* vd_helper */ = {
+			isa = PBXGroup;
+			children = (
+				AC488CEB9617F6DD850B63E1 /* main.swift */,
+				B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */,
+			);
+			path = vd_helper;
+			sourceTree = "<group>";
+		};
+		1D92322A4EE1B12FDECEB864 /* CGVirtualDisplayPrivate */ = {
+			isa = PBXGroup;
+			children = (
+				82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */,
+				EDFBFA965D56567285E3F765 /* include */,
+			);
+			path = CGVirtualDisplayPrivate;
+			sourceTree = "<group>";
+		};
+		72DC0F3675ECF4A8329202AA /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		75FE5B4461AB463DBA43D0D6 /* DisplayShare */ = {
+			isa = PBXGroup;
+			children = (
+				8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */,
+				A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */,
+				D00D23447A81B9127D65D8BC /* Info.plist */,
+				72DC0F3675ECF4A8329202AA /* Resources */,
+			);
+			path = DisplayShare;
+			sourceTree = "<group>";
+		};
+		8F6DA1E3C7924A24D3ED2CDC = {
+			isa = PBXGroup;
+			children = (
+				1D92322A4EE1B12FDECEB864 /* CGVirtualDisplayPrivate */,
+				75FE5B4461AB463DBA43D0D6 /* DisplayShare */,
+				EE590DB48D22D7526B8B60EF /* DisplayShareCore */,
+				AA5A689B96C8796EF6BC9C9D /* Shared */,
+				0EB31CA3991E4D37C91F7AC9 /* vd_helper */,
+				BD2C71EBEA6973861B25F04A /* Frameworks */,
+				0751CF8F66D92A193A42AEE9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA5A689B96C8796EF6BC9C9D /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */,
+				4FD219E38307861BED3C1FA9 /* LineSocket.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		BD2C71EBEA6973861B25F04A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		EDFBFA965D56567285E3F765 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */,
+				E3F83080C1F57F9924D89B3C /* module.modulemap */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		EE590DB48D22D7526B8B60EF /* DisplayShareCore */ = {
+			isa = PBXGroup;
+			children = (
+				993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */,
+				AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */,
+			);
+			path = DisplayShareCore;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		493F0795C8C3A9373F097CA9 /* vd_helper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8317445BAC4BF5FC8DB16A08 /* Build configuration list for PBXNativeTarget "vd_helper" */;
+			buildPhases = (
+				F01B8BF8785167948500B1E0 /* Sources */,
+				7FBC888652CB274E3AA5DEE8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = vd_helper;
+			packageProductDependencies = (
+			);
+			productName = vd_helper;
+			productReference = D64520181389425E0876F924 /* vd_helper */;
+			productType = "com.apple.product-type.tool";
+		};
+		6CEB66452E137FABF849A584 /* DisplayShareCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0447A1519E222F5B1D467D /* Build configuration list for PBXNativeTarget "DisplayShareCore" */;
+			buildPhases = (
+				69063CC4AAC73F997BA08329 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DisplayShareCore;
+			packageProductDependencies = (
+			);
+			productName = DisplayShareCore;
+			productReference = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		DC895683B42D1B3B6AF5CD88 /* DisplayShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D89B53CCA549C72DE2F73C62 /* Build configuration list for PBXNativeTarget "DisplayShare" */;
+			buildPhases = (
+				1CEB6F999326E8B3F878A7BD /* Sources */,
+				E43265F5B1B4BAC7FE144D24 /* Frameworks */,
+				5F321B7505A8817435FF4CBD /* Embed Frameworks */,
+				ED46D3E4BA9C2D1EE288A830 /* Embed Dependencies */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A3068B8C660B89F2A4B04877 /* PBXTargetDependency */,
+				9B7B948322F2E1AF083589EA /* PBXTargetDependency */,
+			);
+			name = DisplayShare;
+			packageProductDependencies = (
+			);
+			productName = DisplayShare;
+			productReference = FA1B0B69621DBEF69E22243A /* DisplayShare.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		240CDAE9FB1D2815EBBF2BC7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 73200FB9A90BD5625E3181D6 /* Build configuration list for PBXProject "DisplayShare" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8F6DA1E3C7924A24D3ED2CDC;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0751CF8F66D92A193A42AEE9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				493F0795C8C3A9373F097CA9 /* vd_helper */,
+				6CEB66452E137FABF849A584 /* DisplayShareCore */,
+				DC895683B42D1B3B6AF5CD88 /* DisplayShare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1CEB6F999326E8B3F878A7BD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69063CC4AAC73F997BA08329 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */,
+				F0B4E39F1D44621B65EDBBAF /* HelperClient.swift in Sources */,
+				A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */,
+				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F01B8BF8785167948500B1E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DF0C3D4E25ABBD661C7130B5 /* CGVirtualDisplayPrivate.m in Sources */,
+				EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */,
+				8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */,
+				D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */,
+				65A1F628B5ECC64A36C7CC02 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9B7B948322F2E1AF083589EA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 493F0795C8C3A9373F097CA9 /* vd_helper */;
+			targetProxy = 6681B2B7838B3BD2113C05E5 /* PBXContainerItemProxy */;
+		};
+		A3068B8C660B89F2A4B04877 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6CEB66452E137FABF849A584 /* DisplayShareCore */;
+			targetProxy = 23FC0AEA18DF0F30BB3BA38A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		155C76FE69DD3E3FB9331BB2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = DisplayShare/DisplayShare.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = DisplayShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = in.theboringpeople.displayshare;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		29B443D40F7A74D41814E757 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = DisplayShare/DisplayShare.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = DisplayShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = in.theboringpeople.displayshare;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		317661CE9462BC017D4963D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = in.theboringpeople.displayshare.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		5ED016186106BFC788C781A6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "in.theboringpeople.displayshare.vd-helper";
+				PRODUCT_NAME = vd_helper;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/CGVirtualDisplayPrivate/include";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "vd_helper-Swift.h";
+			};
+			name = Debug;
+		};
+		8959327587A8515E0C0863E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		99125A3D105522A5C0353B33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "in.theboringpeople.displayshare.vd-helper";
+				PRODUCT_NAME = vd_helper;
+				SDKROOT = macosx;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/CGVirtualDisplayPrivate/include";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = "vd_helper-Swift.h";
+			};
+			name = Release;
+		};
+		D6FB342E0618A3408A059323 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = in.theboringpeople.displayshare.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		F7AEDEA030F828699A5577E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		73200FB9A90BD5625E3181D6 /* Build configuration list for PBXProject "DisplayShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8959327587A8515E0C0863E6 /* Debug */,
+				F7AEDEA030F828699A5577E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8317445BAC4BF5FC8DB16A08 /* Build configuration list for PBXNativeTarget "vd_helper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5ED016186106BFC788C781A6 /* Debug */,
+				99125A3D105522A5C0353B33 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AA0447A1519E222F5B1D467D /* Build configuration list for PBXNativeTarget "DisplayShareCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				317661CE9462BC017D4963D6 /* Debug */,
+				D6FB342E0618A3408A059323 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D89B53CCA549C72DE2F73C62 /* Build configuration list for PBXNativeTarget "DisplayShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				155C76FE69DD3E3FB9331BB2 /* Debug */,
+				29B443D40F7A74D41814E757 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 240CDAE9FB1D2815EBBF2BC7 /* Project object */;
+}

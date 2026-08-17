@@ -1,0 +1,86 @@
+name: DisplayShare
+
+options:
+  bundleIdPrefix: in.theboringpeople.displayshare
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # The private CoreGraphics classes are absent from public headers, so the
+    # re-declared interface in CGVirtualDisplayPrivate carries the contract.
+    CLANG_ENABLE_MODULES: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Universal so a single .dmg covers Apple Silicon and Intel (Task 6.1).
+    ARCHS: "$(ARCHS_STANDARD)"
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  # ---------------------------------------------------------------- helper
+  # Bare executable that owns the CGVirtualDisplay. Isolated from the app on
+  # purpose: a crash in the capture/encode pipeline must not destroy the
+  # display and scatter the user's windows.
+  vd_helper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: vd_helper
+      - path: Shared
+      - path: CGVirtualDisplayPrivate
+    settings:
+      base:
+        PRODUCT_NAME: vd_helper
+        SWIFT_OBJC_INTERFACE_HEADER_NAME: vd_helper-Swift.h
+        # Tool targets get no bundle, so an explicit module map is how Swift
+        # sees the re-declared private ObjC interface.
+        SWIFT_INCLUDE_PATHS: "$(SRCROOT)/CGVirtualDisplayPrivate/include"
+    dependencies:
+      - sdk: CoreGraphics.framework
+
+  # ------------------------------------------------------------------ core
+  # Capture + encode + network. Phase 1 starts with the helper control plane;
+  # CaptureSession lands in Task 1.2.
+  DisplayShareCore:
+    type: framework
+    platform: macOS
+    sources:
+      - path: DisplayShareCore
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: in.theboringpeople.displayshare.core
+        DYLIB_INSTALL_NAME_BASE: "@rpath"
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: YES
+
+  # ------------------------------------------------------------------- app
+  DisplayShare:
+    type: application
+    platform: macOS
+    sources:
+      - path: DisplayShare
+    dependencies:
+      - target: DisplayShareCore
+        embed: true
+      # Copied into Contents/MacOS so HelperClient finds it next to the app
+      # executable. Not "embedded" in the framework sense — it is a sibling
+      # executable, which is what lets it outlive an app crash.
+      - target: vd_helper
+        embed: true
+        copy:
+          destination: executables
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: in.theboringpeople.displayshare
+        INFOPLIST_FILE: DisplayShare/Info.plist
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: DisplayShare/DisplayShare.entitlements
+        # Unsigned local builds until Task 6.1 wires Developer ID.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO

@@ -68,6 +68,8 @@ case "create":
     runCreate(args)
 case "probe":
     runProbe(args)
+case "list":
+    runList(args)
 case "capture":
     runCapture(args)
 case "bench":

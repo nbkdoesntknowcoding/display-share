@@ -55,3 +55,14 @@ enum DisplayInventory {
         }.joined(separator: "\n")
     }
 }
+
+/// `vdspike list` — prints active displays as `id vendor width height`.
+/// Used by the helper lifecycle acceptance tests, which need a fresh process
+/// per query because CoreGraphics snapshots display config per process.
+func runList(_ args: Args) {
+    for id in DisplayInventory.activeDisplayIDs() {
+        let b = CGDisplayBounds(id)
+        print("0x\(String(id, radix: 16)) 0x\(String(CGDisplayVendorNumber(id), radix: 16)) \(Int(b.width)) \(Int(b.height))")
+    }
+    exit(0)
+}

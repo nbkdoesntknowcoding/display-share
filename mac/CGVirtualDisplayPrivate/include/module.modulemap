@@ -1,0 +1,6 @@
+// Explicit module map so both SwiftPM (the Phase 0 spike) and the Xcode
+// tool target can `import CGVirtualDisplayPrivate`.
+module CGVirtualDisplayPrivate {
+    header "CGVirtualDisplayPrivate.h"
+    export *
+}
