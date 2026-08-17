@@ -41,6 +41,10 @@ public final class DisplayShareController: ObservableObject {
 
     /// Validates and dispatches forwarded input (Task 5.1).
     public let inputSink: InputEventSink
+    /// Turns accepted input into CGEvents (Task 5.2).
+    public let injector = InputInjector()
+    @Published public private(set) var needsAccessibilityPermission = false
+    private var warnedAboutAccessibility = false
 
     /// Devices allowed to connect, and the PIN flow for new ones.
     public let pairing: PairingStore
@@ -69,7 +73,30 @@ public final class DisplayShareController: ObservableObject {
 
         // Task 5.1: decode, order-check and log forwarded input.
         pipeline.socketServer.onInput = { [weak self] events in
-            self?.inputSink.ingest(events)
+            guard let self else { return }
+            // Task 5.2: tell the receiver plainly when injection cannot work,
+            // rather than accepting input and silently doing nothing.
+            if !InputInjector.hasAccessibilityPermission {
+                Task { @MainActor in self.needsAccessibilityPermission = true }
+                if !self.warnedAboutAccessibility {
+                    self.warnedAboutAccessibility = true
+                    self.pipeline.socketServer.send(
+                        control: .error(
+                            code: "input_unavailable",
+                            message: "Grant Accessibility permission to Display Share on the Mac to control it remotely."))
+                }
+            }
+            self.inputSink.ingest(events)
+        }
+        // Task 5.2: accepted events drive real CGEvents.
+        inputSink.onEvent = { [weak self] event in
+            self?.injector.handle(event)
+        }
+        // A receiver going away must not leave a button or modifier stuck down,
+        // and the next receiver's timestamp origin is its own.
+        pipeline.socketServer.onClientDisconnected = { [weak self] in
+            self?.injector.releaseAll()
+            self?.inputSink.resetOrdering()
         }
 
         // Task 4.2: keep the session alive across sleep/wake, Wi-Fi drops and
@@ -87,6 +114,10 @@ public final class DisplayShareController: ObservableObject {
         }
         // Task 3.3: size the virtual display to the receiver's actual panel so
         // the image is neither letterboxed nor stretched.
+        // A fresh receiver brings a fresh timestamp origin.
+        self.pipeline.socketServer.onClientReadyForInput = { [weak self] in
+            self?.inputSink.resetOrdering()
+        }
         self.pipeline.onReceiverPanel = { [weak self] panel in
             Task { @MainActor in self?.adoptReceiverPanel(panel) }
         }
@@ -114,6 +145,7 @@ public final class DisplayShareController: ObservableObject {
             // Capture + encode + serve. The display exists regardless of whether
             // streaming succeeds, so surface those failures separately.
             try pipeline.start(displayID: displayID, fps: Int(configuration.refreshRate))
+            injector.setDisplay(displayID)
             supervisor.start()
             supervisor.noteSessionStarted()
             streamURL = "http://\(Self.primaryIPv4Address() ?? "localhost"):\(port)"
@@ -129,6 +161,18 @@ public final class DisplayShareController: ObservableObject {
             FileHandle.standardError.write(Data("[DisplayShare] start failed: \(error)\n".utf8))
             state = .failed("\(error)")
         }
+    }
+
+    /// Accessibility is what allows CGEvent posting; without it macOS silently
+    /// discards injected events.
+    public func requestAccessibilityPermission() {
+        InputInjector.requestAccessibilityPermission()
+        InputInjector.openAccessibilitySettings()
+    }
+
+    public func refreshAccessibilityState() {
+        needsAccessibilityPermission = !InputInjector.hasAccessibilityPermission
+        if !needsAccessibilityPermission { warnedAboutAccessibility = false }
     }
 
     /// Opens the exact System Settings pane, rather than making the user hunt.
@@ -164,6 +208,8 @@ public final class DisplayShareController: ObservableObject {
             {
                 try pipeline.reconfigureCapture(displayID: displayID, fps: Int(new.refreshRate))
             }
+            // Geometry changed, so the coordinate mapping must follow it.
+            injector.setDisplay(displayID)
             state = .active(displayID: displayID)
         } catch {
             FileHandle.standardError.write(Data("[DisplayShare] reconfigure failed: \(error)\n".utf8))

@@ -53,6 +53,8 @@ public final class WebSocketServer: @unchecked Sendable {
     public var onReceiverReport: ((Double, Double) -> Void)?
     /// A batch of forwarded input events from an authorised receiver.
     public var onInput: (([ForwardedInputEvent]) -> Void)?
+    /// Fired on a completed handshake so per-session input state can be reset.
+    public var onClientReadyForInput: (() -> Void)?
 
     /// Current encoded format, reported in `welcome`.
     public var videoFormat: VideoFormat?
@@ -211,6 +213,7 @@ public final class WebSocketServer: @unchecked Sendable {
         lock.lock()
         authorised = true
         lock.unlock()
+        onClientReadyForInput?()
         if let format = videoFormat {
             send(control: .welcome(video: format, sender: "display-share-mac/0.1.0"), on: connection)
         }

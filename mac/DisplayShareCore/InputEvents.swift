@@ -38,6 +38,19 @@ public final class InputEventSink: @unchecked Sendable {
         lock.lock(); logging = enabled; lock.unlock()
     }
 
+    /// Clears ordering state for a NEW receiver session.
+    ///
+    /// `t` is an arbitrary receiver-side origin (SPEC §4.10), so a reconnecting
+    /// receiver legitimately restarts near zero. Carrying `lastTimestamp` across
+    /// sessions makes every event after the first reconnect look out-of-order and
+    /// silently discards all input — which is exactly what happened before this
+    /// existed.
+    public func resetOrdering() {
+        lock.lock()
+        stats.lastTimestamp = 0
+        lock.unlock()
+    }
+
     /// Decodes and dispatches one `input` batch.
     public func ingest(_ events: [ForwardedInputEvent]) {
         lock.lock()

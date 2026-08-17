@@ -64,7 +64,9 @@ func runList(_ args: Args) {
         let b = CGDisplayBounds(id)
         // points AND pixels: their ratio is the backing scale, and confusing
         // the two is how a HiDPI display looks "half size".
-        print("0x\(String(id, radix: 16)) 0x\(String(CGDisplayVendorNumber(id), radix: 16)) \(Int(b.width)) \(Int(b.height)) \(CGDisplayPixelsWide(id)) \(CGDisplayPixelsHigh(id))")
+        // origin too: the virtual display usually sits at a NEGATIVE x offset,
+        // and coordinate-mapping tests need it to assert exact positions.
+        print("0x\(String(id, radix: 16)) 0x\(String(CGDisplayVendorNumber(id), radix: 16)) \(Int(b.width)) \(Int(b.height)) \(CGDisplayPixelsWide(id)) \(CGDisplayPixelsHigh(id)) \(Int(b.origin.x)) \(Int(b.origin.y))")
     }
     exit(0)
 }

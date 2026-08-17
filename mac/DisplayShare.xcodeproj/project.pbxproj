@@ -13,10 +13,13 @@
 		142B6365854CA33DCF08889C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
 		148A1C76D1F9F611D85F2A31 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
 		191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */; };
+		22224DD5384AEE68C9802010 /* InputInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */; };
 		25F94343E08722F233CC3FDC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBFA61E802ABC429B866EB8 /* main.swift */; };
 		319CB72032344F40A050098B /* InputEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FC9353BC5C70318B47606A /* InputEvent.swift */; };
+		353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */; };
 		43CB1BEE6705C4EE3E07615C /* AdaptiveBitrateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */; };
 		4452539B527C7C5CF2BD3B4F /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		538D6BCFCF9A2FCD29027A70 /* KeyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFCD764FE6F912C36764995 /* KeyMap.swift */; };
 		55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A22D3E32B880B7AF932726 /* StreamPipeline.swift */; };
 		56969C6631C6A54308D8E9F0 /* JPEGEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */; };
 		595404DCE6EA66ED667D0235 /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
@@ -132,6 +135,7 @@
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
 		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
 		55BD527AC059AAE5E481689F /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjector.swift; sourceTree = "<group>"; };
 		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
@@ -139,6 +143,7 @@
 		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
 		8A807FA4085741AD0E902444 /* AdaptiveBitrate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveBitrate.swift; sourceTree = "<group>"; };
 		8B126213B277A3A9D373A955 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
+		8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyMapTests.swift; sourceTree = "<group>"; };
 		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
 		913024711DF4B033F3E182DC /* SessionSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupervisor.swift; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
@@ -150,6 +155,7 @@
 		B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireProtocol.swift; sourceTree = "<group>"; };
 		C13B96E4B22FF0CF33F72A36 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedContent.swift; sourceTree = "<group>"; };
+		CFFCD764FE6F912C36764995 /* KeyMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyMap.swift; sourceTree = "<group>"; };
 		D00D23447A81B9127D65D8BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireProtocolTests.swift; sourceTree = "<group>"; };
 		D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
@@ -239,6 +245,7 @@
 			children = (
 				0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
+				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
 				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
 				D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */,
 			);
@@ -339,7 +346,9 @@
 				0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */,
 				AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */,
 				E73BA65C147F0759185CF603 /* InputEvents.swift */,
+				5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */,
 				1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */,
+				CFFCD764FE6F912C36764995 /* KeyMap.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
 				6012B810C82DD746CEF5E434 /* PairingStore.swift */,
 				913024711DF4B033F3E182DC /* SessionSupervisor.swift */,
@@ -506,7 +515,9 @@
 				A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */,
 				9D263B2576CE3F45D75588E8 /* InputEvent.swift in Sources */,
 				67012DB12D2BD95FE3C87EEE /* InputEvents.swift in Sources */,
+				22224DD5384AEE68C9802010 /* InputInjector.swift in Sources */,
 				56969C6631C6A54308D8E9F0 /* JPEGEncoder.swift in Sources */,
+				538D6BCFCF9A2FCD29027A70 /* KeyMap.swift in Sources */,
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */,
@@ -548,6 +559,7 @@
 			files = (
 				43CB1BEE6705C4EE3E07615C /* AdaptiveBitrateTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
+				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
 				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
 				0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */,
 			);

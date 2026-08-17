@@ -130,6 +130,18 @@ private struct ControlPanel: View {
                 Divider()
             }
 
+            // Only shown once a receiver has actually tried to send input, so
+            // it is not noise for people who only want a second screen.
+            if controller.needsAccessibilityPermission {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Remote control needs Accessibility permission.")
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Grant Accessibility…") { controller.requestAccessibilityPermission() }
+                }
+                Divider()
+            }
+
             controls
 
             if let url = controller.streamURL {
@@ -156,7 +168,12 @@ private struct ControlPanel: View {
         }
         .padding(14)
         .frame(width: 320)
-        .onAppear { quality = controller.jpegQuality }
+        .onAppear {
+            quality = controller.jpegQuality
+            // Re-check on open: the user may have granted it in System Settings
+            // while this panel was closed.
+            controller.refreshAccessibilityState()
+        }
     }
 
     private var header: some View {
