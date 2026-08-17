@@ -22,6 +22,9 @@ const overlay = document.getElementById("overlay") as HTMLDivElement;
 const addressInput = document.getElementById("address") as HTMLInputElement;
 const connectButton = document.getElementById("connect") as HTMLButtonElement;
 
+interface Identity { deviceId: string; deviceName: string; token?: string }
+let identity: Identity | null = null;
+
 let decoder: VideoDecoder | null = null;
 let configuredCodec: string | null = null;
 let panel: ReceiverPanel = { width: 1920, height: 1080, scale: 1, refreshRate: 60 };
@@ -164,7 +167,7 @@ async function connect(url: string) {
   channel.onmessage = (buffer) => handleFrame(new Uint8Array(buffer));
 
   try {
-    await invoke("connect", { url, panel, onFrame: channel });
+    await invoke("connect", { url, panel, identity, onFrame: channel });
     setStatus("Disconnected. Reconnecting…");
     setTimeout(() => connect(url), 1500);
   } catch (e) {
@@ -210,8 +213,26 @@ listen<string>("ds://control", (event) => {
       // decoder from its SPS rather than guessing.
       closeDecoder();
       break;
+    case "pairing_required_marker":
+      break;
+    case "paired":
+      // Store the token so the next launch is one click (SPEC §4.8).
+      if (identity && message.token) {
+        identity.token = message.token;
+        localStorage.setItem("ds.token", message.token);
+        if (message.sender) localStorage.setItem("ds.senderName", message.sender);
+      }
+      hidePinPrompt();
+      setStatus("Paired. Connecting…");
+      break;
     case "error":
-      setStatus(`${message.code}: ${message.message}`);
+      if (message.code === "pairing_required") {
+        showPinPrompt(message.message ?? "Enter the PIN shown on the Mac.");
+      } else if (message.code === "pair_rejected") {
+        showPinPrompt(message.message ?? "Incorrect PIN.", true);
+      } else {
+        setStatus(`${message.code}: ${message.message}`);
+      }
       break;
     default:
       // SPEC §4: unknown types are ignored so either side can add messages.
@@ -301,7 +322,91 @@ addressInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") connectButton.click();
 });
 
-setStatus("Enter the Mac's address and press Connect.");
+// --- Discovery + pairing UI -------------------------------------------------
 
-// Auto-connect when a host is remembered, so the app is one click on relaunch.
-if (addressInput.value) connectButton.click();
+const senderList = document.getElementById("senders") as HTMLDivElement;
+const rescanButton = document.getElementById("rescan") as HTMLButtonElement;
+const pinRow = document.getElementById("pin-row") as HTMLDivElement;
+const pinInput = document.getElementById("pin") as HTMLInputElement;
+const pinSubmit = document.getElementById("pin-submit") as HTMLButtonElement;
+const pinMessage = document.getElementById("pin-message") as HTMLDivElement;
+
+function showPinPrompt(message: string, isError = false) {
+  pinRow.style.display = "flex";
+  pinMessage.style.display = "block";
+  pinMessage.textContent = message;
+  pinMessage.style.color = isError ? "#f87171" : "#d8d8d8";
+  overlay.style.display = "flex";
+  pinInput.value = "";
+  pinInput.focus();
+}
+
+function hidePinPrompt() {
+  pinRow.style.display = "none";
+  pinMessage.style.display = "none";
+}
+
+pinSubmit.addEventListener("click", () => {
+  const pin = pinInput.value.trim();
+  if (pin.length !== 4 || !identity) return;
+  void sendControl({
+    type: "pair",
+    pin,
+    deviceId: identity.deviceId,
+    deviceName: identity.deviceName,
+  });
+  pinMessage.textContent = "Pairing…";
+});
+pinInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") pinSubmit.click();
+});
+
+interface DiscoveredSender {
+  name: string;
+  host: string;
+  port: number;
+  addresses: string[];
+  requires_pairing: boolean;
+}
+
+async function scanForSenders() {
+  senderList.textContent = "Looking for Macs on this network…";
+  let senders: DiscoveredSender[] = [];
+  try {
+    senders = await invoke<DiscoveredSender[]>("discover_senders", { timeoutMs: 2500 });
+  } catch (e) {
+    senderList.textContent = `Discovery unavailable (${e}). Enter an address below.`;
+    return;
+  }
+  if (senders.length === 0) {
+    senderList.textContent =
+      "No senders found. Check both devices are on the same network, or enter an address below.";
+    return;
+  }
+  senderList.textContent = "";
+  for (const sender of senders) {
+    const target = sender.addresses[0] ?? sender.host;
+    const button = document.createElement("button");
+    button.className = "sender";
+    button.textContent = `${sender.name} — ${target}:${sender.port}`;
+    button.addEventListener("click", () => void connect(`ws://${target}:${sender.port}`));
+    senderList.appendChild(button);
+  }
+}
+
+rescanButton.addEventListener("click", () => void scanForSenders());
+
+// Identity is needed before any connection attempt, since a stored token is
+// what makes reconnecting one click.
+identity = await invoke<Identity>("device_identity").catch(() => null);
+if (identity) {
+  const stored = localStorage.getItem("ds.token");
+  if (stored) identity.token = stored;
+}
+
+setStatus("Looking for senders…");
+void scanForSenders();
+
+// Auto-connect when a host is remembered AND we hold a token, so a paired
+// receiver reconnects without interaction.
+if (addressInput.value && identity?.token) connectButton.click();

@@ -29,16 +29,29 @@
   }
   button { background:#2563eb; border-color:#2563eb; cursor:pointer; }
   button:hover { background:#1d4ed8; }
+  #senders { display:flex; flex-direction:column; gap:6px; min-width:340px; }
+  .sender { background:#1f2937; border-color:rgba(255,255,255,.18); text-align:left; }
+  .sender:hover { background:#374151; }
+  #pin-row { display:none; gap:8px; }
+  #pin { width:90px; text-align:center; font:20px ui-monospace, monospace; letter-spacing:4px; }
+  #pin-message { display:none; font-size:13px; max-width:380px; }
 </style>
 </head>
 <body>
   <canvas id="screen"></canvas>
   <div id="hud">starting…</div>
   <div id="overlay">
-    <div id="message">Enter the Mac's address and press Connect.</div>
+    <div id="message">Looking for senders…</div>
+    <div id="senders"></div>
+    <div id="pin-message"></div>
+    <div id="pin-row">
+      <input id="pin" placeholder="PIN" maxlength="4" inputmode="numeric" autocomplete="off">
+      <button id="pin-submit">Pair</button>
+    </div>
     <div id="bar">
-      <input id="address" placeholder="192.168.1.42" autocomplete="off" spellcheck="false">
+      <input id="address" placeholder="192.168.1.42 (manual)" autocomplete="off" spellcheck="false">
       <button id="connect">Connect</button>
+      <button id="rescan">Rescan</button>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>

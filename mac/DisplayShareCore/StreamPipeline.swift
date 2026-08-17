@@ -141,9 +141,9 @@ public final class StreamPipeline: @unchecked Sendable {
 
             switch codec {
             case .h264:
-                // Encode only when a receiver is attached — no point burning
-                // CPU on frames that go nowhere.
-                guard socketServer.hasClient else { continue }
+                // Encode only for an AUTHORISED receiver: an unpaired one must
+                // get no video, and there is no point burning CPU either way.
+                guard socketServer.hasAuthorisedClient else { continue }
                 let pts = CMTime(value: frameIndex, timescale: CMTimeScale(currentFPS))
                 frameIndex += 1
                 try? h264Encoder.encode(frame, presentationTime: pts)

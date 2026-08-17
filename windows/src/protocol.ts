@@ -125,4 +125,9 @@ export interface ControlMessage {
   code?: string;
   message?: string;
   sender?: string;
+  // Pairing (SPEC §4.7-4.9)
+  token?: string;
+  deviceId?: string;
+  deviceName?: string;
+  pin?: string;
 }

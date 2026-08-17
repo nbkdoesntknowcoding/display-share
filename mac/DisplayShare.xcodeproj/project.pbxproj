@@ -29,8 +29,10 @@
 		98FB5B2C8C2D6B48C8040358 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */; };
 		A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */; };
 		A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
+		B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6012B810C82DD746CEF5E434 /* PairingStore.swift */; };
 		B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
 		C0DFBAE215C36C3B6887B58C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
+		C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */; };
 		CAF66FCCE6BC065D2CE09C3E /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55BD527AC059AAE5E481689F /* CoreMedia.framework */; };
 		CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B700690CE5606F8012DD22 /* MJPEGServer.swift */; };
 		D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */; };
@@ -122,6 +124,7 @@
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
 		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
 		55BD527AC059AAE5E481689F /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
 		82A22D3E32B880B7AF932726 /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
@@ -147,6 +150,7 @@
 		E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DisplayShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		E3F83080C1F57F9924D89B3C /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStoreTests.swift; sourceTree = "<group>"; };
 		EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		FA1B0B69621DBEF69E22243A /* DisplayShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -223,6 +227,7 @@
 			isa = PBXGroup;
 			children = (
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
+				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
 				D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */,
 			);
 			path = DisplayShareCoreTests;
@@ -321,6 +326,7 @@
 				AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */,
 				1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
+				6012B810C82DD746CEF5E434 /* PairingStore.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
 				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
 				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
@@ -484,6 +490,7 @@
 				56969C6631C6A54308D8E9F0 /* JPEGEncoder.swift in Sources */,
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
+				B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
 				95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */,
 				069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */,
@@ -519,6 +526,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
+				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
 				0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

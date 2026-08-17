@@ -28,6 +28,10 @@ public final class WebSocketServer: @unchecked Sendable {
 
     private let lock = NSLock()
     private var client: NWConnection?
+    /// True only after a completed handshake INCLUDING the pairing gate. Video
+    /// is keyed off this, never off mere connectedness — otherwise the PIN would
+    /// be advisory and an unpaired device would still receive the stream.
+    private var authorised = false
     private var stats = Statistics()
 
     private var windowStart = CFAbsoluteTimeGetCurrent()
@@ -46,8 +50,12 @@ public final class WebSocketServer: @unchecked Sendable {
     /// Current encoded format, reported in `welcome`.
     public var videoFormat: VideoFormat?
 
-    public init(port: UInt16 = 8788) {
+    /// When set, receivers must be paired before they get video.
+    public let pairing: PairingStore?
+
+    public init(port: UInt16 = 8788, pairing: PairingStore? = nil) {
         self.port = NWEndpoint.Port(rawValue: port)!
+        self.pairing = pairing
     }
 
     public var statistics: Statistics {
@@ -55,9 +63,16 @@ public final class WebSocketServer: @unchecked Sendable {
         return stats
     }
 
+    /// A socket is attached. NOT sufficient to send video.
     public var hasClient: Bool {
         lock.lock(); defer { lock.unlock() }
         return client != nil
+    }
+
+    /// The attached receiver has completed the handshake and is paired.
+    public var hasAuthorisedClient: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return client != nil && authorised
     }
 
     // MARK: - Lifecycle
@@ -70,6 +85,21 @@ public final class WebSocketServer: @unchecked Sendable {
         parameters.defaultProtocolStack.applicationProtocols.insert(websocket, at: 0)
 
         let listener = try NWListener(using: parameters, on: port)
+
+        // Bonjour/mDNS advertisement (SPEC §4a). The TXT record carries enough
+        // for the receiver to render a useful list before connecting.
+        let hostName = ProcessInfo.processInfo.hostName
+            .replacingOccurrences(of: ".local", with: "")
+        listener.service = NWListener.Service(
+            name: hostName,
+            type: "_displayshare._tcp",
+            domain: nil,
+            txtRecord: NWTXTRecord([
+                "v": String(WireProtocol.version),
+                "name": hostName,
+                "pair": pairing == nil ? "none" : "required",
+            ]))
+
         listener.newConnectionHandler = { [weak self] connection in
             self?.accept(connection)
         }
@@ -97,6 +127,7 @@ public final class WebSocketServer: @unchecked Sendable {
             stats.rejectedConnections += 1
         } else {
             client = connection
+            authorised = false
             stats.connected = true
         }
         lock.unlock()
@@ -131,6 +162,7 @@ public final class WebSocketServer: @unchecked Sendable {
             return
         }
         client = nil
+        authorised = false
         stats.connected = false
         lock.unlock()
         onClientDisconnected?()
@@ -162,6 +194,23 @@ public final class WebSocketServer: @unchecked Sendable {
         }
     }
 
+    /// Hello held while the receiver pairs, so the handshake can resume.
+    private var pendingHello: ControlMessage?
+
+    private func completeHandshake(_ message: ControlMessage, on connection: NWConnection) {
+        lock.lock()
+        authorised = true
+        lock.unlock()
+        if let format = videoFormat {
+            send(control: .welcome(video: format, sender: "display-share-mac/0.1.0"), on: connection)
+        }
+        onClientReady?(message.receiver)
+    }
+
+    private func log(_ text: String) {
+        FileHandle.standardError.write(Data("[DisplayShare] \(text)\n".utf8))
+    }
+
     private func handleControl(_ data: Data, on connection: NWConnection) {
         guard let message = try? JSONDecoder().decode(ControlMessage.self, from: data) else { return }
 
@@ -177,10 +226,55 @@ public final class WebSocketServer: @unchecked Sendable {
                 queue.asyncAfter(deadline: .now() + 0.2) { connection.cancel() }
                 return
             }
-            if let format = videoFormat {
-                send(control: .welcome(video: format, sender: "display-share-mac/0.1.0"), on: connection)
+            // Pairing gate (SPEC §4.9). An unpaired receiver is told exactly
+            // what to do rather than silently getting no video.
+            if let pairing {
+                guard pairing.isAuthorised(deviceId: message.deviceId, token: message.token) else {
+                    let pin = pairing.beginPairing()
+                    log("receiver is not paired; PIN \(pin)")
+                    send(
+                        control: .error(
+                            code: "pairing_required",
+                            message: "Enter the PIN shown on the Mac to pair this device."),
+                        on: connection)
+                    pendingHello = message
+                    return
+                }
             }
-            onClientReady?(message.receiver)
+            completeHandshake(message, on: connection)
+
+        case "pair":
+            guard let pairing else { return }
+            guard let deviceId = message.deviceId, let pin = message.pin else {
+                send(control: .error(code: "pair_rejected", message: "missing deviceId or pin"), on: connection)
+                return
+            }
+            switch pairing.completePairing(
+                deviceId: deviceId, deviceName: message.deviceName ?? "Unknown device", pin: pin)
+            {
+            case .paired(let token):
+                log("paired \(message.deviceName ?? deviceId)")
+                var paired = ControlMessage(type: "paired")
+                paired.token = token
+                paired.sender = ProcessInfo.processInfo.hostName
+                    .replacingOccurrences(of: ".local", with: "")
+                send(control: paired, on: connection)
+                // The receiver is authorised now; resume the handshake it began.
+                if let hello = pendingHello {
+                    pendingHello = nil
+                    completeHandshake(hello, on: connection)
+                }
+            case .wrongPIN:
+                send(control: .error(code: "pair_rejected", message: "Incorrect PIN."), on: connection)
+            case .rateLimited(let retryAfter):
+                send(
+                    control: .error(
+                        code: "pair_rejected",
+                        message: "Too many attempts. Try again in \(Int(retryAfter.rounded()))s."),
+                    on: connection)
+            case .noPairingInProgress:
+                send(control: .error(code: "pair_rejected", message: "No pairing in progress."), on: connection)
+            }
 
         case "request_keyframe":
             onKeyframeRequested?()
@@ -227,8 +321,13 @@ public final class WebSocketServer: @unchecked Sendable {
     /// cannot apply back-pressure to the encoder thread — shed frames rather
     /// than accumulate latency.
     public func send(video message: WireProtocol.VideoMessage) {
-        lock.lock(); let current = client; lock.unlock()
-        guard let current else { return }
+        lock.lock()
+        let current = client
+        let allowed = authorised
+        lock.unlock()
+        // Enforced HERE as well as at the encode gate, so no future call path
+        // can leak video to an unpaired receiver.
+        guard let current, allowed else { return }
 
         let framed = WireProtocol.encode(message)
         let metadata = NWProtocolWebSocket.Metadata(opcode: .binary)

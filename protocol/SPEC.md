@@ -222,7 +222,43 @@ Sent about once per second. `lastTimestamp` echoes §3.2 from the most recently
 *rendered* frame, which lets the sender compute end-to-end latency against its
 own clock without the two machines sharing one. Drives adaptive bitrate (Task 4.3).
 
-### 4.7 `error` — server → client
+### 4.7 `pair` — client → server
+
+```json
+{ "type": "pair", "pin": "4821", "deviceId": "a3f1…", "deviceName": "VIVOBOOK" }
+```
+
+Sent when the sender has replied `error` with code `pairing_required`. `deviceId`
+is a stable random identifier the receiver generates once and keeps; `pin` is the
+4-digit code the sender is displaying.
+
+On success the sender replies `paired` and the session continues from `hello`
+(the client re-sends it). On failure it replies `error` with code `pair_rejected`
+and closes. The sender MUST rate-limit attempts — three failures per minute per
+device — so the 4-digit space cannot be brute-forced.
+
+### 4.8 `paired` — server → client
+
+```json
+{ "type": "paired", "token": "…", "sender": "Nischay's Mac mini" }
+```
+
+The receiver stores `token` and presents it in future `hello` messages, making
+subsequent connections one click. A token is bound to the `deviceId` that earned
+it.
+
+### 4.9 `hello` with a stored token
+
+A paired receiver includes its identity in `hello`:
+
+```json
+{ "type": "hello", "protocolVersion": 1, "deviceId": "a3f1…", "token": "…", "receiver": { … } }
+```
+
+If `token` is valid for `deviceId`, the sender proceeds straight to `welcome`.
+Otherwise it replies `error` / `pairing_required` and shows a PIN.
+
+### 4.10 `error` — server → client
 
 ```json
 { "type": "error", "code": "busy", "message": "another receiver is connected" }
@@ -234,7 +270,28 @@ own clock without the two machines sharing one. Drives adaptive bitrate (Task 4.
 | `unsupported_version` | the client's `protocolVersion` cannot be served |
 | `resize_rejected` | the requested geometry could not be applied |
 | `capture_unavailable` | the sender cannot capture (e.g. permission not granted) |
+| `pairing_required` | this receiver is not paired; the sender is showing a PIN |
+| `pair_rejected` | wrong PIN, or too many attempts |
 | `internal` | anything else; `message` carries detail |
+
+---
+
+## 4a. Discovery
+
+The sender advertises itself over Bonjour/mDNS so the receiver never needs an IP
+address typed in:
+
+| | |
+|---|---|
+| Service type | `_displayshare._tcp` |
+| Port | the WebSocket port (8788) |
+| TXT `v` | protocol version |
+| TXT `name` | human-readable sender name |
+| TXT `pair` | `required` when the sender expects pairing |
+
+A receiver browses the service, shows the discovered senders, and connects to the
+chosen one's resolved address and port. Manual entry stays available for networks
+where mDNS is blocked.
 
 ---
 

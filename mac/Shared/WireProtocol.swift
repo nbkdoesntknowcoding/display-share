@@ -170,6 +170,11 @@ public struct ControlMessage: Codable, Equatable, Sendable {
     public var decodeMillis: Double?
     public var queuedFrames: Int?
     public var lastTimestamp: UInt64?
+    // Pairing (SPEC §4.7-4.9)
+    public var deviceId: String?
+    public var deviceName: String?
+    public var pin: String?
+    public var token: String?
 
     public init(type: String) { self.type = type }
 

@@ -36,14 +36,27 @@ public final class DisplayShareController: ObservableObject {
     private let pipeline: StreamPipeline
     private let port: UInt16
 
+    /// Devices allowed to connect, and the PIN flow for new ones.
+    public let pairing: PairingStore
+    /// PIN currently displayed to the user, nil when no pairing is pending.
+    @Published public private(set) var pairingPIN: String?
+
     public init(
         client: HelperClient = HelperClient(),
         port: UInt16 = 8787,
-        codec: StreamPipeline.Codec = .h264
+        codec: StreamPipeline.Codec = .h264,
+        requirePairing: Bool = true
     ) {
         self.client = client
         self.port = port
-        self.pipeline = StreamPipeline(codec: codec)
+        let store = PairingStore()
+        self.pairing = store
+        self.pipeline = StreamPipeline(
+            socketServer: WebSocketServer(pairing: requirePairing ? store : nil),
+            codec: codec)
+        store.onPINChanged = { [weak self] pin in
+            Task { @MainActor in self?.pairingPIN = pin }
+        }
         // Task 3.3: size the virtual display to the receiver's actual panel so
         // the image is neither letterboxed nor stretched.
         self.pipeline.onReceiverPanel = { [weak self] panel in

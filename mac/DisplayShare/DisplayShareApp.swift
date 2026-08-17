@@ -25,7 +25,9 @@ struct DisplayShareApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // --codec mjpeg selects the Phase 1 path, for the Task 2.4 comparison.
     let controller = DisplayShareController(
-        codec: CommandLine.arguments.contains("mjpeg") ? .mjpeg : .h264)
+        codec: CommandLine.arguments.contains("mjpeg") ? .mjpeg : .h264,
+        // --no-pairing is for automated tests only; pairing is on by default.
+        requirePairing: !CommandLine.arguments.contains("--no-pairing"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu bar only — no Dock icon, no main window.
@@ -98,6 +100,19 @@ private struct ControlPanel: View {
             header
 
             Divider()
+
+            // A pending PIN is the most important thing on screen when it exists.
+            if let pin = controller.pairingPIN {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pairing PIN").font(.caption).foregroundStyle(.secondary)
+                    Text(pin)
+                        .font(.system(size: 30, weight: .semibold, design: .monospaced))
+                        .textSelection(.enabled)
+                    Text("Type this on the receiver to pair it.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                Divider()
+            }
 
             if controller.needsScreenRecordingPermission {
                 permissionNotice

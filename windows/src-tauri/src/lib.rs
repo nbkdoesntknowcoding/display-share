@@ -85,6 +85,7 @@ async fn connect(
     state: State<'_, Arc<ConnectionState>>,
     url: String,
     panel: Panel,
+    identity: Option<serde_json::Value>,
     on_frame: Channel<InvokeResponseBody>,
 ) -> Result<(), String> {
     let (stream, _) = tokio_tungstenite::connect_async(&url)
@@ -92,12 +93,24 @@ async fn connect(
         .map_err(|e| format!("connect to {url} failed: {e}"))?;
     let (mut write, mut read) = stream.split();
 
-    let hello = serde_json::json!({
+    let mut hello = serde_json::json!({
         "type": "hello",
         "protocolVersion": 1,
         "client": concat!("display-share-receiver/", env!("CARGO_PKG_VERSION")),
         "receiver": panel,
     });
+    // Identity + token, so a paired receiver goes straight through (SPEC §4.9).
+    if let Some(identity) = identity {
+        if let Some(map) = hello.as_object_mut() {
+            for key in ["deviceId", "deviceName", "token"] {
+                if let Some(value) = identity.get(key) {
+                    if !value.is_null() {
+                        map.insert(key.to_string(), value.clone());
+                    }
+                }
+            }
+        }
+    }
     write
         .send(Message::Text(hello.to_string()))
         .await
@@ -172,10 +185,115 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             detect_panel,
             default_host,
+            discover_senders,
+            device_identity,
             connect,
             send_control,
             set_fullscreen
         ])
         .run(tauri::generate_context!())
         .expect("error while running Display Share receiver");
+}
+
+// --- Discovery (SPEC §4a) ---------------------------------------------------
+
+/// A sender found on the local network.
+#[derive(Debug, Clone, Serialize)]
+pub struct DiscoveredSender {
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub addresses: Vec<String>,
+    pub requires_pairing: bool,
+    pub protocol_version: Option<u32>,
+}
+
+/// Browses `_displayshare._tcp` for up to `timeout_ms`.
+///
+/// A one-shot browse rather than a continuous subscription: the receiver shows a
+/// list at launch, and a stale entry that no longer answers is less confusing
+/// than a list that reshuffles under the user's cursor.
+#[tauri::command]
+async fn discover_senders(timeout_ms: Option<u64>) -> Result<Vec<DiscoveredSender>, String> {
+    use mdns_sd::{ServiceDaemon, ServiceEvent};
+    use std::collections::HashMap;
+    use std::time::Duration;
+
+    let daemon = ServiceDaemon::new().map_err(|e| format!("mDNS unavailable: {e}"))?;
+    let receiver = daemon
+        .browse("_displayshare._tcp.local.")
+        .map_err(|e| format!("browse failed: {e}"))?;
+
+    let deadline = tokio::time::Instant::now()
+        + Duration::from_millis(timeout_ms.unwrap_or(2500));
+    let mut found: HashMap<String, DiscoveredSender> = HashMap::new();
+
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        match tokio::time::timeout(remaining, async { receiver.recv_async().await }).await {
+            Ok(Ok(ServiceEvent::ServiceResolved(info))) => {
+                let txt = |key: &str| {
+                    info.get_property_val_str(key).map(|v| v.to_string())
+                };
+                let addresses: Vec<String> =
+                    info.get_addresses().iter().map(|a| a.to_string()).collect();
+                let name = txt("name")
+                    .unwrap_or_else(|| info.get_fullname().split('.').next().unwrap_or("Mac").to_string());
+                found.insert(
+                    info.get_fullname().to_string(),
+                    DiscoveredSender {
+                        name,
+                        host: info.get_hostname().trim_end_matches('.').to_string(),
+                        port: info.get_port(),
+                        addresses,
+                        requires_pairing: txt("pair").as_deref() != Some("none"),
+                        protocol_version: txt("v").and_then(|v| v.parse().ok()),
+                    },
+                );
+            }
+            Ok(Ok(_)) => {}
+            Ok(Err(_)) | Err(_) => break,
+        }
+    }
+    let _ = daemon.shutdown();
+
+    let mut senders: Vec<_> = found.into_values().collect();
+    senders.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(senders)
+}
+
+/// Stable per-install identity, generated once. Pairing tokens are bound to it.
+#[tauri::command]
+fn device_identity(app: AppHandle) -> Result<serde_json::Value, String> {
+    use std::io::Write;
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join("device-id");
+
+    let id = match std::fs::read_to_string(&path) {
+        Ok(existing) if !existing.trim().is_empty() => existing.trim().to_string(),
+        _ => {
+            use rand::Rng;
+            let bytes: [u8; 16] = rand::thread_rng().gen();
+            let id = bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+            let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+            file.write_all(id.as_bytes()).map_err(|e| e.to_string())?;
+            id
+        }
+    };
+
+    let name = hostname_or_default();
+    Ok(serde_json::json!({ "deviceId": id, "deviceName": name }))
+}
+
+fn hostname_or_default() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "Receiver".to_string())
 }
