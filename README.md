@@ -206,8 +206,9 @@ Stated plainly, because everything above was measured but these were not:
   running app on macOS, which uses WKWebView — Windows uses WebView2 (Chromium).
   The software-decode default was measured in Chromium and should hold, but the
   laptop decides it.
-* **The Windows `.exe` has never been built.** `tauri build` targets the host
-  platform; CI produces it, but no one has installed it.
+* **The Windows `.exe` builds in CI but has never been installed.** CI produces
+  `Display Share_0.1.0_x64-setup.exe` and an `.msi`, so it compiles and packages;
+  nobody has run the installer or launched the app on Windows.
 * **Latency over a real LAN is unmeasured.** All figures above are localhost.
 * **No real sleep/wake cycle.** The recovery path was exercised through the same
   entry point the wake notification calls, not by actually sleeping the Mac.
