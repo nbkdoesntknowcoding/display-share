@@ -13,10 +13,17 @@ A single **WebSocket** connection carries everything.
 
 | | |
 |---|---|
-| Default port | `8787` |
-| Endpoint | `ws://<sender-host>:8787/ws` |
+| WebSocket port | `8788` |
+| Endpoint | `ws://<sender-host>:8788` |
+| Viewer page (dev) | `http://<sender-host>:8787/` |
 | Binary messages | video access units (§3) |
 | Text messages | JSON control channel (§4) |
+
+The video/control socket and the development viewer page are on **separate
+ports** because `NWProtocolWebSocket` performs the upgrade handshake for every
+connection on its listener, so a plain HTTP GET cannot share that port. The
+viewer page exists only for browser testing; the shipping Windows receiver
+connects straight to the WebSocket and never fetches it.
 
 WebSocket was chosen over WebRTC because on a LAN, WebRTC's real benefit —
 congestion-controlled UDP — buys little while costing an entire signalling and
@@ -113,8 +120,16 @@ avc1.PPCCLL
    LL = level_idc        SPS byte 3  (hex)
 ```
 
-where "SPS byte 0" is the NALU header byte (`0x67`) immediately after the start
-code. Example: `67 64 00 28 …` → `avc1.640028` (High profile, level 4.0).
+where "SPS byte 0" is the NALU header byte immediately after the start code.
+
+**Locate the SPS by its type, not by a literal byte.** The NALU type is the
+**low 5 bits** of that header byte; the upper bits are `nal_ref_idc`. An SPS is
+therefore `0x67` *or* `0x27` (both have type 7) depending on the encoder's
+reference marking — VideoToolbox on macOS 26 emits `0x27`. Test
+`(byte & 0x1F) == 7`; comparing the whole byte is a reliable way to miss a
+parameter set that is right there.
+
+Example: `27 64 00 28 …` → `avc1.640028` (High profile, level 4.0).
 
 ---
 

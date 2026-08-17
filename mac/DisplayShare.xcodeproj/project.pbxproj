@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */; };
+		069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B126213B277A3A9D373A955 /* WebSocketServer.swift */; };
 		0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
 		142B6365854CA33DCF08889C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
 		148A1C76D1F9F611D85F2A31 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
@@ -123,6 +124,7 @@
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
 		82A22D3E32B880B7AF932726 /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
 		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
+		8B126213B277A3A9D373A955 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
 		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
 		A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareApp.swift; sourceTree = "<group>"; };
@@ -318,6 +320,7 @@
 				1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */,
 				81B700690CE5606F8012DD22 /* MJPEGServer.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
+				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
 			);
 			path = DisplayShareCore;
 			sourceTree = "<group>";
@@ -479,6 +482,7 @@
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
+				069FAA8B8BB512B344CA07F7 /* WebSocketServer.swift in Sources */,
 				0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

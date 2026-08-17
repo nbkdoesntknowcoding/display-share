@@ -86,7 +86,7 @@ public final class DisplayShareController: ObservableObject {
 
     public func stop() {
         pipeline.stop()
-        pipeline.stopServer()
+        pipeline.stopServers()
         streamURL = nil
         client.shutdown()
         reattached = false
@@ -140,11 +140,12 @@ public final class DisplayShareController: ObservableObject {
     /// Called from applicationWillTerminate so a clean quit never leaves a display.
     public func shutdownForQuit() {
         pipeline.stop()
-        pipeline.stopServer()
+        pipeline.stopServers()
         client.shutdown()
     }
 
-    public var statistics: MJPEGServer.Statistics { pipeline.server.statistics }
+    public var statistics: MJPEGServer.Statistics { pipeline.httpServer.statistics }
+    public var socketStatistics: WebSocketServer.Statistics { pipeline.socketServer.statistics }
 
     /// Best-effort LAN address so the menu can show a URL the receiver can open.
     static func primaryIPv4Address() -> String? {
