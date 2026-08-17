@@ -7,9 +7,11 @@ creates a **real virtual display** on the Mac — macOS believes a monitor is
 attached — captures it, encodes it in hardware, and streams it to the receiver
 over the LAN.
 
-> **Status: in development.** Phases 0–2 are complete: the Mac sender creates a
-> virtual display, captures it, encodes H.264 and serves it over WebSocket, with
-> a browser test client. The Windows receiver (Phase 3) is not built yet.
+> **Status: in development.** Phases 0–3 are complete: the Mac sender creates a
+> virtual display, captures it, encodes H.264 and serves it over WebSocket, and
+> the Tauri receiver decodes and paints it while negotiating its own panel
+> geometry. The receiver has been verified as a running app; producing the
+> Windows `.exe` still needs a Windows host or CI (see below).
 
 ---
 
@@ -60,9 +62,9 @@ needs either HTTPS with a self-signed certificate the receiver trusts, or a
 localhost proxy on the receiver. The page detects this and says so rather than
 silently showing black.
 
-This constraint disappears in Phase 3: the Tauri receiver owns the WebSocket in
-its Rust backend and hands frames to the webview, so no secure context is
-required.
+This constraint does not apply to the Tauri receiver: its Rust backend owns the
+WebSocket and hands frames to the webview, which only ever sees
+`tauri://localhost`. No certificate is needed on the LAN.
 
 ### 2. Chrome's hardware H.264 decoder is *much* slower than software
 
@@ -79,9 +81,11 @@ software decoding the identical stream. Since latency is the whole point of this
 product, the client defaults to `hardwareAcceleration: 'prefer-software'`.
 Override with `?hw=hardware` to compare.
 
-**Caveat:** measured decoding on an M4 Mac. Software decode costs CPU, and the
-trade-off on the receiver's own hardware may differ — Phase 3 re-measures on the
-actual Windows laptop before this default is final.
+**Caveat:** measured in Chromium on an M4 Mac. Two reasons this is not settled
+for the shipping receiver: software decode costs CPU and a low-power laptop may
+invert the trade-off, and Tauri uses **WKWebView on macOS but WebView2
+(Chromium) on Windows** — so only a run on the actual Vivobook decides it. The
+receiver cycles the setting with the `A` key so it can be measured there.
 
 ---
 
