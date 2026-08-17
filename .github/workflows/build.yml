@@ -32,10 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: reviewdog/action-actionlint@v1
-        with:
-          reporter: github-check
-          fail_level: error
+      # Run the binary directly rather than via a third-party action: the
+      # reviewdog wrapper needs checks:write, which this workflow deliberately
+      # does not grant.
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
 
   # ------------------------------------------------------------------ macOS
   # MUST run on macOS: notarytool and stapler are macOS-only, so the Linux VPS
@@ -105,7 +108,7 @@ jobs:
       - name: Report Gatekeeper status
         working-directory: mac
         run: |
-          DMG="$(find .release -maxdepth 1 -name '*.dmg' | head -1)"
+          DMG="$(find dist -maxdepth 1 -name '*.dmg' | head -1)"
           echo "### macOS artifact" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           spctl -a -vvv -t install "$DMG" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
@@ -118,7 +121,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: mac/.release/*.dmg
+          path: mac/dist/*.dmg
           if-no-files-found: error
 
   # ---------------------------------------------------------------- Windows

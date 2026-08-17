@@ -28,12 +28,28 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi", "dmg"],
-    "icon": ["icons/icon.png"],
+    "targets": [
+      "nsis",
+      "msi",
+      "dmg"
+    ],
+    "icon": [
+      "icons/icon.png"
+    ],
     "windows": {
       "nsis": {
         "installMode": "currentUser"
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://github.com/nbkdoesntknowcoding/display-share/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
     }
   }
 }

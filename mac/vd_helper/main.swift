@@ -1,3 +1,11 @@
+// Display Share — use a Windows laptop as a second display for a Mac.
+// Copyright (C) 2026 Nischay B K
+//
+// This program is free software: you can redistribute it and/or modify it under
+// the terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version. See the LICENSE file at the repository root.
+
 import CoreGraphics
 import Darwin
 import Foundation

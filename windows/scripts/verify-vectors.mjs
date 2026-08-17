@@ -6,7 +6,7 @@
  * cannot pass.
  */
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { execSync } from "node:child_process";
 
@@ -20,8 +20,11 @@ execSync(`npx tsc src/protocol.ts --outDir "${outDir}" --module esnext --target 
   cwd: join(here, ".."),
   stdio: "inherit",
 });
+// pathToFileURL, not a bare path: on Windows an absolute path like
+// D:\a\...\protocol.js is not a valid ESM specifier and Node rejects it with
+// ERR_UNSUPPORTED_ESM_URL_SCHEME. This passed on macOS and failed in CI.
 const { decodeVideoMessage, encodeVideoMessage, codecStringFromAnnexB } = await import(
-  join(outDir, "protocol.js")
+  pathToFileURL(join(outDir, "protocol.js")).href
 );
 
 const manifest = JSON.parse(readFileSync(join(vectorsDir, "manifest.json"), "utf8"));

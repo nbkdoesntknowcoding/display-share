@@ -19,7 +19,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAC_DIR="$(cd "$HERE/.." && pwd)"
-BUILD_DIR="${DS_BUILD_DIR:-$MAC_DIR/.release}"
+# Not a dotted directory: actions/upload-artifact v4 skips hidden paths by
+# default, so a .release/ output silently uploaded nothing.
+BUILD_DIR="${DS_BUILD_DIR:-$MAC_DIR/dist}"
 APP_NAME="DisplayShare"
 DMG_NAME="${DS_DMG_NAME:-DisplayShare}"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MAC_DIR/DisplayShare/Info.plist" 2>/dev/null || echo 0.1.0)"

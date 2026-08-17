@@ -1,229 +1,182 @@
 # Display Share
 
-Use a Windows laptop as a genuine extended second display for a Mac.
+**Use a Windows laptop as a genuine extended second display for a Mac.**
 
 A laptop's HDMI port is output-only, so no cable can do this. Display Share
 creates a **real virtual display** on the Mac — macOS believes a monitor is
-attached — captures it, encodes it in hardware, and streams it to the receiver
-over the LAN.
+attached, and you can drag windows onto it, set its resolution, and arrange it in
+System Settings. It then captures that display, encodes it in hardware, and
+streams it over your LAN to a receiver app on the laptop.
 
-> **Status: in development.** Phases 0–5 are complete: the Mac sender creates a
-> virtual display, captures it, encodes H.264 and serves it over WebSocket, and
-> the Tauri receiver decodes and paints it while negotiating its own panel
-> geometry. Sessions are discovered over Bonjour, paired with a PIN, and survive
-> network drops, sleep/wake and display reconfiguration, with adaptive bitrate.
-> Mouse and keyboard can drive the Mac from the receiver. The receiver has been
-> verified as a running app; producing the Windows `.exe` still needs a Windows
-> host or CI (see below).
+> **Status: in development.** Phases 0–7 of the build plan are implemented on
+> macOS. The Windows receiver builds and runs, but has **not yet been tested on
+> real Windows hardware** — see [What isn't proven yet](#what-isnt-proven-yet).
 
----
-
-## Current state
-
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Feasibility spike | ✅ complete |
-| 1 | Mac sender MVP (MJPEG) | ✅ complete |
-| 2 | H.264 pipeline | ✅ complete |
-| 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
-| 4 | Session robustness | ✅ complete |
-| 5 | Input injection | ✅ complete |
-| 6 | Packaging | ✅ pipeline done; ships unsigned by design |
-| 7 | VPS, updates & release | not started |
-
----
-
-## Running it today
-
-```bash
-cd mac && xcodegen generate && xcodebuild -scheme DisplayShare -configuration Debug -derivedDataPath ./.build build
 ```
-
-Launch `DisplayShare.app`, click **Start** in the menu bar, then open the URL it
-shows. Endpoints:
-
-| URL | What |
-|---|---|
-| `http://<mac>:8787/` | H.264 WebCodecs test client |
-| `http://<mac>:8787/mjpeg` | Phase 1 MJPEG client, for comparison |
-| `ws://<mac>:8788` | the actual protocol ([`protocol/SPEC.md`](protocol/SPEC.md)) |
-
----
-
-## Two things that will bite you
-
-### 1. WebCodecs needs a secure context
-
-`VideoDecoder` is only available in a **secure context**. That means:
-
-* `http://localhost` — **works** (localhost is treated as secure)
-* `http://192.168.x.x` — **does not work**; the browser disables WebCodecs
-* `https://…` — works, but needs a certificate the receiver trusts
-
-So the browser test client is usable **on the Mac itself**, and over the LAN it
-needs either HTTPS with a self-signed certificate the receiver trusts, or a
-localhost proxy on the receiver. The page detects this and says so rather than
-silently showing black.
-
-This constraint does not apply to the Tauri receiver: its Rust backend owns the
-WebSocket and hands frames to the webview, which only ever sees
-`tauri://localhost`. No certificate is needed on the LAN.
-
-### 2. Chrome's hardware H.264 decoder is *much* slower than software
-
-Measured on macOS 26.2 at 1080p60, one-way sender→paint latency:
-
-| Decode path | Median | Range | Bandwidth |
-|---|---:|---:|---:|
-| H.264, `prefer-hardware` | **69.1 ms** | 22–75 ms | 1.34 Mbps |
-| MJPEG | 7.4 ms | 4.5–21.5 ms | 20.4 Mbps |
-| H.264, `prefer-software` | **3.1 ms** | 1.6–5.6 ms | 1.32 Mbps |
-
-The hardware decoder carries a deep pipeline that costs ~22× the latency of
-software decoding the identical stream. Since latency is the whole point of this
-product, the client defaults to `hardwareAcceleration: 'prefer-software'`.
-Override with `?hw=hardware` to compare.
-
-**Caveat:** measured in Chromium on an M4 Mac. Two reasons this is not settled
-for the shipping receiver: software decode costs CPU and a low-power laptop may
-invert the trade-off, and Tauri uses **WKWebView on macOS but WebView2
-(Chromium) on Windows** — so only a run on the actual Vivobook decides it. The
-receiver cycles the setting with the `A` key so it can be measured there.
-
----
-
-## Known limits
-
-These come from the private `CGVirtualDisplay` API and are not going away:
-
-* **60 Hz ceiling.** Every mode the virtual display advertises is 60 Hz.
-* **Reliable up to about 1920x1200.** Larger geometries misbehave *silently*:
-  2560x1080 is adopted as 1280x540 and 2560x1440 as 1920x1080, while
-  `applySettings:` still reports success. Display Share therefore fits the
-  receiver's **aspect ratio** inside the reliable envelope (a 2560x1080 panel
-  becomes 1920x810, filling it exactly) and reads the adopted geometry back
-  instead of trusting the API.
-* **SDR only.** No HDR.
-* **No HDCP**, so DRM-protected video will not play on the virtual display.
-* **Not on the Mac App Store.** `CGVirtualDisplay` is a private API, so
-  distribution is direct download only.
-* **macOS 14+.**
-
-Network: 5 GHz Wi-Fi or Ethernet. 2.4 GHz jitter is visible.
-
----
-
-## Pairing
-
-The sender advertises itself over Bonjour (`_displayshare._tcp`), so the receiver
-finds it without an IP being typed in. A new receiver is shown a 4-digit PIN on
-the Mac; entering it issues a token the receiver stores, making later connections
-one click.
-
-A 4-digit PIN is only 10,000 possibilities, so the real protection is **rate
-limiting**: three attempts per minute per device, applied to correct PINs too
-while active. Tokens are 32 random bytes, stored only as a SHA-256 hash,
-compared in constant time, and bound to the device that earned them. An unpaired
-receiver gets **no video at all** — authorisation is checked both at the encode
-gate and inside the send path.
-
-Manage or revoke paired devices by deleting
-`~/Library/Application Support/DisplayShare/paired-devices.json`.
+   Mac mini                                      Windows laptop
+ ┌───────────────────────┐                     ┌──────────────────────┐
+ │ CGVirtualDisplay      │                     │  Tauri receiver      │
+ │   ↓ ScreenCaptureKit  │   H.264 over        │   ↓ WebCodecs        │
+ │   ↓ VideoToolbox      │ ──WebSocket (LAN)──▶│   ↓ canvas           │
+ │   ↑ CGEvent injection │ ◀──input events──── │   ↑ mouse + keyboard │
+ └───────────────────────┘                     └──────────────────────┘
+```
 
 ---
 
 ## Installing
 
-There is no signed release yet. `mac/scripts/package-macos.sh` produces a
-universal `.dmg`, but **without an Apple Developer ID certificate it is unsigned**,
-so macOS will warn on first open. The script says so explicitly rather than
-handing you a DMG that looks shippable:
+**There is no signed release.** Display Share is open source and does not buy
+code signing certificates, so both operating systems warn on first launch. This
+is expected, and [docs/distribution.md](docs/distribution.md) documents exactly
+what to click:
+
+* **macOS** — open it once, then System Settings → Privacy & Security → **Open Anyway**
+* **Windows** — **More info** → **Run anyway**
+
+Building from source avoids the warnings entirely.
+
+### Build from source
 
 ```bash
-cd mac && ./scripts/package-macos.sh
-```
+# Mac sender
+brew install xcodegen create-dmg
+cd mac && ./scripts/package-macos.sh        # → dist/DisplayShare-<version>.dmg
 
+# Windows receiver (needs Rust + Node 22)
+cd windows && npm ci && npx tauri build
 ```
-universal:  yes (arm64 + x86_64)
-signed:     NO — ad-hoc only
-notarized:  NO
-```
-
-Display Share is open source and ships **unsigned by decision** — see
-[docs/distribution.md](docs/distribution.md) for exactly what each OS warns and
-what to click, plus how building from source avoids the warning entirely.
 
 ---
 
-## Remote control
+## Using it
 
-Press **F8** on the receiver to forward mouse and keyboard to the Mac; a badge
-across the top shows when it is live, and F8 releases it. Losing window focus
-releases every held key, so a modifier cannot get stuck down on the Mac.
+1. Launch **Display Share** on the Mac. First run explains the one permission it
+   needs and detects the grant without a restart.
+2. Click **Start** in the menu bar.
+3. Launch the receiver on the laptop. It finds the Mac over Bonjour — no IP
+   address to type.
+4. Enter the 4-digit PIN shown on the Mac. This happens once per device.
+5. Press **F11** for fullscreen. Drag windows onto the new display.
 
-This needs **Accessibility** permission in addition to Screen Recording — macOS
-silently discards synthetic events without it, so Display Share tells the
-receiver `input_unavailable` rather than accepting input and appearing to do
-nothing. The menu bar offers a direct link to the right Settings pane.
-
-Input is refused from any receiver that has not paired, checked at the socket
-boundary: driving the Mac is a far stronger capability than viewing it.
+Press **F8** on the receiver to forward its mouse and keyboard to the Mac; a
+badge shows when that is live.
 
 ---
 
-## Permissions
+## Requirements
 
-Display Share needs **Screen Recording** permission to capture the display it
-creates. It captures *only* its own virtual display, never your main screen —
-but macOS makes no such distinction, so the standard purple recording indicator
-appears, exactly as it does for Zoom or OBS.
+| | |
+|---|---|
+| Mac | macOS 14 or later, Apple Silicon or Intel |
+| Receiver | Windows 10/11. Any device with a modern browser also works for testing |
+| Network | **5 GHz Wi-Fi or Ethernet.** 2.4 GHz jitter is visible as stutter |
+| Permissions | Screen Recording (required), Accessibility (only for remote control) |
 
-A freshly built copy has its own TCC identity, so the permission must be granted
-to that specific copy. Rebuilding to a new path means granting again.
+---
+
+## Known limits
+
+These come from the private `CGVirtualDisplay` API and are **not** going away:
+
+| Limit | Detail |
+|---|---|
+| **60 Hz ceiling** | Every mode the virtual display advertises is 60 Hz. Requesting 120 yields ~64 fps because the surface does not update faster |
+| **~1920×1200 maximum** | Larger geometries are adopted *wrongly* and silently: 2560×1080 becomes 1280×540, 2560×1440 falls back to 1920×1080. Display Share fits your panel's **aspect ratio** inside the reliable envelope instead — a 2560×1080 panel gets 1920×810, which fills it exactly with no letterboxing |
+| **SDR only** | No HDR |
+| **No HDCP** | DRM-protected video (Netflix, Apple TV+) will not play on the virtual display |
+| **Not on the Mac App Store** | `CGVirtualDisplay` is a private API; App Review rejects private API use outright |
+| **Private API risk** | A future macOS release could remove or change `CGVirtualDisplay`. Verified working on macOS 26.2 (25C56) |
+
+---
+
+## Performance
+
+Measured on a Mac mini M4, macOS 26.2, at 1080p60 over **localhost** — so these
+exclude LAN transit and are a floor, not a promise:
+
+| | Value |
+|---|---|
+| Capture | 57.8 fps (against a 60 fps target) |
+| H.264 encode | 5.62 ms/frame |
+| Bandwidth | ~1.4 Mbps synthetic content; ~20 Mbps for the MJPEG fallback |
+| Capture cost | ~1.4% of one core |
+| Decode (software) | ~3 ms |
+
+**On latency, deliberately not a headline number.** One-way sender→paint measured
+**3.1 ms median** in Chromium with software decode on the same machine. That
+figure excludes network transit entirely and was measured in a browser, not in
+the shipping receiver. Real end-to-end latency on a LAN will be higher, and has
+not been measured on real hardware yet.
+
+One finding worth knowing: Chrome's **hardware** H.264 decoder carries a ~69 ms
+pipeline, **22× worse** than software decoding the identical stream. The receiver
+defaults to software decode because of this. Press **A** on the receiver to cycle
+the setting and measure it on your own hardware.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "Cannot be opened because Apple cannot check it" | Unsigned build | System Settings → Privacy & Security → **Open Anyway**. See [docs/distribution.md](docs/distribution.md) |
+| "Windows protected your PC" | Unsigned installer | **More info** → **Run anyway** |
+| Menu bar says *Screen Recording permission has not been granted* | macOS TCC | Grant it, then reopen the menu. A freshly built copy is a new identity and needs granting again |
+| Receiver shows black, HUD says `capture 0.0 fps` | Nothing is on the virtual display | Drag a window onto it. An idle desktop legitimately sends no frames |
+| Receiver cannot find the Mac | mDNS blocked, or different subnets | Type the Mac's IP manually in the receiver. Guest and AP-isolated Wi-Fi block Bonjour |
+| `busy — another receiver is already connected` | One receiver at a time, by design | Close the other receiver, or wait ~10 s for the socket to drop |
+| Stutter, image goes soft under load | Adaptive bitrate reducing quality | Working as designed: sharpness degrades rather than latency accumulating. Move to 5 GHz or Ethernet |
+| Mouse and keyboard do nothing after pressing F8 | Accessibility not granted | The Mac reports `input_unavailable`; grant Accessibility and retry |
+| Windows scattered after a crash | The display was destroyed | Relaunch within ~8 s and the helper re-attaches the *same* display, preserving arrangement |
+| Second display gone after Mac sleep | Capture died on wake | Recovers automatically, typically under 0.1 s. If not, toggle Stop then Start |
+
+---
+
+## Privacy
+
+Display Share captures **only the virtual display it creates**, never your real
+screen. macOS makes no such distinction, so the purple recording indicator
+appears exactly as it does for Zoom or OBS.
+
+Video never leaves your LAN — there is no server, no account, no telemetry. A
+receiver must pair with a 4-digit PIN before it gets any video, and input
+forwarding is refused entirely until it does.
 
 ---
 
 ## Repository layout
 
 ```
-windows/
-  src/                TypeScript frontend: WebCodecs decode + canvas
-  src-tauri/          Rust backend: owns the WebSocket
-  scripts/            golden-vector verification
 mac/
-  DisplayShare/       SwiftUI MenuBarExtra app
-  DisplayShareCore/   capture, encode, transport
+  DisplayShare/       SwiftUI MenuBarExtra app + onboarding
+  DisplayShareCore/   capture, encode, transport, pairing, input
   vd_helper/          subprocess that owns the CGVirtualDisplay
   Shared/             wire protocol + helper IPC, compiled into both
   spike/              Phase 0 throwaway spike (vdspike)
   dsprobe/            dev harness for capture/encode measurements
-  scripts/            acceptance tests
+  scripts/            acceptance tests + packaging
+windows/
+  src/                TypeScript frontend: WebCodecs decode + canvas + input
+  src-tauri/          Rust backend: owns the WebSocket
 protocol/             SPEC.md + golden test vectors
-docs/                 findings
+docs/                 findings, distribution
 ```
 
-`vd_helper` is a separate process on purpose: the virtual display dies with the
+`vd_helper` is a separate process on purpose: a virtual display dies with the
 process holding it, so isolating it means a crash in the capture or encode
-pipeline does not destroy the user's window arrangement. If the app crashes, the
-helper holds the display for a grace period so a relaunched app re-attaches to
-the *same* display.
+pipeline does not destroy your window arrangement.
 
 ---
 
-## Development notes
-
-The Xcode project is generated from [`mac/project.yml`](mac/project.yml) by
-[XcodeGen](https://github.com/yonaskolb/XcodeGen) — edit the YAML, not the
-`.xcodeproj`.
+## Development
 
 ```bash
 brew install xcodegen
 cd mac && xcodegen generate
 
-# unit tests
-xcodebuild -scheme DisplayShareCore -derivedDataPath ./.build test
+xcodebuild -scheme DisplayShareCore -derivedDataPath ./.build test   # 50 unit tests
 
-# acceptance
 ./scripts/test-helper-lifecycle.sh      # vd_helper lifecycle
 python3 scripts/ws-acceptance.py        # wire protocol over WebSocket
 python3 scripts/pairing-acceptance.py   # discovery + PIN pairing
@@ -232,25 +185,42 @@ python3 scripts/abr-acceptance.py       # adaptive bitrate
 python3 scripts/input-acceptance.py     # input forwarding + auth gate
 python3 scripts/injection-acceptance.py # CGEvent injection vs the real cursor
 
-# receiver
-cd ../windows && npm install
+cd ../windows && npm ci
 node scripts/verify-vectors.mjs         # TS parser vs the same golden vectors
-npx tauri dev                           # run the receiver
+npx tauri dev
 ```
 
-### Building the Windows `.exe`
+The Xcode project is generated from [`mac/project.yml`](mac/project.yml) — edit
+the YAML, not the `.xcodeproj`. The wire protocol is specified in
+[`protocol/SPEC.md`](protocol/SPEC.md), and the Swift and TypeScript parsers are
+tested independently against the same golden vectors so a shared misunderstanding
+cannot pass.
 
-`npx tauri build` produces a bundle for the **host** platform. On macOS it emits
-a `.app`; asking for `--bundles nsis` there compiles the binary and then
-silently produces no installer, which is easy to mistake for success. The NSIS
-`.exe` requires a Windows host or a `windows-latest` CI runner — wired up in
-Task 7.1.
+---
 
-## Licensing
+## What isn't proven yet
 
-Built on [DeskPad](https://github.com/Stengo/DeskPad) (MIT) as the reference for
+Stated plainly, because everything above was measured but these were not:
+
+* **No end-to-end test on real Windows hardware.** The receiver was verified as a
+  running app on macOS, which uses WKWebView — Windows uses WebView2 (Chromium).
+  The software-decode default was measured in Chromium and should hold, but the
+  laptop decides it.
+* **The Windows `.exe` has never been built.** `tauri build` targets the host
+  platform; CI produces it, but no one has installed it.
+* **Latency over a real LAN is unmeasured.** All figures above are localhost.
+* **No real sleep/wake cycle.** The recovery path was exercised through the same
+  entry point the wake notification calls, not by actually sleeping the Mac.
+* **2.4 GHz congestion** was simulated through the control channel, not real RF.
+
+---
+
+## Licence
+
+GPL-3.0. See [LICENSE](LICENSE).
+
+Built with reference to [DeskPad](https://github.com/Stengo/DeskPad) (MIT) for
 the virtual-display approach. The private CoreGraphics interface in
-`mac/CGVirtualDisplayPrivate` was derived by Objective-C runtime introspection
-on the target machine, not copied. GPL-3.0 projects in this space (opendisplay,
-Lumen, Sunshine, moonlight-qt) were read for architecture only; no source was
-copied from them.
+`mac/CGVirtualDisplayPrivate` was derived by Objective-C runtime introspection on
+the target machine, not copied from any project. GPL-3.0 projects in this space
+(opendisplay, Lumen, Sunshine, moonlight-qt) were read for architecture only.

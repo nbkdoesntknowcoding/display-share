@@ -74,7 +74,7 @@ jobs:
         run: ./scripts/package-macos.sh
 
       - name: Checksums
-        working-directory: mac/.release
+        working-directory: mac/dist
         # Users verifying an unsigned download have nothing else to go on, so
         # the checksum is not decoration here.
         run: shasum -a 256 ./*.dmg > SHA256SUMS-macos.txt
@@ -82,8 +82,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            mac/.release/*.dmg
-            mac/.release/SHA256SUMS-macos.txt
+            mac/dist/*.dmg
+            mac/dist/SHA256SUMS-macos.txt
           fail_on_unmatched_files: true
 
   # -------------------------------------------------------- Windows exe/msi
@@ -118,8 +118,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          # Updater signing key — free, unrelated to code signing certificates.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: windows
+          # Emits latest.json next to the installers, which is what the updater
+          # endpoint points at (Task 7.2 — GitHub Releases, no VPS).
+          includeUpdaterJson: true
 
       - name: Checksums
         shell: bash
