@@ -62,7 +62,9 @@ enum DisplayInventory {
 func runList(_ args: Args) {
     for id in DisplayInventory.activeDisplayIDs() {
         let b = CGDisplayBounds(id)
-        print("0x\(String(id, radix: 16)) 0x\(String(CGDisplayVendorNumber(id), radix: 16)) \(Int(b.width)) \(Int(b.height))")
+        // points AND pixels: their ratio is the backing scale, and confusing
+        // the two is how a HiDPI display looks "half size".
+        print("0x\(String(id, radix: 16)) 0x\(String(CGDisplayVendorNumber(id), radix: 16)) \(Int(b.width)) \(Int(b.height)) \(CGDisplayPixelsWide(id)) \(CGDisplayPixelsHigh(id))")
     }
     exit(0)
 }

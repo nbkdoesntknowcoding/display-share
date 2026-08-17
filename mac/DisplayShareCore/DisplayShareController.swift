@@ -44,6 +44,11 @@ public final class DisplayShareController: ObservableObject {
         self.client = client
         self.port = port
         self.pipeline = StreamPipeline(codec: codec)
+        // Task 3.3: size the virtual display to the receiver's actual panel so
+        // the image is neither letterboxed nor stretched.
+        self.pipeline.onReceiverPanel = { [weak self] panel in
+            Task { @MainActor in self?.adoptReceiverPanel(panel) }
+        }
         self.client.onDisplayTerminated = { [weak self] in
             Task { @MainActor in self?.state = .failed("macOS removed the display") }
         }
@@ -122,7 +127,62 @@ public final class DisplayShareController: ObservableObject {
         }
     }
 
+    /// True when the sender should follow whatever panel the receiver reports.
+    @Published public var matchReceiver = true
+    /// Last panel the receiver told us about, for display in the UI.
+    @Published public private(set) var receiverPanel: ReceiverPanel?
+
+    /// Largest virtual-display geometry that macOS reliably adopts, preserving
+    /// the receiver's aspect ratio.
+    ///
+    /// MEASURED on macOS 26.2: CGVirtualDisplay is unreliable above ~1920x1200.
+    /// Requests are sometimes silently HALVED (2560x1080 -> 1280x540,
+    /// 1920x1440 -> 960x720) and sometimes fall back to 1920x1080
+    /// (2560x1440, 3840x2160). applyMode still returns success, so the failure
+    /// is invisible unless the result is read back.
+    ///
+    /// Rather than letterbox or stretch, fit the receiver's ASPECT RATIO inside
+    /// the reliable envelope: a 2560x1080 (21:9) panel becomes 1920x810, which
+    /// is verified working and fills the receiver exactly. The receiver upscales,
+    /// which costs sharpness but never geometry.
+    static func supportedGeometry(for panel: ReceiverPanel) -> (width: UInt32, height: UInt32) {
+        let maxWidth: Double = 1920
+        let maxHeight: Double = 1200
+        let w = Double(max(panel.width, 1))
+        let h = Double(max(panel.height, 1))
+
+        let scale = min(1.0, min(maxWidth / w, maxHeight / h))
+        // Even dimensions: H.264 chroma is subsampled 2x2, so odd sizes force
+        // the encoder to pad and can shift colour by half a pixel.
+        var width = UInt32((w * scale).rounded(.down)) & ~1
+        var height = UInt32((h * scale).rounded(.down)) & ~1
+        width = max(320, width)
+        height = max(240, height)
+        return (width, height)
+    }
+
+    private func adoptReceiverPanel(_ panel: ReceiverPanel) {
+        FileHandle.standardError.write(Data(
+            "[DisplayShare] receiver panel: \(panel.width)x\(panel.height) @\(panel.scale)x \(panel.refreshRate)Hz (matchReceiver=\(matchReceiver))\n".utf8))
+        receiverPanel = panel
+        guard matchReceiver else { return }
+
+        let (width, height) = Self.supportedGeometry(for: panel)
+        if width != panel.width || height != panel.height {
+            FileHandle.standardError.write(Data(
+                "[DisplayShare] panel \(panel.width)x\(panel.height) exceeds the reliable virtual-display envelope; using \(width)x\(height) at the same aspect ratio\n".utf8))
+        }
+        guard width != configuration.width || height != configuration.height else { return }
+
+        var next = configuration
+        next.width = width
+        next.height = height
+        update(configuration: next)
+    }
+
     public func setResolution(width: UInt32, height: UInt32) {
+        // An explicit choice overrides automatic matching until re-enabled.
+        matchReceiver = false
         var next = configuration
         next.width = width
         next.height = height

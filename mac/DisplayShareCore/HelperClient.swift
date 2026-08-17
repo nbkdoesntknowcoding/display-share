@@ -199,8 +199,16 @@ public final class HelperClient: @unchecked Sendable {
         guard let displayID = response.displayID else {
             throw ClientError.helperRejected("helper returned no displayID")
         }
+        // CoreGraphics can report success and adopt something else entirely, so
+        // record what actually happened rather than assuming.
+        lastAdoptedSize = response.actualWidth.flatMap { w in
+            response.actualHeight.map { (width: w, height: $0) }
+        }
         return displayID
     }
+
+    /// Geometry macOS actually adopted after the last applyMode.
+    public private(set) var lastAdoptedSize: (width: UInt32, height: UInt32)?
 
     public func status() throws -> HelperResponse {
         try send(.status)

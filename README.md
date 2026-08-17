@@ -20,7 +20,7 @@ over the LAN.
 | 0 | Feasibility spike | ✅ complete |
 | 1 | Mac sender MVP (MJPEG) | ✅ complete |
 | 2 | H.264 pipeline | ✅ complete |
-| 3 | Windows receiver (Tauri) | not started |
+| 3 | Windows receiver (Tauri) | ✅ complete (`.exe` needs a Windows host) |
 | 4 | Session robustness | not started |
 | 5 | Input injection | not started |
 | 6 | Packaging & signing | not started |
@@ -90,6 +90,12 @@ actual Windows laptop before this default is final.
 These come from the private `CGVirtualDisplay` API and are not going away:
 
 * **60 Hz ceiling.** Every mode the virtual display advertises is 60 Hz.
+* **Reliable up to about 1920x1200.** Larger geometries misbehave *silently*:
+  2560x1080 is adopted as 1280x540 and 2560x1440 as 1920x1080, while
+  `applySettings:` still reports success. Display Share therefore fits the
+  receiver's **aspect ratio** inside the reliable envelope (a 2560x1080 panel
+  becomes 1920x810, filling it exactly) and reads the adopted geometry back
+  instead of trusting the API.
 * **SDR only.** No HDR.
 * **No HDCP**, so DRM-protected video will not play on the virtual display.
 * **Not on the Mac App Store.** `CGVirtualDisplay` is a private API, so
@@ -115,6 +121,10 @@ to that specific copy. Rebuilding to a new path means granting again.
 ## Repository layout
 
 ```
+windows/
+  src/                TypeScript frontend: WebCodecs decode + canvas
+  src-tauri/          Rust backend: owns the WebSocket
+  scripts/            golden-vector verification
 mac/
   DisplayShare/       SwiftUI MenuBarExtra app
   DisplayShareCore/   capture, encode, transport
@@ -151,7 +161,20 @@ xcodebuild -scheme DisplayShareCore -derivedDataPath ./.build test
 # acceptance
 ./scripts/test-helper-lifecycle.sh      # vd_helper lifecycle
 python3 scripts/ws-acceptance.py        # wire protocol over WebSocket
+
+# receiver
+cd ../windows && npm install
+node scripts/verify-vectors.mjs         # TS parser vs the same golden vectors
+npx tauri dev                           # run the receiver
 ```
+
+### Building the Windows `.exe`
+
+`npx tauri build` produces a bundle for the **host** platform. On macOS it emits
+a `.app`; asking for `--bundles nsis` there compiles the binary and then
+silently produces no installer, which is easy to mistake for success. The NSIS
+`.exe` requires a Windows host or a `windows-latest` CI runner — wired up in
+Task 7.1.
 
 ## Licensing
 

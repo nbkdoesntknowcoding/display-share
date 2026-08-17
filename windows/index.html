@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Display Share</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden;
+               font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; }
+  /* The app is one fullscreen canvas; everything else floats above it. */
+  #screen { width:100vw; height:100vh; object-fit:contain; display:block; background:#000; }
+  #hud {
+    position:fixed; top:12px; left:12px; padding:10px 14px;
+    font:12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color:#e8e8e8; background:rgba(0,0,0,.62); border:1px solid rgba(255,255,255,.16);
+    border-radius:8px; backdrop-filter:blur(8px); pointer-events:none; white-space:pre;
+  }
+  #hud.hidden { display:none; }
+  #overlay {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px; text-align:center; white-space:pre-line;
+    color:#d8d8d8; background:rgba(0,0,0,.86); font-size:14px; padding:24px;
+  }
+  #bar { display:flex; gap:8px; }
+  input, button {
+    font:14px ui-sans-serif, system-ui; padding:8px 12px; border-radius:8px;
+    border:1px solid rgba(255,255,255,.2); background:#151515; color:#eee;
+  }
+  button { background:#2563eb; border-color:#2563eb; cursor:pointer; }
+  button:hover { background:#1d4ed8; }
+</style>
+</head>
+<body>
+  <canvas id="screen"></canvas>
+  <div id="hud">starting…</div>
+  <div id="overlay">
+    <div id="message">Enter the Mac's address and press Connect.</div>
+    <div id="bar">
+      <input id="address" placeholder="192.168.1.42" autocomplete="off" spellcheck="false">
+      <button id="connect">Connect</button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

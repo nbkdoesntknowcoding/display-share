@@ -1,7 +1,7 @@
 {
   "protocolVersion": 1,
   "spec": "../SPEC.md",
-  "note": "A conforming parser MUST accept every \"accept\" vector and reject every \"reject\" vector.",
+  "note": "A conforming parser MUST accept every \"accept\" vector and reject every \"reject\" vector. timestampMicros is a STRING: the field is uint64 and JSON numbers cannot represent 2^64-1 exactly, so a numeric literal here would corrupt the very case it tests.",
   "headerSize": 16,
   "vectors": [
     {
@@ -9,7 +9,7 @@
       "description": "Keyframe: payload begins SPS, then PPS, then IDR slice.",
       "expect": "accept",
       "isKeyframe": true,
-      "timestampMicros": 1000000,
+      "timestampMicros": "1000000",
       "payloadBytes": 38,
       "codecString": "avc1.640028"
     },
@@ -18,7 +18,7 @@
       "description": "Non-keyframe: a single non-IDR slice NALU.",
       "expect": "accept",
       "isKeyframe": false,
-      "timestampMicros": 1016667,
+      "timestampMicros": "1016667",
       "payloadBytes": 10,
       "codecString": null
     },
@@ -27,7 +27,7 @@
       "description": "timestamp = 2^64-1, verifies unsigned 64-bit handling (must not go negative).",
       "expect": "accept",
       "isKeyframe": false,
-      "timestampMicros": 18446744073709551615,
+      "timestampMicros": "18446744073709551615",
       "payloadBytes": 10,
       "codecString": null
     },

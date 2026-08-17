@@ -136,10 +136,21 @@ func handle(_ request: HelperRequest) {
             return
         }
         let ok = state.host.applyMode(config)
+        // Poll briefly: the window server adopts the new mode asynchronously.
+        let deadline = Date().addingTimeInterval(1.5)
+        while Date() < deadline {
+            if let actual = state.host.actualSize, actual.width == config.width { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+        let actual = state.host.actualSize
+        if let actual, actual.width != config.width || actual.height != config.height {
+            log("requested \(config.width)x\(config.height) but macOS adopted \(actual.width)x\(actual.height)")
+        }
         respond(
             HelperResponse(
                 id: request.id, ok: ok, displayID: state.host.displayID,
                 configuration: state.host.configuration,
+                actualWidth: actual?.width, actualHeight: actual?.height,
                 message: ok ? nil : "CoreGraphics rejected the mode"))
 
     case .shutdown:

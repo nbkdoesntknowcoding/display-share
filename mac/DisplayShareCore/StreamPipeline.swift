@@ -34,6 +34,10 @@ public final class StreamPipeline: @unchecked Sendable {
     private var frameIndex: Int64 = 0
     private var currentFPS = 60
 
+    /// Task 3.3: the receiver's panel geometry, reported in `hello`. The
+    /// controller decides whether to adopt it.
+    public var onReceiverPanel: ((ReceiverPanel) -> Void)?
+
     public init(
         httpServer: MJPEGServer = MJPEGServer(),
         socketServer: WebSocketServer = WebSocketServer(),
@@ -49,8 +53,9 @@ public final class StreamPipeline: @unchecked Sendable {
 
         // A receiver that just completed `hello` needs an IDR immediately;
         // otherwise it stares at nothing until the next natural keyframe.
-        self.socketServer.onClientReady = { [weak self] _ in
+        self.socketServer.onClientReady = { [weak self] panel in
             self?.h264Encoder.requestKeyframe()
+            if let panel { self?.onReceiverPanel?(panel) }
         }
         self.socketServer.onKeyframeRequested = { [weak self] in
             self?.h264Encoder.requestKeyframe()

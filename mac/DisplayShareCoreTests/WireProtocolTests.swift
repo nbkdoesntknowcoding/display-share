@@ -13,7 +13,8 @@ final class WireProtocolTests: XCTestCase {
             let description: String
             let expect: String
             let isKeyframe: Bool?
-            let timestampMicros: UInt64?
+            /// String, not a number: JSON cannot represent 2^64-1 exactly.
+            let timestampMicros: String?
             let payloadBytes: Int?
             let codecString: String?
             let reason: String?
@@ -53,7 +54,7 @@ final class WireProtocolTests: XCTestCase {
             case "accept":
                 let message = try WireProtocol.decode(data)
                 XCTAssertEqual(message.isKeyframe, vector.isKeyframe, vector.file)
-                XCTAssertEqual(message.timestampMicros, vector.timestampMicros, vector.file)
+                XCTAssertEqual(message.timestampMicros, vector.timestampMicros.flatMap(UInt64.init), vector.file)
                 XCTAssertEqual(message.payload.count, vector.payloadBytes, vector.file)
                 XCTAssertEqual(
                     WireProtocol.codecString(fromAnnexB: message.payload), vector.codecString, vector.file)

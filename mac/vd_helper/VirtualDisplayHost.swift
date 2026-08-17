@@ -124,6 +124,15 @@ final class VirtualDisplayHost {
         return false
     }
 
+    /// Geometry macOS actually adopted, in points. CoreGraphics accepts some
+    /// mode requests and then quietly adopts something else, so callers must
+    /// verify rather than trust applyMode's return value.
+    var actualSize: (width: UInt32, height: UInt32)? {
+        guard displayID != 0 else { return nil }
+        let bounds = CGDisplayBounds(displayID)
+        return (UInt32(bounds.width), UInt32(bounds.height))
+    }
+
     func stop() {
         display = nil
         displayID = 0

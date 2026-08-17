@@ -80,6 +80,9 @@ public struct HelperResponse: Codable, Sendable {
     public var protocolVersion: Int?
     public var displayID: UInt32?
     public var configuration: DisplayConfiguration?
+    /// Geometry macOS actually adopted, which can differ from what was asked.
+    public var actualWidth: UInt32?
+    public var actualHeight: UInt32?
     public var message: String?
 
     public init(
@@ -89,6 +92,8 @@ public struct HelperResponse: Codable, Sendable {
         protocolVersion: Int? = nil,
         displayID: UInt32? = nil,
         configuration: DisplayConfiguration? = nil,
+        actualWidth: UInt32? = nil,
+        actualHeight: UInt32? = nil,
         message: String? = nil
     ) {
         self.id = id
@@ -97,6 +102,8 @@ public struct HelperResponse: Codable, Sendable {
         self.protocolVersion = protocolVersion
         self.displayID = displayID
         self.configuration = configuration
+        self.actualWidth = actualWidth
+        self.actualHeight = actualHeight
         self.message = message
     }
 }

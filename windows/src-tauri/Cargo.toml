@@ -1,0 +1,27 @@
+[package]
+name = "display-share-receiver"
+version = "0.1.0"
+description = "Display Share — Windows receiver"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "display_share_receiver_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync"] }
+# ws:// only on a LAN, so no TLS feature - it keeps the build light and the
+# dependency surface small.
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
