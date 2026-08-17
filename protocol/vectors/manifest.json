@@ -1,0 +1,53 @@
+{
+  "protocolVersion": 1,
+  "spec": "../SPEC.md",
+  "note": "A conforming parser MUST accept every \"accept\" vector and reject every \"reject\" vector.",
+  "headerSize": 16,
+  "vectors": [
+    {
+      "file": "keyframe.bin",
+      "description": "Keyframe: payload begins SPS, then PPS, then IDR slice.",
+      "expect": "accept",
+      "isKeyframe": true,
+      "timestampMicros": 1000000,
+      "payloadBytes": 38,
+      "codecString": "avc1.640028"
+    },
+    {
+      "file": "delta.bin",
+      "description": "Non-keyframe: a single non-IDR slice NALU.",
+      "expect": "accept",
+      "isKeyframe": false,
+      "timestampMicros": 1016667,
+      "payloadBytes": 10,
+      "codecString": null
+    },
+    {
+      "file": "max-timestamp.bin",
+      "description": "timestamp = 2^64-1, verifies unsigned 64-bit handling (must not go negative).",
+      "expect": "accept",
+      "isKeyframe": false,
+      "timestampMicros": 18446744073709551615,
+      "payloadBytes": 10,
+      "codecString": null
+    },
+    {
+      "file": "empty-payload.bin",
+      "description": "Header with a zero-length payload.",
+      "expect": "reject",
+      "reason": "emptyPayload"
+    },
+    {
+      "file": "truncated-header.bin",
+      "description": "Only 9 bytes: shorter than the 16-byte header.",
+      "expect": "reject",
+      "reason": "tooShort"
+    },
+    {
+      "file": "bad-length.bin",
+      "description": "length field disagrees with the actual message size.",
+      "expect": "reject",
+      "reason": "lengthMismatch"
+    }
+  ]
+}

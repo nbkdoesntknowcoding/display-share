@@ -7,7 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */; };
+		0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
 		142B6365854CA33DCF08889C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
+		148A1C76D1F9F611D85F2A31 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
 		191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */; };
 		25F94343E08722F233CC3FDC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBFA61E802ABC429B866EB8 /* main.swift */; };
 		4452539B527C7C5CF2BD3B4F /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -127,9 +130,11 @@
 		AE2DF7EF0E34E39BE7729A45 /* HelperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperClient.swift; sourceTree = "<group>"; };
 		AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSession.swift; sourceTree = "<group>"; };
 		B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualDisplayHost.swift; sourceTree = "<group>"; };
+		B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireProtocol.swift; sourceTree = "<group>"; };
 		C13B96E4B22FF0CF33F72A36 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedContent.swift; sourceTree = "<group>"; };
 		D00D23447A81B9127D65D8BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireProtocolTests.swift; sourceTree = "<group>"; };
 		D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
 		D4627F903798A6CE826ABA73 /* dsprobe */ = {isa = PBXFileReference; includeInIndex = 0; path = dsprobe; sourceTree = BUILT_PRODUCTS_DIR; };
 		D64520181389425E0876F924 /* vd_helper */ = {isa = PBXFileReference; includeInIndex = 0; path = vd_helper; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -214,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
+				D132A891D9CE3E76CE615282 /* WireProtocolTests.swift */,
 			);
 			path = DisplayShareCoreTests;
 			sourceTree = "<group>";
@@ -275,6 +281,7 @@
 			children = (
 				4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */,
 				4FD219E38307861BED3C1FA9 /* LineSocket.swift */,
+				B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -472,6 +479,7 @@
 				B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */,
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
+				0C4A4EF9F868DCC60F09E1F5 /* WireProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -493,6 +501,7 @@
 				EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */,
 				8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */,
 				D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */,
+				148A1C76D1F9F611D85F2A31 /* WireProtocol.swift in Sources */,
 				65A1F628B5ECC64A36C7CC02 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -502,6 +511,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
+				0047535A21D69D283EF6C622 /* WireProtocolTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
