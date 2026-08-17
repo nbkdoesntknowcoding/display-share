@@ -23,6 +23,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ------------------------------------------------------------------- lint
+  # A workflow with an invalid expression fails at STARTUP with zero jobs and
+  # no readable error, which is how the `secrets`-in-`if` bug here went
+  # unnoticed. actionlint catches that class of mistake before it merges.
+  workflows:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: reviewdog/action-actionlint@v1
+        with:
+          reporter: github-check
+          fail_level: error
+
   # ------------------------------------------------------------------ macOS
   # MUST run on macOS: notarytool and stapler are macOS-only, so the Linux VPS
   # cannot do this step no matter how the rest is deployed.
@@ -51,12 +65,18 @@ jobs:
       # Signing only when the secrets exist. A fork PR has none, and must still
       # get a green build rather than a confusing failure.
       - name: Import Developer ID certificate
-        if: ${{ secrets.MACOS_CERTIFICATE != '' }}
+        # No `if:` here on purpose: the `secrets` context is NOT available in
+        # `if` expressions, and using it there makes the whole workflow fail to
+        # start with no jobs and no useful error. Guard inside the script.
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ github.run_id }}
         run: |
+          if [ -z "${MACOS_CERTIFICATE:-}" ]; then
+            echo "No signing certificate configured — skipping (expected: this project ships unsigned)."
+            exit 0
+          fi
           # Ephemeral keychain: never touches the runner's default keychain, and
           # dies with the runner.
           echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
@@ -85,7 +105,7 @@ jobs:
       - name: Report Gatekeeper status
         working-directory: mac
         run: |
-          DMG="$(ls .release/*.dmg | head -1)"
+          DMG="$(find .release -maxdepth 1 -name '*.dmg' | head -1)"
           echo "### macOS artifact" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           spctl -a -vvv -t install "$DMG" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true

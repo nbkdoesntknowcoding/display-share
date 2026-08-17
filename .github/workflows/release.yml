@@ -77,7 +77,7 @@ jobs:
         working-directory: mac/.release
         # Users verifying an unsigned download have nothing else to go on, so
         # the checksum is not decoration here.
-        run: shasum -a 256 *.dmg > SHA256SUMS-macos.txt
+        run: shasum -a 256 ./*.dmg > SHA256SUMS-macos.txt
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -125,7 +125,7 @@ jobs:
         shell: bash
         working-directory: windows/src-tauri/target/release/bundle
         run: |
-          find . -name '*.exe' -o -name '*.msi' | xargs shasum -a 256 \
+          find . \( -name '*.exe' -o -name '*.msi' \) -exec shasum -a 256 {} + \
             > SHA256SUMS-windows.txt
 
       - uses: softprops/action-gh-release@v2
