@@ -181,6 +181,31 @@ jobs:
           # A stream can report the right metadata and still decode to nothing.
           ffmpeg -v error -i selftest.h264 -f null - && echo "decoded cleanly"
 
+      # Task 8.1 acceptance proper: a scripted WebSocket client connects and
+      # receives a stream that decodes. The encoder self-test above cannot catch
+      # a framing mistake — a length field that counts itself, or a session that
+      # opens on a delta frame — because none of that is visible until something
+      # actually reads the wire.
+      - name: Wire acceptance (scripted WebSocket client)
+        shell: bash
+        working-directory: windows
+        run: |
+          cargo build --release --example serve_selftest --manifest-path src-tauri/Cargo.toml
+          ./src-tauri/target/release/examples/serve_selftest.exe 7879 synthetic > server.log 2>&1 &
+          SERVER=$!
+          # Wait for the bind rather than sleeping a guessed interval.
+          for _ in $(seq 1 30); do grep -q listening server.log && break; sleep 1; done
+          grep -q listening server.log || { echo "::error::sender never bound"; cat server.log; exit 1; }
+
+          node scripts/ws-acceptance.mjs ws://127.0.0.1:7879 wire.h264 40
+          kill "$SERVER" 2>/dev/null || true
+
+          ffprobe -v error -show_entries stream=codec_name,has_b_frames \
+            -of default=noprint_wrappers=1 wire.h264 | tee wire-probe.txt
+          grep -q '^codec_name=h264$' wire-probe.txt || { echo "::error::wire stream is not H.264"; exit 1; }
+          grep -q '^has_b_frames=0$' wire-probe.txt || { echo "::error::wire stream has B-frames"; exit 1; }
+          ffmpeg -v error -i wire.h264 -f null - && echo "wire stream decoded cleanly"
+
       # tauri-action reads the signing certificate from these env vars. Left
       # unset, it produces an UNSIGNED installer — which SmartScreen will warn
       # about until the certificate's reputation is established (see

@@ -17,6 +17,8 @@ pub mod annexb;
 pub mod capture;
 pub mod convert;
 pub mod encode;
+pub mod sender;
+pub mod wire;
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};

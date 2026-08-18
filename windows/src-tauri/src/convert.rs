@@ -184,3 +184,26 @@ mod tests {
         assert!(u > 128, "U must sit between the two: {u}");
     }
 }
+
+/// A moving block on a dark field, for exercising the encoder without a desktop.
+///
+/// Used by the self-tests: a still image compresses to almost nothing and would
+/// leave inter prediction — and therefore the whole reordering question —
+/// completely untested.
+pub fn test_pattern(width: u32, height: u32, tick: u32) -> Vec<u8> {
+    let mut bgra = vec![16u8; (width * height * 4) as usize];
+    let span = width.saturating_sub(64).max(1);
+    let x0 = (tick * 7) % span;
+    let y1 = (height / 3).max(1);
+    let y2 = (y1 + height / 4).min(height);
+    for y in y1..y2 {
+        for x in x0..(x0 + 64).min(width) {
+            let o = ((y * width + x) * 4) as usize;
+            bgra[o] = 40;
+            bgra[o + 1] = 200;
+            bgra[o + 2] = 220;
+            bgra[o + 3] = 255;
+        }
+    }
+    bgra
+}
