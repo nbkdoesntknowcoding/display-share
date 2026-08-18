@@ -26,22 +26,97 @@ streams it over your LAN to a receiver app on the laptop.
 
 ## Installing
 
-**There is no signed release.** Display Share is open source and does not buy
-code signing certificates, so both operating systems warn on first launch. This
-is expected, and [docs/distribution.md](docs/distribution.md) documents exactly
-what to click:
+### The one-command way (recommended)
+
+```bash
+git clone https://github.com/nbkdoesntknowcoding/display-share.git
+cd display-share && ./install.sh
+```
+
+That checks your macOS version and tools, installs `xcodegen` if missing, builds,
+installs to `/Applications`, and opens the right Settings pane. `./install.sh
+--uninstall` reverses it.
+
+**Building is the *easy* path here, not the hard one.** A locally built app has no
+quarantine attribute, so macOS launches it normally — no "Apple cannot check it
+for malicious software", no trip through Privacy & Security to click *Open
+Anyway*. Downloading the `.dmg` is the route that triggers that warning, because
+Display Share is open source and does not buy code signing certificates.
+
+### Or ask your coding agent
+
+Paste this into Claude Code, Cursor, or any agent with shell access:
+
+````text
+Set up Display Share on this machine. It turns a Windows laptop into a real
+second display for a Mac. Repo: https://github.com/nbkdoesntknowcoding/display-share
+
+MAC SENDER (only runs on macOS 14+):
+1. git clone https://github.com/nbkdoesntknowcoding/display-share.git && cd display-share
+2. Run ./install.sh and show me its output. It installs xcodegen if needed,
+   builds a Release build, and installs to /Applications.
+3. If it fails, read the build log path it prints and fix or report the error.
+   Do NOT skip failures or fall back to a Debug build.
+
+THEN STOP AND ASK ME. You cannot do the next part:
+macOS permissions are granted by a human in System Settings — no command,
+script, or API can grant them, and a freshly built copy counts as a NEW app
+identity even if I granted them before. Tell me to:
+  - System Settings > Privacy & Security > Screen Recording > enable Display Share
+  - (only if I want to control the Mac from the laptop)
+    Privacy & Security > Accessibility > enable Display Share
+Then wait for me to confirm.
+
+VERIFY (after I confirm):
+4. Launch /Applications/DisplayShare.app. It is a MENU BAR app — no Dock icon,
+   no window. Click its icon and press Start.
+5. Confirm a virtual display exists: `system_profiler SPDisplaysDataType | grep -i display`
+   should show one more display than the physical monitors.
+6. Open http://localhost:8787 in a browser on the Mac. Expect a black canvas and
+   a HUD. It stays black until something is actually on that display — drag a
+   window onto the new display, then the HUD should show ~58 fps.
+   A near-black screen with capture near 0 fps is CORRECT for an empty desktop
+   (a few fps still trickle in from the menu bar clock) — that is not a bug.
+
+WINDOWS RECEIVER (run this part on the Windows laptop):
+7. Install Rust (https://rustup.rs) and Node 22+.
+8. cd windows && npm ci && npx tauri build
+9. Run the installer from windows/src-tauri/target/release/bundle/nsis/
+   SmartScreen will warn because it is unsigned: More info > Run anyway.
+10. The app finds the Mac over Bonjour. Enter the 4-digit PIN the Mac shows.
+    Both machines must be on the same network, on 5 GHz Wi-Fi or Ethernet.
+
+USEFUL TO KNOW:
+- Ports 8787 (viewer page) and 8788 (video + control) must not be blocked.
+- Keys in the receiver: F11 fullscreen, F8 forward input to the Mac, H toggle
+  HUD, A cycle decode mode.
+- Read README.md "Known limits" before reporting a bug — the 60 Hz cap, the
+  ~1920x1200 geometry ceiling and no-HDCP are properties of Apple's private
+  API, not defects.
+- If anything is ambiguous, read docs/distribution.md and protocol/SPEC.md
+  rather than guessing.
+````
+
+### Or download a build
+
+[Latest release](https://github.com/nbkdoesntknowcoding/display-share/releases/latest)
+— universal `.dmg` for the Mac, NSIS `.exe` for Windows, with `SHA256SUMS`.
+
+These are **unsigned**, so both systems warn on first launch:
 
 * **macOS** — open it once, then System Settings → Privacy & Security → **Open Anyway**
 * **Windows** — **More info** → **Run anyway**
 
-Building from source avoids the warnings entirely.
+[docs/distribution.md](docs/distribution.md) explains why, and what each warning
+actually means.
 
-### Build from source
+### Manual build
 
 ```bash
 # Mac sender
-brew install xcodegen create-dmg
-cd mac && ./scripts/package-macos.sh        # → dist/DisplayShare-<version>.dmg
+brew install xcodegen
+cd mac && xcodegen generate
+xcodebuild -scheme DisplayShare -configuration Release -derivedDataPath ./.build build
 
 # Windows receiver (needs Rust + Node 22)
 cd windows && npm ci && npx tauri build
@@ -51,7 +126,8 @@ cd windows && npm ci && npx tauri build
 
 ## Using it
 
-1. Launch **Display Share** on the Mac. First run explains the one permission it
+1. Launch **Display Share** on the Mac (`./install.sh` puts it in
+   `/Applications` and launches it). First run explains the one permission it
    needs and detects the grant without a restart.
 2. Click **Start** in the menu bar.
 3. Launch the receiver on the laptop. It finds the Mac over Bonjour — no IP
@@ -158,6 +234,7 @@ forwarding is refused entirely until it does.
 ## Repository layout
 
 ```
+install.sh            one-command build + install for the Mac sender
 mac/
   DisplayShare/       SwiftUI MenuBarExtra app + onboarding
   DisplayShareCore/   capture, encode, transport, pairing, input
