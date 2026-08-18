@@ -209,6 +209,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Opening an already-running menu bar app must show SOMETHING.
+    ///
+    /// Display Share is LSUIElement: no Dock icon, no window. Double-clicking it
+    /// in Finder therefore appeared to do nothing at all, which reads as "the
+    /// app is broken" rather than "it is already running up in the menu bar".
+    /// macOS calls this on every reopen, so use it to surface the status window.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { showStatusWindow() }
+        return true
+    }
+
+    /// Shows onboarding when a permission is still missing, otherwise a short
+    /// "it is running, here is where" panel.
+    private func showStatusWindow() {
+        if !PermissionMonitor.screenRecordingFlag || !OnboardingRecord.isComplete {
+            showOnboarding()
+            return
+        }
+        NSApp.setActivationPolicy(.regular)
+        if runningWindow == nil {
+            let hosting = NSHostingController(rootView: RunningView(controller: controller))
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "Display Share"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            runningWindow = window
+        }
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            self.runningWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private var runningWindow: NSWindow?
+
     /// A clean quit must remove the display immediately rather than leaving the
     /// helper to time out its grace period.
     func applicationWillTerminate(_ notification: Notification) {
