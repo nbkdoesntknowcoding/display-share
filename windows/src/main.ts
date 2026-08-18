@@ -450,40 +450,55 @@ if (identity) {
 setStatus("Looking for senders…");
 void scanForSenders();
 
-// --- Updates (Task 7.2) -----------------------------------------------------
-// Checked once at launch, never applied without the user agreeing: this app
-// ships unsigned, so a silent auto-update is exactly what a user should
-// distrust.
-void (async () => {
-  const status = await checkForUpdate();
-  if (!status.available || !status.version) return;
+// --- Updates (Tasks 7.2 / 9.1) ----------------------------------------------
+// Applied automatically at launch. Chosen deliberately after the risk was
+// raised: every payload is verified against the minisign public key in
+// tauri.conf.json, whose private half lives in GitHub secrets, so the download
+// cannot be tampered with even though the installer itself carries no code
+// signing certificate. Unsigned is not the same thing as unverified.
+//
+// This runs BEFORE the auto-connect below on purpose. Replacing the binary
+// underneath a live session would drop the stream and read as a crash, and at
+// launch there is no session yet — so this is the only safe moment.
+async function applyUpdateOnLaunch(): Promise<boolean> {
+  let status;
+  try {
+    status = await checkForUpdate();
+  } catch {
+    // A failed check must never stop the app being used offline.
+    return false;
+  }
+  if (!status.available || !status.version) return false;
 
   const bar = document.createElement("div");
   bar.id = "update-bar";
-  bar.innerHTML = `<span>Version ${status.version} is available.</span>`;
-  const install = document.createElement("button");
-  install.textContent = "Update and restart";
-  install.addEventListener("click", () => {
-    install.disabled = true;
-    install.textContent = "Downloading… 0%";
-    void applyUpdate((pct) => {
-      install.textContent = pct < 100 ? `Downloading… ${pct}%` : "Restarting…";
-    }).catch((e) => {
-      install.disabled = false;
-      install.textContent = `Update failed: ${e}`;
-    });
-  });
-  const dismiss = document.createElement("button");
-  dismiss.textContent = "Later";
-  dismiss.className = "ghost";
-  dismiss.addEventListener("click", () => bar.remove());
-  bar.append(install, dismiss);
+  const label = document.createElement("span");
+  label.textContent = `Updating to ${status.version}…`;
+  bar.appendChild(label);
   document.body.appendChild(bar);
-})();
 
-// Auto-connect when a host is remembered AND we hold a token, so a paired
-// receiver reconnects without interaction.
-if (addressInput.value && identity?.token) connectButton.click();
+  try {
+    await applyUpdate((pct) => {
+      label.textContent =
+        pct < 100 ? `Updating to ${status.version}… ${pct}%` : "Restarting…";
+    });
+    return true;
+  } catch (error) {
+    // Say so and carry on with the version already installed, rather than
+    // leaving the user staring at a stalled progress line.
+    label.textContent = `Update failed, continuing on this version: ${error}`;
+    return false;
+  }
+}
+
+void (async () => {
+  const restarting = await applyUpdateOnLaunch();
+  if (restarting) return;
+
+  // Auto-connect when a host is remembered AND we hold a token, so a paired
+  // receiver reconnects without interaction.
+  if (addressInput.value && identity?.token) connectButton.click();
+})();
 
 // ---------------------------------------------------------- Tasks 8.2 / 8.4
 // Sharing this PC's screen so a Mac can view it — the reverse of everything

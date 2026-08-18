@@ -93,6 +93,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         runPermissionDiagnosticIfRequested()
 
+        // Downloads, verifies and re-signs the latest release WITHOUT swapping
+        // it in, then reports whether the designated requirement survived. Kept
+        // as a permanent diagnostic: if it ever stops matching, every update
+        // from that point on would silently cost the user their permissions.
+        if CommandLine.arguments.contains("--check-update") {
+            Task {
+                let installed = URL(fileURLWithPath: "/Applications/DisplayShare.app")
+                let updater = AutoUpdater(currentVersion: "0.0.1", installedAppURL: installed)
+                let outcome = await updater.dryRun()
+                print("dry run: \(outcome)")
+                if let requirement = try? AutoUpdater.designatedRequirement(installed) {
+                    print("installed: \(requirement)")
+                }
+                exit(outcome == .upToDate ? 0 : (String(describing: outcome).contains("applied") ? 0 : 1))
+            }
+            return
+        }
+
         // Opens the viewer straight away. Kept as a permanent diagnostic: a
         // menu bar item cannot be clicked from a script without an
         // Accessibility grant, so without this there is no way to tell a
@@ -105,10 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
 
-        // Check once at launch. Never downloads or installs on its own — this
-        // app is unsigned, so a silent self-replacing binary would be exactly
-        // the behaviour a user should distrust.
-        Task { await controller.checkForUpdate() }
+        applyUpdateIfAvailable()
 
         permissions.refresh()
         // Show onboarding when it has never been completed, or when the required
@@ -263,6 +278,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             self.runningWindow?.makeKeyAndOrderFront(nil)
         }
+    }
+
+    /// Applies a pending update at launch (Task 9.1).
+    ///
+    /// Automatic application was chosen deliberately after the risk was raised.
+    /// It is defensible because the payload is verified — the artifact's SHA-256
+    /// must match the checksum published in the same release, fetched over TLS —
+    /// and because AutoUpdater re-signs with the local identity and ABANDONS the
+    /// update if the designated requirement would change. An update that cost
+    /// the user their Screen Recording grant would be worse than no update.
+    private func applyUpdateIfAvailable() {
+        // Relaunched by the updater: checking again would loop.
+        if CommandLine.arguments.contains("--updated") {
+            log("update: running the freshly installed version")
+            return
+        }
+        // Only ever replace a real installation. A build running out of a
+        // developer's build directory must not be overwritten by a release.
+        let bundle = Bundle.main.bundleURL
+        guard bundle.path.hasPrefix("/Applications/") else {
+            Task { await controller.checkForUpdate() }
+            return
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            let updater = AutoUpdater(installedAppURL: bundle)
+            let outcome = await updater.applyIfAvailable(isStreaming: controller.state.isActive)
+            switch outcome {
+            case .applied(let version):
+                self.log("update: installed \(version), relaunching")
+                self.relaunch(bundle)
+            case .upToDate:
+                self.log("update: already current")
+            case .skipped(let reason):
+                self.log("update: skipped — \(reason)")
+                // Still tell the user a version exists, so a skipped automatic
+                // update does not silently become no update at all.
+                await self.controller.checkForUpdate()
+            case .failed(let reason):
+                self.log("update: failed — \(reason)")
+                await self.controller.checkForUpdate()
+            }
+        }
+    }
+
+    private func relaunch(_ bundle: URL) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", "-a", bundle.path, "--args", "--updated"]
+        try? process.run()
+        NSApp.terminate(nil)
     }
 
     private var runningWindow: NSWindow?

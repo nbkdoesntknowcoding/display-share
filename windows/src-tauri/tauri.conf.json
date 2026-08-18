@@ -48,7 +48,7 @@
   },
   "plugins": {
     "updater": {
-      "dialog": true,
+      "dialog": false,
       "endpoints": [
         "https://github.com/nbkdoesntknowcoding/display-share/releases/latest/download/latest.json"
       ],
