@@ -66,6 +66,9 @@ function setStatus(text: string, visible = true) {
   // every later update wrote into detached nodes.
   messageEl.textContent = text;
   overlay.style.display = visible ? "flex" : "none";
+  // The HUD reports a live stream's statistics. While the overlay is up there is
+  // no live stream, so leaving it on shows stale numbers bleeding through.
+  if (visible) hud.classList.add("hidden");
 }
 
 function setupDecoder(codec: string) {
