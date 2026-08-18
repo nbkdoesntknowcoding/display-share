@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.2.0...v0.2.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** attach release assets with gh, and use sha256sum on Windows ([eb61265](https://github.com/nbkdoesntknowcoding/display-share/commit/eb61265ec45793035125468e2652e558c0a0bf1a))
+* **ci:** check out the release-please tag, not main ([9a84216](https://github.com/nbkdoesntknowcoding/display-share/commit/9a84216d5ae085a405bb66fb5dd84a537c2a2e38))
+* **ci:** release-please tags never triggered the build jobs ([a559158](https://github.com/nbkdoesntknowcoding/display-share/commit/a55915811fe91b6f9aca6ee500d6f95ae80780f1))
+* **release:** DMG filename and the missing updater manifest ([24c4f27](https://github.com/nbkdoesntknowcoding/display-share/commit/24c4f27dd0514a67d71aa7b5bbefea3922c45564))
+
 ## [0.2.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.1.0...v0.2.0) (2026-08-17)
 
 
