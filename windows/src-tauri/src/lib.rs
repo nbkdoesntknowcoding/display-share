@@ -346,18 +346,22 @@ pub struct CaptureProbe {
 /// Exists so capture can be proven on hardware before any encoder is attached;
 /// if this fails, nothing downstream is worth debugging.
 #[tauri::command]
-async fn capture_probe(frames: Option<u32>) -> Result<CaptureProbe, String> {
+async fn capture_probe(frames: Option<u32>, output: Option<u32>) -> Result<CaptureProbe, String> {
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = frames;
+        let _ = (frames, output);
         Err("desktop capture is only implemented on Windows".into())
     }
 
     #[cfg(target_os = "windows")]
     {
         let want = frames.unwrap_or(30).clamp(1, 600);
+        // Probing a specific display matters for the dummy-adapter setup: the
+        // whole point is to confirm the SECOND output is being captured, not
+        // the laptop's own screen.
+        let output = output.unwrap_or(0);
         tauri::async_runtime::spawn_blocking(move || {
-            let mut cap = capture::DesktopCapture::new().map_err(|e| e.to_string())?;
+            let mut cap = capture::DesktopCapture::new(output).map_err(|e| e.to_string())?;
             let (width, height) = cap.size();
             let mut last_bytes = 0usize;
             let mut last_mean = 0.0f64;
