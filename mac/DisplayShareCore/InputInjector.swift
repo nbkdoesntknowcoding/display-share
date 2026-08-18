@@ -20,6 +20,8 @@ public final class InputInjector: @unchecked Sendable {
         public var injected = 0
         public var skippedNoPermission = 0
         public var skippedUnmappedKey = 0
+        /// Events dropped because the target display no longer exists.
+        public var skippedNoDisplay = 0
         public var lastUnmappedCode: String?
     }
 
@@ -80,6 +82,20 @@ public final class InputInjector: @unchecked Sendable {
         lock.unlock()
         guard display != 0 else { return }
 
+        // Refuse to inject into a display that has gone away — otherwise every
+        // event lands at (0,0) on the main screen instead of failing visibly.
+        guard displayIsLive(display) else {
+            lock.lock()
+            stats.skippedNoDisplay += 1
+            let first = stats.skippedNoDisplay == 1
+            lock.unlock()
+            if first {
+                FileHandle.standardError.write(Data(
+                    "[DisplayShare] input: display 0x\(String(display, radix: 16)) is gone — dropping injected events (start the display again)\n".utf8))
+            }
+            return
+        }
+
         switch event.k {
         case .move:
             guard let x = event.x, let y = event.y else { return }
@@ -97,15 +113,30 @@ public final class InputInjector: @unchecked Sendable {
     }
 
     /// Normalised video coordinates -> global display coordinates.
-    private func globalPoint(x: Double, y: Double, on display: CGDirectDisplayID) -> CGPoint {
+    ///
+    /// Returns nil when the display no longer exists. That check is not
+    /// defensive padding: CGDisplayBounds of a DEAD display id returns
+    /// origin=(0,0) size=0x0 rather than null, so the arithmetic silently
+    /// collapses every position to (0,0) — the top-left of the main screen.
+    /// The visible symptom is a cursor that piles up against the edge of the
+    /// main display and never enters the virtual one.
+    private func globalPoint(x: Double, y: Double, on display: CGDirectDisplayID) -> CGPoint? {
         let bounds = CGDisplayBounds(display)
+        guard bounds.width > 0, bounds.height > 0 else { return nil }
         return CGPoint(
             x: bounds.origin.x + x * bounds.width,
             y: bounds.origin.y + y * bounds.height)
     }
 
+    /// True while the target display is still real. A stale id passes a plain
+    /// `!= 0` test, which is why that guard alone was not enough.
+    private func displayIsLive(_ display: CGDirectDisplayID) -> Bool {
+        let bounds = CGDisplayBounds(display)
+        return bounds.width > 0 && bounds.height > 0
+    }
+
     private func moveCursor(to x: Double, y: Double, on display: CGDirectDisplayID) {
-        let point = globalPoint(x: x, y: y, on: display)
+        guard let point = globalPoint(x: x, y: y, on: display) else { return }
 
         lock.lock()
         let dragging = heldButtons.first
