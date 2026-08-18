@@ -176,9 +176,40 @@ jobs:
         working-directory: windows/src-tauri/target/release/bundle
         run: |
           gh release upload "$TAG" nsis/*.exe msi/*.msi SHA256SUMS-windows.txt --clobber
-          # latest.json is what the updater endpoint fetches; without it the
-          # updater has nothing to read.
-          if [ -f latest.json ]; then gh release upload "$TAG" latest.json --clobber; fi
+
+          # latest.json is what the updater endpoint fetches. tauri-action only
+          # emits it when IT manages the release upload, which would clash with
+          # the release-please release — so build it here from the .sig tauri
+          # writes next to the installer.
+          EXE=$(find nsis -name '*-setup.exe' | head -1)
+          SIG="${EXE}.sig"
+          if [ -f "$SIG" ]; then
+            VER="${TAG#v}"
+            NAME=$(basename "$EXE")
+            python3 - "$VER" "$NAME" "$SIG" "$TAG" > latest.json <<'PYEOF'
+          import json, sys, urllib.parse, datetime
+          ver, name, sig_path, tag = sys.argv[1:5]
+          url = ("https://github.com/nbkdoesntknowcoding/display-share/releases/download/"
+                 + tag + "/" + urllib.parse.quote(name))
+          print(json.dumps({
+              "version": ver,
+              "notes": "See the release page for details.",
+              "pub_date": datetime.datetime.now(datetime.timezone.utc)
+                  .strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "platforms": {
+                  "windows-x86_64": {
+                      "signature": open(sig_path).read().strip(),
+                      "url": url,
+                  }
+              },
+          }, indent=2))
+          PYEOF
+            cat latest.json
+            gh release upload "$TAG" latest.json --clobber
+          else
+            echo "::warning::no .sig produced — updater manifest not published"
+            find nsis -type f | head -20
+          fi
 
   # ------------------------------------------------------------- publish
   notes:

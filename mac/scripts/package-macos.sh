@@ -27,7 +27,10 @@ DMG_NAME="${DS_DMG_NAME:-DisplayShare}"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MAC_DIR/DisplayShare/Info.plist" 2>/dev/null || echo 0.1.0)"
 # Info.plist uses $(MARKETING_VERSION); read the real value from project.yml.
 if [[ "$VERSION" == *'$'* ]]; then
-  VERSION="$(grep -m1 'MARKETING_VERSION' "$MAC_DIR/project.yml" | sed 's/.*"\(.*\)".*/\1/')"
+  # Take everything after the colon and strip quotes/space. The previous
+  # pattern assumed the value was QUOTED; release-please rewrites it unquoted,
+  # which produced a DMG literally named DisplayShare-.MARKETING_VERSION.0.2.0.
+  VERSION="$(awk -F: '/MARKETING_VERSION/{gsub(/[" ]/,"",$2); print $2; exit}' "$MAC_DIR/project.yml")"
 fi
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
