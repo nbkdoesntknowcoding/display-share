@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.2.1...v0.3.0) (2026-08-18)
+
+
+### Features
+
+* **diagnostics:** --out so permissions can be checked under the app's identity ([c1a8009](https://github.com/nbkdoesntknowcoding/display-share/commit/c1a8009859585aa5bcaebe55071cad81dc04c530))
+* **input:** let the cursor roam the whole Mac, not just the second screen ([fdc0346](https://github.com/nbkdoesntknowcoding/display-share/commit/fdc0346359c0d7521d1e1b72b5161fa38aa1c681))
+* one-command installer and a copy-paste prompt for coding agents ([465b4aa](https://github.com/nbkdoesntknowcoding/display-share/commit/465b4aab2ea49f2ac85bcbd1949b9a6382f9311a))
+
+
+### Bug Fixes
+
+* **ci:** stop tauri-action eating the .sig files ([e375458](https://github.com/nbkdoesntknowcoding/display-share/commit/e37545878afd0e80eb1773b7add824a1d248a253))
+* **input:** drop injected events when the target display is gone ([94cad9d](https://github.com/nbkdoesntknowcoding/display-share/commit/94cad9d70ae4208f42ba914b2d06dceaf396f99b))
+* **install:** sign with a stable identifier so macOS permissions stick ([326959e](https://github.com/nbkdoesntknowcoding/display-share/commit/326959e112a408e264deff300cd4aa31a67f8833))
+* **install:** sign with a stable local identity so permissions stop resetting ([192e558](https://github.com/nbkdoesntknowcoding/display-share/commit/192e55898dc91fcee7714d11ef899e9008c1a48b))
+* **permissions:** detect a grant the running process cannot see ([b6ebffc](https://github.com/nbkdoesntknowcoding/display-share/commit/b6ebffcc8ec5ce5b396387d7d2fe0f40f818f074))
+* **permissions:** stop the prompt storm I introduced ([7b4b721](https://github.com/nbkdoesntknowcoding/display-share/commit/7b4b72199f5cbf6d30051c7d45b684f75a6c2e42))
+* **receiver:** setStatus was deleting the entire UI ([704763e](https://github.com/nbkdoesntknowcoding/display-share/commit/704763ed579c8b2e6195dd63458471cba458ded4))
+* **updater:** enable createUpdaterArtifacts so the .sig is produced ([93a5a29](https://github.com/nbkdoesntknowcoding/display-share/commit/93a5a2992cac9f3f15ff70004ef0128bbc86a2eb))
+* **ux:** name the receiver distinctly and explain the two apps up front ([4c0d75b](https://github.com/nbkdoesntknowcoding/display-share/commit/4c0d75b034388eb572ae851d60e345f227cec987))
+* **ux:** opening an already-running app showed nothing at all ([ef20cce](https://github.com/nbkdoesntknowcoding/display-share/commit/ef20cced89514b49289609f0ee4ab33b0ee27430))
+
+
+### Documentation
+
+* input verified on Windows; plan the reverse direction ([49beb6b](https://github.com/nbkdoesntknowcoding/display-share/commit/49beb6be3b7c291320fa766e7e2be8d129e450f5))
+* it works on real Windows hardware ([bc5f77e](https://github.com/nbkdoesntknowcoding/display-share/commit/bc5f77e162d7e634311ecb2eb5b4b87371d9a16e))
+
 ## [0.2.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.2.0...v0.2.1) (2026-08-18)
 
 
