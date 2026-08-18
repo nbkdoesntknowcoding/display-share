@@ -217,6 +217,7 @@ the setting and measure it on your own hardware.
 | "Cannot be opened because Apple cannot check it" | Unsigned build | System Settings → Privacy & Security → **Open Anyway**. See [docs/distribution.md](docs/distribution.md) |
 | "Windows protected your PC" | Unsigned installer | **More info** → **Run anyway** |
 | Menu bar says *Screen Recording permission has not been granted* | macOS TCC | Grant it, then reopen the menu. A freshly built copy is a new identity and needs granting again |
+| **Settings shows Display Share enabled, but the app still asks for permission** | macOS ties permissions to the **code-signing identifier**, not the name. A stale entry from an older copy looks identical in the list | In Privacy & Security → Screen Recording, select Display Share, click **–** to remove it, then grant again from the app. `install.sh` now signs with a stable identifier so this stops recurring |
 | Receiver shows black, HUD says `capture 0.0 fps` | Nothing is on the virtual display | Drag a window onto it. An idle desktop legitimately sends no frames |
 | Receiver cannot find the Mac | mDNS blocked, or different subnets | Type the Mac's IP manually in the receiver. Guest and AP-isolated Wi-Fi block Bonjour |
 | `busy — another receiver is already connected` | One receiver at a time, by design | Close the other receiver, or wait ~10 s for the socket to drop |

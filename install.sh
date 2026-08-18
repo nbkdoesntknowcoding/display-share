@@ -99,6 +99,24 @@ if ! xcodebuild -project DisplayShare.xcodeproj -scheme DisplayShare \
 fi
 BUILT="$REPO_DIR/mac/.build/Build/Products/Release/DisplayShare.app"
 [[ -d "$BUILT" ]] || die "build reported success but $BUILT is missing."
+
+# Re-sign with an EXPLICIT identifier.
+#
+# macOS keys TCC permissions on the code-signing identifier. Left to itself an
+# ad-hoc Release build signs as "DisplayShare" (the executable name) rather than
+# the bundle id, so it looks like a DIFFERENT app to macOS than any copy the
+# user already granted — permission appears granted in System Settings while the
+# app still reports it missing. Sign nested code first, then the bundle.
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$BUILT/Contents/Info.plist")"
+codesign --force --sign - --identifier "$BUNDLE_ID.core" \
+  "$BUILT/Contents/Frameworks/DisplayShareCore.framework" 2>/dev/null || true
+codesign --force --sign - --identifier "$BUNDLE_ID.vd-helper" \
+  "$BUILT/Contents/MacOS/vd_helper" 2>/dev/null || true
+codesign --force --sign - --identifier "$BUNDLE_ID" \
+  --entitlements "$REPO_DIR/mac/DisplayShare/DisplayShare.entitlements" "$BUILT"
+SIGNED_ID="$(codesign -dvv "$BUILT" 2>&1 | awk -F= '/^Identifier=/{print $2}')"
+[[ "$SIGNED_ID" == "$BUNDLE_ID" ]] || die "signing identifier is '$SIGNED_ID', expected '$BUNDLE_ID'"
+ok "signed as $SIGNED_ID (this is the identity macOS ties permissions to)"
 # Native arch only, deliberately: this is your machine, so a universal binary
 # would double the build time for nothing. The released .dmg is universal.
 ok "built $(du -sh "$BUILT" | cut -f1) app bundle for $(uname -m)"
