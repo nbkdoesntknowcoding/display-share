@@ -108,6 +108,11 @@ public final class DisplayShareController: ObservableObject {
         inputSink.onEvent = { [weak self] event in
             self?.injector.handle(event)
         }
+        // Cursor came back inside the second screen: tell the receiver to drop
+        // its pointer lock and resume absolute positioning (SPEC §4.11).
+        injector.onPointerReturnedToDisplay = { [weak self] in
+            self?.pipeline.socketServer.send(control: ControlMessage(type: "pointer_release"))
+        }
         // A receiver going away must not leave a button or modifier stuck down,
         // and the next receiver's timestamp origin is its own.
         pipeline.socketServer.onClientDisconnected = { [weak self] in

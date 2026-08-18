@@ -79,13 +79,14 @@ public final class InputEventSink: @unchecked Sendable {
                     if shouldLog { log("DROP out-of-range move x=\(event.x ?? -1) y=\(event.y ?? -1)") }
                     continue
                 }
-                stats.moves += 1
             }
             switch event.k {
             case .down, .up: stats.buttons += 1
             case .scroll: stats.scrolls += 1
             case .key: stats.keys += 1
-            case .move: break
+            // Relative motion carries no coordinates to range-check; it is
+            // clamped to the desktop by the injector instead.
+            case .move, .moverel: stats.moves += 1
             }
             stats.accepted += 1
             shouldLog = logging
@@ -100,6 +101,8 @@ public final class InputEventSink: @unchecked Sendable {
         switch event.k {
         case .move:
             return String(format: "move  x=%.4f y=%.4f t=%d", event.x ?? 0, event.y ?? 0, event.t)
+        case .moverel:
+            return String(format: "moverel dx=%.1f dy=%.1f t=%d", event.dx ?? 0, event.dy ?? 0, event.t)
         case .down, .up:
             return "\(event.k == .down ? "down" : "up")  button=\(event.b ?? -1) t=\(event.t)"
         case .scroll:

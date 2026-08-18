@@ -13,7 +13,7 @@
  */
 
 export interface InputEvent {
-  k: "move" | "down" | "up" | "scroll" | "key";
+  k: "move" | "moverel" | "down" | "up" | "scroll" | "key";
   t: number;
   x?: number;
   y?: number;
@@ -60,6 +60,9 @@ export class InputCapture {
       // Drop anything queued: replaying stale motion after re-enabling would
       // jump the cursor.
       this.queue.length = 0;
+      // Turning forwarding off must also give the pointer back, or the user
+      // loses their own cursor with no obvious way to recover it.
+      this.releasePointer();
     }
     this.onEnabledChanged?.(value);
   }
@@ -123,11 +126,62 @@ export class InputCapture {
     };
   }
 
+  /// True once the pointer has escaped the second screen and is roaming the
+  /// rest of the Mac's desktop via relative deltas.
+  private relative = false;
+  /// How close to an edge counts as "against it", in normalised units.
+  private static readonly edge = 0.002;
+
+  /// Called by the app when the Mac reports the cursor came back (SPEC §4.11).
+  releasePointer() {
+    if (!this.relative) return;
+    this.relative = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  get isRoaming(): boolean {
+    return this.relative;
+  }
+
   private attach() {
+    // Leaving relative mode by any route (Esc, focus loss) must not strand the
+    // user: fall back to absolute rather than silently sending nothing.
+    document.addEventListener("pointerlockchange", () => {
+      if (!document.pointerLockElement) this.relative = false;
+    });
+
     this.canvas.addEventListener("mousemove", (event) => {
+      if (!this.enabled) return;
+
+      // Already roaming: everything is a delta until the Mac hands us back.
+      if (this.relative) {
+        if (event.movementX === 0 && event.movementY === 0) return;
+        // CSS pixels -> device pixels, so a given hand movement travels the
+        // same real distance on the Mac regardless of display scaling.
+        const ratio = window.devicePixelRatio || 1;
+        this.enqueue({
+          k: "moverel",
+          dx: event.movementX * ratio,
+          dy: event.movementY * ratio,
+          t: this.stamp(),
+        });
+        return;
+      }
+
       const point = this.normalise(event.clientX, event.clientY);
       if (!point) return;
       this.enqueue({ k: "move", x: point.x, y: point.y, t: this.stamp() });
+
+      // Escape check. The OS clamps the real pointer at the screen edge, so an
+      // absolute position pins at 0 or 1 and cannot express "still pushing".
+      // movementX/Y still reports the attempted motion, which is the only
+      // signal that the user wants to leave — hence pointer lock.
+      const pushingOut =
+        (point.x >= 1 - InputCapture.edge && event.movementX > 0) ||
+        (point.x <= InputCapture.edge && event.movementX < 0) ||
+        (point.y >= 1 - InputCapture.edge && event.movementY > 0) ||
+        (point.y <= InputCapture.edge && event.movementY < 0);
+      if (pushingOut) this.beginRoaming();
     });
 
     this.canvas.addEventListener("mousedown", (event) => {
@@ -176,6 +230,21 @@ export class InputCapture {
     // Losing focus must release everything, or a held modifier stays stuck down
     // on the Mac with no event coming to clear it.
     window.addEventListener("blur", () => this.releaseAll());
+  }
+
+  /// Takes a pointer lock so continued motion is visible past the screen edge.
+  private beginRoaming() {
+    if (this.relative || document.pointerLockElement) return;
+    this.relative = true;
+    // unadjustedMovement avoids OS pointer acceleration being applied twice —
+    // once here and again by macOS — which otherwise makes the cursor race.
+    const request = this.canvas.requestPointerLock({ unadjustedMovement: true }) as
+      | Promise<void>
+      | undefined;
+    if (request && typeof request.catch === "function") {
+      // Not every engine supports unadjustedMovement; plain lock is fine.
+      request.catch(() => this.canvas.requestPointerLock());
+    }
   }
 
   private heldKeys = new Set<string>();

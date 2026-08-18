@@ -8,6 +8,9 @@ import Foundation
 public struct ForwardedInputEvent: Codable, Equatable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case move, down, up, scroll, key
+        /// Relative delta in device pixels, used once the pointer has escaped
+        /// the second screen (SPEC §3.1).
+        case moverel
     }
 
     public struct Modifiers: Codable, Equatable, Sendable {

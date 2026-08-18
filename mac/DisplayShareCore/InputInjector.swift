@@ -34,6 +34,10 @@ public final class InputInjector: @unchecked Sendable {
     /// than plain moves — many apps ignore a drag expressed as movement.
     private var heldButtons = Set<Int>()
 
+    /// Raised when a roaming pointer re-enters the virtual display, so the
+    /// receiver can hand control back to absolute positioning.
+    public var onPointerReturnedToDisplay: (() -> Void)?
+
     public init() {}
 
     public var statistics: Statistics {
@@ -100,6 +104,8 @@ public final class InputInjector: @unchecked Sendable {
         case .move:
             guard let x = event.x, let y = event.y else { return }
             moveCursor(to: x, y: y, on: display)
+        case .moverel:
+            moveCursorRelative(dx: event.dx ?? 0, dy: event.dy ?? 0, virtualDisplay: display)
         case .down:
             press(button: event.b ?? 0, down: true, on: display)
         case .up:
@@ -166,6 +172,63 @@ public final class InputInjector: @unchecked Sendable {
         CGWarpMouseCursorPosition(point)
 
         lock.lock(); stats.injected += 1; lock.unlock()
+    }
+
+    /// Union of every active display, in global coordinates.
+    ///
+    /// Relative motion is clamped to this. Without it the pointer can be pushed
+    /// into coordinates no screen occupies, where macOS parks it invisibly and
+    /// the user has lost their cursor.
+    private func desktopBounds() -> CGRect {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return .zero }
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetActiveDisplayList(count, &ids, &count) == .success else { return .zero }
+        return ids.prefix(Int(count)).reduce(CGRect.null) { $0.union(CGDisplayBounds($1)) }
+    }
+
+    /// Moves by a delta across the whole desktop (SPEC §3.1 `moverel`).
+    ///
+    /// Reports back the moment the cursor lands inside the virtual display
+    /// again, so the receiver can drop its pointer lock — a lock the user
+    /// cannot get out of is a trap.
+    private func moveCursorRelative(dx: Double, dy: Double, virtualDisplay: CGDirectDisplayID) {
+        let current = CGEvent(source: nil)?.location ?? .zero
+        let desktop = desktopBounds()
+        guard !desktop.isNull, desktop.width > 0 else { return }
+
+        // Clamp to the last addressable pixel, not to maxX/maxY themselves:
+        // those coordinates belong to the next display over, or to nothing.
+        let point = CGPoint(
+            x: min(max(current.x + dx, desktop.minX), desktop.maxX - 1),
+            y: min(max(current.y + dy, desktop.minY), desktop.maxY - 1))
+
+        lock.lock()
+        let dragging = heldButtons.first
+        let flags = activeFlags
+        lock.unlock()
+
+        let type: CGEventType
+        let button: CGMouseButton
+        switch dragging {
+        case 0: type = .leftMouseDragged; button = .left
+        case 1: type = .otherMouseDragged; button = .center
+        case 2: type = .rightMouseDragged; button = .right
+        default: type = .mouseMoved; button = .left
+        }
+        if let event = CGEvent(
+            mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: button)
+        {
+            event.flags = flags
+            event.post(tap: .cghidEventTap)
+        }
+        CGWarpMouseCursorPosition(point)
+
+        lock.lock(); stats.injected += 1; lock.unlock()
+
+        if CGDisplayBounds(virtualDisplay).contains(point) {
+            onPointerReturnedToDisplay?()
+        }
     }
 
     private func press(button: Int, down: Bool, on display: CGDirectDisplayID) {

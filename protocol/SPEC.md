@@ -286,6 +286,34 @@ MUST preserve event order within and across batches.
 ordering and to measure intra-batch spacing. It is **not** comparable to §3.2
 timestamps, which come from the sender's clock.
 
+#### Two pointer modes
+
+`move` carries an ABSOLUTE position inside the second screen. That is the normal
+mode and it cannot leave that display.
+
+`moverel` carries a RELATIVE delta in device pixels and is used when the pointer
+escapes the second screen to roam the rest of the desktop:
+
+```json
+{ "k": "moverel", "dx": -12, "dy": 3, "t": 1500 }
+```
+
+The receiver switches modes on its own. When the pointer is against an edge of
+the video and still being pushed outward, it takes a pointer lock and starts
+sending `moverel`. Absolute coordinates cannot express this: the OS clamps the
+real pointer at the screen edge, so `x` simply pins at 1.0 and the intent to
+keep moving is invisible. A pointer lock is the only way to see continued
+motion once the cursor has nowhere left to go.
+
+The sender applies each delta to the current cursor position and **clamps to the
+union of all displays**, so the pointer can reach any screen but never leaves the
+desktop.
+
+When the resulting position lands back inside the second screen, the sender
+sends `pointer_release` (§4.12) and the receiver drops the lock and resumes
+absolute `move`. Handing control back automatically matters: a pointer lock the
+user cannot escape is a trap.
+
 #### Coordinates
 
 `x` and `y` are **normalised 0.0–1.0 within the displayed video rectangle**, not
@@ -313,7 +341,17 @@ screen viewing — it can drive any application on the Mac — so it is gated on
 same authorisation and additionally requires macOS Accessibility permission,
 which the user grants explicitly.
 
-### 4.11 `error` — server → client
+### 4.11 `pointer_release` — server → client
+
+```json
+{ "type": "pointer_release" }
+```
+
+Sent when a relative-mode pointer returns inside the second screen. The receiver
+MUST exit pointer lock and resume sending absolute `move` events. Without this
+the user would be stuck in relative mode with no way back.
+
+### 4.12 `error` — server → client
 
 ```json
 { "type": "error", "code": "busy", "message": "another receiver is connected" }

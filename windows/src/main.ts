@@ -218,6 +218,11 @@ listen<string>("ds://control", (event) => {
     case "welcome":
       setStatus("", false);
       break;
+    case "pointer_release":
+      // The Mac says the cursor came home. Drop the lock and resume absolute
+      // positions, otherwise the user is stuck roaming with no way back.
+      input.releasePointer();
+      break;
     case "video_format":
       // Geometry changed; the next access unit is a keyframe, so rebuild the
       // decoder from its SPS rather than guessing.

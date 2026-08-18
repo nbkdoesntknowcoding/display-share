@@ -164,6 +164,12 @@ cd windows && npm ci && npx tauri build
   **Accessibility** permission on the Mac — without it macOS silently discards
   injected events, so the app reports `input_unavailable` rather than pretending
   to work.
+* **Push the cursor past the edge** of the second screen and it keeps going onto
+  the rest of the Mac's desktop. The receiver takes a pointer lock and switches
+  to relative motion at that point, because the OS clamps the real pointer at the
+  screen edge and an absolute position simply pins at the boundary. Move back
+  onto the second screen and control returns automatically. F8, or Esc, hands the
+  pointer back at any time.
 
 Controlling *Windows applications* from the Mac is **not** a feature — the
 laptop is a display for the Mac, not the other way round.
