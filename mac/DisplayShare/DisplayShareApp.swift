@@ -281,7 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // onboarding gate that showStatusWindow() does.
         NSApp.setActivationPolicy(.regular)
         if viewerWindow == nil {
-            let hosting = NSHostingController(rootView: ViewerView())
+            let hosting = NSHostingController(rootView: ViewerView(controller: controller))
             let window = NSWindow(contentViewController: hosting)
             window.title = "Windows PC"
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]

@@ -38,8 +38,9 @@ pub struct SenderHandle {
 /// Where the frames come from.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Source {
-    /// The real desktop, via DXGI Desktop Duplication.
-    Desktop,
+    /// The real desktop, via DXGI Desktop Duplication. `output` selects which
+    /// display; 0 is the primary one.
+    Desktop { output: u32 },
     /// A generated test pattern. Exists so the WebSocket path can be proven in
     /// CI: desktop duplication needs an interactive session with a GPU, which a
     /// hosted runner does not reliably have, and a test that silently skips is
@@ -149,8 +150,8 @@ fn capture_loop(
     let interval = std::time::Duration::from_micros(1_000_000 / fps.max(1) as u64);
 
     let mut desktop = match source {
-        Source::Desktop => {
-            Some(encode_err(crate::capture::DesktopCapture::new())?)
+        Source::Desktop { output } => {
+            Some(encode_err(crate::capture::DesktopCapture::new(output))?)
         }
         Source::Synthetic { .. } => None,
     };

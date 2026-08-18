@@ -485,18 +485,59 @@ void (async () => {
 // receiver reconnects without interaction.
 if (addressInput.value && identity?.token) connectButton.click();
 
-// ---------------------------------------------------------------- Task 8.2
+// ---------------------------------------------------------- Tasks 8.2 / 8.4
 // Sharing this PC's screen so a Mac can view it — the reverse of everything
-// above. Kept to a single button here; picking a direction properly, and
-// preventing both from running at once, is Task 8.4.
+// above. Only one direction runs at a time; the backend refuses both ways
+// round, because two machines each capturing the other is a feedback loop that
+// saturates the link and confuses the adaptive bitrate controller.
 const shareButton = document.getElementById("share") as HTMLButtonElement | null;
+const stopShareButton = document.getElementById("stop-share") as HTMLButtonElement | null;
 const shareStatus = document.getElementById("share-status") as HTMLSpanElement | null;
+const shareOutput = document.getElementById("share-output") as HTMLSelectElement | null;
+
+interface DisplayOutput {
+  index: number;
+  name: string;
+  width: number;
+  height: number;
+  is_primary: boolean;
+  attached: boolean;
+}
+
+/// Fills the display picker. Failing here must not break the receiver, which is
+/// what most people opened this app for.
+async function loadOutputs() {
+  if (!shareOutput) return;
+  try {
+    const outputs = (await invoke("list_display_outputs")) as DisplayOutput[];
+    shareOutput.innerHTML = "";
+    for (const output of outputs) {
+      const option = document.createElement("option");
+      option.value = String(output.index);
+      // Name the role, not just the device: "\\.\DISPLAY2" tells the user
+      // nothing about which physical screen it is.
+      const role = output.is_primary ? "this screen" : "second screen";
+      option.textContent = `${role} — ${output.width}×${output.height} (${output.name})`;
+      shareOutput.appendChild(option);
+    }
+    shareOutput.hidden = outputs.length < 2;
+    if (outputs.length < 2 && shareStatus) {
+      shareStatus.textContent =
+        "Only one display detected — sharing it mirrors this screen. A dummy display adapter adds a second one.";
+    }
+  } catch {
+    shareOutput.hidden = true;
+  }
+}
+
+void loadOutputs();
 
 shareButton?.addEventListener("click", async () => {
   shareButton.disabled = true;
   if (shareStatus) shareStatus.textContent = "Starting…";
   try {
-    const info = (await invoke("start_sharing", {})) as {
+    const output = shareOutput && !shareOutput.hidden ? Number(shareOutput.value) : 0;
+    const info = (await invoke("start_sharing", { output })) as {
       port: number;
       host: string;
     };
@@ -506,8 +547,20 @@ shareButton?.addEventListener("click", async () => {
       // rather than something to go hunting for.
       shareStatus.textContent = `Sharing as “${info.host}” — on the Mac, choose View a Windows PC (port ${info.port})`;
     }
+    if (stopShareButton) stopShareButton.hidden = false;
   } catch (error) {
     if (shareStatus) shareStatus.textContent = `Could not start: ${error}`;
     shareButton.disabled = false;
+  }
+});
+
+stopShareButton?.addEventListener("click", async () => {
+  try {
+    await invoke("stop_sharing");
+    if (shareStatus) shareStatus.textContent = "Stopped sharing.";
+    if (shareButton) shareButton.disabled = false;
+    stopShareButton.hidden = true;
+  } catch (error) {
+    if (shareStatus) shareStatus.textContent = `Could not stop: ${error}`;
   }
 });

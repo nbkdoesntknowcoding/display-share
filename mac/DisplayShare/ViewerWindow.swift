@@ -227,6 +227,11 @@ final class ViewerModel: ObservableObject {
 // MARK: - View
 
 struct ViewerView: View {
+    /// Watched so the viewer can refuse to run while this Mac is sending. Both
+    /// directions at once between the same pair of machines is a feedback loop:
+    /// each side encodes the other's picture, the link saturates, and the
+    /// adaptive bitrate controller reacts to congestion it is itself creating.
+    @ObservedObject var controller: DisplayShareController
     @StateObject private var model = ViewerModel()
 
     var body: some View {
@@ -240,9 +245,15 @@ struct ViewerView: View {
             }
 
             if !model.status.connected {
-                connectPanel
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.black.opacity(0.75))
+                Group {
+                    if controller.state.isActive {
+                        sendingInsteadPanel
+                    } else {
+                        connectPanel
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.black.opacity(0.75))
             }
         }
         .frame(minWidth: 720, minHeight: 460)
@@ -273,6 +284,29 @@ struct ViewerView: View {
         .foregroundStyle(.white)
         .padding(8)
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    /// Shown instead of the connect controls while this Mac is sending.
+    ///
+    /// Offers a Stop button rather than just refusing: the user asked to view
+    /// something, and making them hunt through the menu bar to find out why they
+    /// cannot is worse than doing the obvious thing for them on request.
+    private var sendingInsteadPanel: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("This Mac is sending its screen")
+                .font(.title3.bold())
+            Text("Running both directions at once between the same two machines feeds each screen back into the other. Stop sending first, then connect.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+            Button("Stop sending and view instead") { controller.stop() }
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(28)
     }
 
     private var connectPanel: some View {

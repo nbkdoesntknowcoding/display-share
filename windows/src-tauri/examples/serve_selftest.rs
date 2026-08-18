@@ -21,7 +21,7 @@ fn main() {
         let mut args = std::env::args().skip(1);
         let port: u16 = args.next().and_then(|s| s.parse().ok()).unwrap_or(7879);
         let source = match args.next().as_deref() {
-            Some("desktop") => sender::Source::Desktop,
+            Some("desktop") => sender::Source::Desktop { output: 0 },
             _ => sender::Source::Synthetic { width: 640, height: 360 },
         };
 

@@ -76,7 +76,12 @@
          this for, and a prominent second action here is how the two-apps
          confusion started. Full role selection is Task 8.4. -->
     <div id="share-row">
+      <!-- Which display to share. A dummy display adapter shows up here as an
+           extra output, which is how you get a genuinely separate desktop
+           rather than a mirror of this laptop's own screen. -->
+      <select id="share-output"></select>
       <button id="share">Share this PC's screen instead</button>
+      <button id="stop-share" hidden>Stop sharing</button>
       <span id="share-status"></span>
     </div>
   </div>
