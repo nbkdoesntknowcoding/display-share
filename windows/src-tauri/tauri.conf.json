@@ -44,8 +44,7 @@
       "nsis": {
         "installMode": "currentUser"
       }
-    },
-    "createUpdaterArtifacts": true
+    }
   },
   "plugins": {
     "updater": {

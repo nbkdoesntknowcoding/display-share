@@ -55,8 +55,16 @@ type Acceleration = "prefer-software" | "prefer-hardware" | "no-preference";
 let acceleration: Acceleration =
   (localStorage.getItem("ds.acceleration") as Acceleration) ?? "prefer-software";
 
+const messageEl = document.getElementById("message") as HTMLDivElement;
+
 function setStatus(text: string, visible = true) {
-  overlay.textContent = text;
+  // Write to the MESSAGE element, never to #overlay. Setting overlay.textContent
+  // replaces every child of the overlay — the discovered-sender list, the PIN
+  // row and the manual address field with its Connect and Rescan buttons — with
+  // a single text node. The first status update at startup therefore deleted the
+  // entire UI, leaving only the sentence and no way to type an address, and
+  // every later update wrote into detached nodes.
+  messageEl.textContent = text;
   overlay.style.display = visible ? "flex" : "none";
 }
 

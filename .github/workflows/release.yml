@@ -168,6 +168,10 @@ jobs:
           # publish. Off, the .sig files survive and the next step builds
           # latest.json from them.
           includeUpdaterJson: false
+          # Updater artifacts are enabled HERE rather than in tauri.conf.json:
+          # committed, the flag makes `tauri build` fail for anyone without the
+          # private signing key, which is every contributor building from source.
+          args: --config {"bundle":{"createUpdaterArtifacts":true}}
 
       - name: Checksums
         shell: bash
