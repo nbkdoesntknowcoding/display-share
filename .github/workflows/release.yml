@@ -98,13 +98,12 @@ jobs:
         # the checksum is not decoration here.
         run: shasum -a 256 ./*.dmg > SHA256SUMS-macos.txt
 
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
-          files: |
-            mac/dist/*.dmg
-            mac/dist/SHA256SUMS-macos.txt
-          fail_on_unmatched_files: true
+      - name: Attach artifacts to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
+        # --clobber so a re-run replaces assets instead of failing on conflict.
+        run: gh release upload "$TAG" mac/dist/*.dmg mac/dist/SHA256SUMS-macos.txt --clobber
 
   # -------------------------------------------------------- Windows exe/msi
   windows:
@@ -165,17 +164,21 @@ jobs:
         shell: bash
         working-directory: windows/src-tauri/target/release/bundle
         run: |
-          find . \( -name '*.exe' -o -name '*.msi' \) -exec shasum -a 256 {} + \
-            > SHA256SUMS-windows.txt
+          find . \( -name '*.exe' -o -name '*.msi' \) -print0 \
+            | xargs -0 sha256sum > SHA256SUMS-windows.txt
+          cat SHA256SUMS-windows.txt
 
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
-          files: |
-            windows/src-tauri/target/release/bundle/nsis/*.exe
-            windows/src-tauri/target/release/bundle/msi/*.msi
-            windows/src-tauri/target/release/bundle/SHA256SUMS-windows.txt
-          fail_on_unmatched_files: true
+      - name: Attach artifacts to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
+        working-directory: windows/src-tauri/target/release/bundle
+        run: |
+          gh release upload "$TAG" nsis/*.exe msi/*.msi SHA256SUMS-windows.txt --clobber
+          # latest.json is what the updater endpoint fetches; without it the
+          # updater has nothing to read.
+          if [ -f latest.json ]; then gh release upload "$TAG" latest.json --clobber; fi
 
   # ------------------------------------------------------------- publish
   notes:
