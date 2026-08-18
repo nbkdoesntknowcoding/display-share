@@ -162,9 +162,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: windows
-          # Emits latest.json next to the installers, which is what the updater
-          # endpoint points at (Task 7.2 — GitHub Releases, no VPS).
-          includeUpdaterJson: true
+          # FALSE on purpose. With this true, tauri-action consumes the .sig
+          # files to build its own updater JSON and then discards them, because
+          # it has no release of its own to upload to — leaving nothing to
+          # publish. Off, the .sig files survive and the next step builds
+          # latest.json from them.
+          includeUpdaterJson: false
 
       - name: Checksums
         shell: bash
