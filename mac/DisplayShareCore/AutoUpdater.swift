@@ -113,6 +113,12 @@ public final class AutoUpdater: @unchecked Sendable {
         guard Self.hasLocalIdentity() else {
             return .skipped("no local signing identity — reinstall with install.sh to enable updates")
         }
+        // A build made from the repository reports whatever version the branch
+        // happens to carry, which can be BEHIND a release while containing more
+        // than it. Replacing it by version comparison would quietly remove work.
+        if let origin = Self.buildOrigin(installedAppURL) {
+            return .skipped("built from source (\(origin)) — run install.sh to update")
+        }
 
         do {
             guard let release = try await fetchLatest() else { return .upToDate }
@@ -318,6 +324,14 @@ public final class AutoUpdater: @unchecked Sendable {
             case .step(let text): return text
             }
         }
+    }
+
+    /// Contents of the marker install.sh writes, or nil for a release build.
+    static func buildOrigin(_ app: URL) -> String? {
+        let marker = app.appendingPathComponent("Contents/Resources/build-origin.txt")
+        guard let text = try? String(contentsOf: marker, encoding: .utf8) else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     public static func hasLocalIdentity() -> Bool {
