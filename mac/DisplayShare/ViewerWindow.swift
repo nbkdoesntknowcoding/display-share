@@ -59,9 +59,12 @@ final class VideoLayerView: NSView {
         }
         guard let formatDescription else { return }
 
-        // Display immediately rather than scheduling against a clock. This is a
-        // live desktop, not playback: showing the newest frame the instant it
-        // decodes is the whole point, and a timebase would add latency.
+        // This is a live desktop, not playback: the newest frame should appear
+        // the instant it decodes. An invalid presentation timestamp does NOT
+        // express that — with no timebase to schedule against, the layer simply
+        // holds every frame and renders nothing, which looks exactly like a
+        // decode failure from the outside. The DisplayImmediately attachment
+        // set below is what actually asks for it.
         var timing = CMSampleTimingInfo(
             duration: .invalid,
             presentationTimeStamp: .invalid,
@@ -79,6 +82,22 @@ final class VideoLayerView: NSView {
             let sampleBuffer
         else { return }
 
+        if let attachments = CMSampleBufferGetSampleAttachmentsArray(
+            sampleBuffer, createIfNecessary: true
+        ), CFArrayGetCount(attachments) > 0 {
+            let attachment = unsafeBitCast(
+                CFArrayGetValueAtIndex(attachments, 0),
+                to: CFMutableDictionary.self
+            )
+            CFDictionarySetValue(
+                attachment,
+                Unmanaged.passUnretained(kCMSampleAttachmentKey_DisplayImmediately).toOpaque(),
+                Unmanaged.passUnretained(kCFBooleanTrue).toOpaque()
+            )
+        }
+
+        // A failed layer stays failed until flushed, so a single bad frame
+        // would otherwise end the session with no error shown anywhere.
         if displayLayer.status == .failed {
             displayLayer.flush()
         }

@@ -26,7 +26,10 @@ struct DisplayShareApp: App {
             "Display Share",
             systemImage: appDelegate.controller.state.isActive ? "display.2" : "display"
         ) {
-            ControlPanel(controller: appDelegate.controller)
+            ControlPanel(
+                controller: appDelegate.controller,
+                openViewer: appDelegate.showViewerWindow
+            )
         }
         .menuBarExtraStyle(.window)
     }
@@ -89,6 +92,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         runPermissionDiagnosticIfRequested()
+
+        // Opens the viewer straight away. Kept as a permanent diagnostic: a
+        // menu bar item cannot be clicked from a script without an
+        // Accessibility grant, so without this there is no way to tell a
+        // menu-wiring fault from a window-presentation one — which is exactly
+        // the distinction that mattered when this button first did nothing.
+        if CommandLine.arguments.contains("--viewer") {
+            DispatchQueue.main.async { self.showViewerWindow() }
+        }
 
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
@@ -293,6 +305,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private struct ControlPanel: View {
     @ObservedObject var controller: DisplayShareController
+    /// Opening the viewer is handed in rather than recovered from
+    /// `NSApp.delegate`: SwiftUI's `NSApplicationDelegateAdaptor` installs its
+    /// OWN forwarding delegate, so `NSApp.delegate as? AppDelegate` is nil and
+    /// the optional-chained call silently did nothing.
+    let openViewer: () -> Void
     @State private var quality: Double = 0.7
 
     private static let resolutions: [(label: String, width: UInt32, height: UInt32)] = [
@@ -355,9 +372,7 @@ private struct ControlPanel: View {
 
             Divider()
 
-            Button("View a Windows PC…") {
-                (NSApp.delegate as? AppDelegate)?.showViewerWindow()
-            }
+            Button("View a Windows PC…") { openViewer() }
 
             HStack {
                 Button(controller.state.isActive ? "Stop" : "Start") {
