@@ -8,9 +8,10 @@ attached, and you can drag windows onto it, set its resolution, and arrange it i
 System Settings. It then captures that display, encodes it in hardware, and
 streams it over your LAN to a receiver app on the laptop.
 
-> **Status: in development.** Phases 0–7 of the build plan are implemented on
-> macOS. The Windows receiver builds and runs, but has **not yet been tested on
-> real Windows hardware** — see [What isn't proven yet](#what-isnt-proven-yet).
+> **Status: working end to end.** Verified on 18 Aug 2026: a Mac mini streaming
+> to a Windows laptop over the LAN, video confirmed on real Windows hardware.
+> Phases 0–7 of the build plan are implemented. Remaining gaps are listed under
+> [What isn't proven yet](#what-isnt-proven-yet).
 
 ```
    Mac mini                                      Windows laptop
@@ -153,8 +154,19 @@ cd windows && npm ci && npx tauri build
 4. Enter the 4-digit PIN shown on the Mac. This happens once per device.
 5. Press **F11** for fullscreen. Drag windows onto the new display.
 
-Press **F8** on the receiver to forward its mouse and keyboard to the Mac; a
-badge shows when that is live.
+**Two directions of control, and they are not the same thing:**
+
+* **Your Mac's own mouse and keyboard already work on the second screen** — it is
+  a real display, so the cursor walks onto it exactly like a physical monitor.
+  Nothing to enable.
+* **To drive the Mac from the laptop's keyboard and trackpad**, press **F8** on
+  the receiver. A badge shows while it is live; F8 again releases it. This needs
+  **Accessibility** permission on the Mac — without it macOS silently discards
+  injected events, so the app reports `input_unavailable` rather than pretending
+  to work.
+
+Controlling *Windows applications* from the Mac is **not** a feature — the
+laptop is a display for the Mac, not the other way round.
 
 ---
 
@@ -311,13 +323,12 @@ cannot pass.
 
 Stated plainly, because everything above was measured but these were not:
 
-* **No end-to-end test on real Windows hardware.** The receiver was verified as a
-  running app on macOS, which uses WKWebView — Windows uses WebView2 (Chromium).
-  The software-decode default was measured in Chromium and should hold, but the
-  laptop decides it.
-* **The Windows `.exe` builds in CI but has never been installed.** CI produces
-  `Display Share_0.1.0_x64-setup.exe` and an `.msi`, so it compiles and packages;
-  nobody has run the installer or launched the app on Windows.
+* **Latency on Windows is unmeasured.** Video is confirmed working there, but no
+  one has recorded the numbers on WebView2 — press `H` for the HUD and `A` to
+  compare software against hardware decode.
+* **Input forwarding is unverified on Windows.** The Mac side is tested
+  (coordinate mapping exact at four points, 9/9 injection checks); the Windows
+  capture half has only ever run on macOS.
 * **Latency over a real LAN is unmeasured.** All figures above are localhost.
 * **No real sleep/wake cycle.** The recovery path was exercised through the same
   entry point the wake notification calls, not by actually sleeping the Mac.
