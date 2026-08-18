@@ -437,9 +437,19 @@ private struct ControlPanel: View {
 
             Divider()
 
-            Divider()
-
-            Button("View a Windows PC…") { openViewer() }
+            // The reverse direction, labelled rather than left as a bare button:
+            // "View a Windows PC" sitting next to Start/Stop gave no clue that
+            // the two do opposite things.
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Other direction")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Button("View a Windows PC…") { openViewer() }
+                Text("Watch and control a Windows machine from this Mac.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             HStack {
                 Button(controller.state.isActive ? "Stop" : "Start") {
@@ -469,10 +479,18 @@ private struct ControlPanel: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Display Share").font(.headline)
-            Text(statusText)
-                .font(.caption)
-                .foregroundStyle(statusColor)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                // Colour carries the state; the dot makes it legible at a glance
+                // instead of requiring the sentence to be read.
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 7, height: 7)
+                    .offset(y: -1)
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if controller.reattached {
                 Text("Re-attached to an existing display — your windows were preserved.")
                     .font(.caption2)
