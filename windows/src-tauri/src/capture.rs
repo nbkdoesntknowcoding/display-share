@@ -209,13 +209,14 @@ fn create_duplication(
         let dxgi: IDXGIDevice = device.cast()?;
         let adapter = dxgi.GetAdapter()?;
         // Output 0 = primary display. Multi-monitor selection is Task 8.4.
-        let output = adapter.EnumOutputs(0)?;
-        let output1: IDXGIOutput1 = output.cast()?;
+        let output1: IDXGIOutput1 = adapter.EnumOutputs(0)?.cast()?;
         let duplication = output1.DuplicateOutput(device)?;
 
-        let desc = output.GetDesc()?;
-        let width = (desc.DesktopCoordinates.right - desc.DesktopCoordinates.left) as u32;
-        let height = (desc.DesktopCoordinates.bottom - desc.DesktopCoordinates.top) as u32;
-        Ok((duplication, width, height))
+        // Ask the duplication rather than IDXGIOutput::GetDesc: the latter is
+        // gated behind the GDI feature because DXGI_OUTPUT_DESC carries an
+        // HMONITOR, and pulling in GDI for a width and a height is not a trade
+        // worth making.
+        let desc = unsafe { duplication.GetDesc() };
+        Ok((duplication, desc.ModeDesc.Width, desc.ModeDesc.Height))
     }
 }

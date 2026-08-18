@@ -162,6 +162,25 @@ jobs:
         working-directory: windows/src-tauri
         run: cargo check --all-targets --locked
 
+      # Task 8.1 acceptance: the encoder must produce a stream that decodes and
+      # carries no B-frames, because WebCodecs in low-latency mode cannot
+      # reorder. Checked here rather than by hand: this is code that cannot even
+      # be compiled on the Mac the project is developed on.
+      - name: Encoder self-test (decodes, no B-frames)
+        shell: bash
+        working-directory: windows/src-tauri
+        run: |
+          # Not on the runner image by default, and the check is worthless
+          # without it — so install rather than skip.
+          command -v ffprobe >/dev/null || choco install ffmpeg -y --no-progress
+          cargo run --release --example encode_selftest -- selftest.h264
+          ffprobe -v error -show_entries stream=codec_name,has_b_frames,width,height \
+            -of default=noprint_wrappers=1 selftest.h264 | tee probe.txt
+          grep -q '^codec_name=h264$' probe.txt || { echo "::error::not H.264"; exit 1; }
+          grep -q '^has_b_frames=0$' probe.txt || { echo "::error::stream has B-frames"; exit 1; }
+          # A stream can report the right metadata and still decode to nothing.
+          ffmpeg -v error -i selftest.h264 -f null - && echo "decoded cleanly"
+
       # tauri-action reads the signing certificate from these env vars. Left
       # unset, it produces an UNSIGNED installer — which SmartScreen will warn
       # about until the certificate's reputation is established (see

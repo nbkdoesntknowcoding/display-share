@@ -11,7 +11,12 @@
 //! 2. **Reconnect control.** Backoff, cancellation and panel re-negotiation are
 //!    far easier to reason about in Rust than across a webview lifecycle.
 
-mod capture;
+// Public so the encoder self-test (examples/encode_selftest.rs) can drive the
+// same code CI checks with ffprobe.
+pub mod annexb;
+pub mod capture;
+pub mod convert;
+pub mod encode;
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
