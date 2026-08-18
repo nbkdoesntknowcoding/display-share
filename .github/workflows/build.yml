@@ -153,6 +153,15 @@ jobs:
           npm run build
           node scripts/verify-vectors.mjs
 
+      # Ahead of the bundle step on purpose. The Rust backend uses Windows-only
+      # APIs (DXGI Desktop Duplication, Task 8.1) that cannot be compiled on a
+      # contributor's Mac, so this is the first place a type error can surface —
+      # and a plain check reports it in a couple of minutes with a readable
+      # error, rather than after a full installer build.
+      - name: Compile the Rust backend
+        working-directory: windows/src-tauri
+        run: cargo check --all-targets --locked
+
       # tauri-action reads the signing certificate from these env vars. Left
       # unset, it produces an UNSIGNED installer — which SmartScreen will warn
       # about until the certificate's reputation is established (see
