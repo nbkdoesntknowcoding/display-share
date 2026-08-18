@@ -71,7 +71,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          # Build the TAGGED source, not whatever main happens to be. Note the
+          # consequence: a defect already baked into a tag cannot be repaired by
+          # fixing main — it needs a new version (see docs/distribution.md).
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref }}
 
       - run: brew install xcodegen create-dmg
 
@@ -125,7 +128,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          # Build the TAGGED source, not whatever main happens to be. Note the
+          # consequence: a defect already baked into a tag cannot be repaired by
+          # fixing main — it needs a new version (see docs/distribution.md).
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
