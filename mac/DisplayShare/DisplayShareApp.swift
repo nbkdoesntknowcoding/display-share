@@ -58,14 +58,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         out += "CGPreflightScreenCaptureAccess: \(CGPreflightScreenCaptureAccess())\n"
         out += "AXIsProcessTrusted            : \(AXIsProcessTrusted())\n"
 
-        let semaphore = DispatchSemaphore(value: 0)
-        SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) {
-            content, error in
-            out += "SCShareableContent displays   : \(content?.displays.count ?? -1)\n"
-            out += "SCShareableContent error      : \(error?.localizedDescription ?? "none")\n"
-            semaphore.signal()
+        // Deliberately NOT calling SCShareableContent unless asked: that call
+        // RAISES THE SYSTEM PERMISSION PROMPT when unauthorised. This diagnostic
+        // is run repeatedly and non-interactively, so prompting here produced a
+        // storm of dialogs. The flags above prompt for nothing.
+        if CommandLine.arguments.contains("--deep") {
+            let semaphore = DispatchSemaphore(value: 0)
+            SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) {
+                content, error in
+                out += "SCShareableContent displays   : \(content?.displays.count ?? -1)\n"
+                out += "SCShareableContent error      : \(error?.localizedDescription ?? "none")\n"
+                semaphore.signal()
+            }
+            _ = semaphore.wait(timeout: .now() + 10)
         }
-        _ = semaphore.wait(timeout: .now() + 10)
 
         FileHandle.standardError.write(Data(out.utf8))
         exit(0)

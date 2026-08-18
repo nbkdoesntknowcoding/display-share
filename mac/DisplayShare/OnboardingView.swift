@@ -81,6 +81,15 @@ struct OnboardingView: View {
 
             Spacer()
 
+            // The running process cannot see a grant made after it launched
+            // (the system flag is cached), so give the user a way to say so.
+            // User-initiated on purpose: doing this on a timer spawns a process
+            // each time and previously produced a storm of system prompts.
+            if !monitor.screenRecordingGranted {
+                Button("I've granted it") { monitor.recheckAfterGranting() }
+                    .buttonStyle(.bordered)
+            }
+
             Button(monitor.screenRecordingGranted ? "Start Display Share" : "Skip for now") {
                 onFinish()
             }

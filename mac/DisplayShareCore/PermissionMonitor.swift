@@ -34,7 +34,6 @@ public final class PermissionMonitor: ObservableObject {
     private var timer: Timer?
     private var probing = false
     private var checkingOutOfProcess = false
-    private var outOfProcessChecksSinceLastRun = 0
 
     public init() {}
 
@@ -72,28 +71,15 @@ public final class PermissionMonitor: ObservableObject {
         let flag = CGPreflightScreenCaptureAccess()
         if !flag {
             // CGPreflightScreenCaptureAccess CACHES its answer for the lifetime
-            // of the process. An app that was running when the user granted
-            // permission keeps reading false forever, so polling it can never
-            // notice the grant — the window sits on "Not granted" while the
-            // permission is plainly enabled in System Settings.
+            // of the process, so an app that was running when the user granted
+            // permission keeps reading false. We cannot detect that by polling.
             //
-            // A short-lived child process has no cached answer, so ask one.
-            // Throttled: this costs a process spawn, and only runs while
-            // onboarding is open and the flag still reads false.
-            outOfProcessChecksSinceLastRun += 1
-            if outOfProcessChecksSinceLastRun >= 3, !checkingOutOfProcess {
-                outOfProcessChecksSinceLastRun = 0
-                checkingOutOfProcess = true
-                Self.grantedAccordingToFreshProcess { [weak self] granted in
-                    Task { @MainActor in
-                        guard let self else { return }
-                        self.checkingOutOfProcess = false
-                        // Granted in reality, invisible to THIS process: the
-                        // only cure is a relaunch, so say exactly that.
-                        self.screenRecording = granted ? .grantedNeedsRestart : .denied
-                    }
-                }
-            } else if screenRecording != .grantedNeedsRestart {
+            // We do NOT poll a child process to find out. Doing so spawned an
+            // app launch every few seconds, and the probe inside it raised the
+            // system permission dialog each time — a storm of prompts. The
+            // recheck is user-initiated instead (recheckAfterGranting), which
+            // is also when it is actually meaningful.
+            if screenRecording != .grantedNeedsRestart {
                 screenRecording = .denied
             }
             return
@@ -106,6 +92,25 @@ public final class PermissionMonitor: ObservableObject {
                     guard let self else { return }
                     self.probing = false
                     self.screenRecording = usable ? .granted : .grantedNeedsRestart
+                }
+            }
+        }
+    }
+
+    /// Asks a fresh process whether permission is granted, once, on demand.
+    ///
+    /// Call this when the user says they have granted it. A child process has no
+    /// cached preflight result, so it sees the current state — but it is only
+    /// ever run on an explicit user action, never on a timer.
+    public func recheckAfterGranting() {
+        guard !checkingOutOfProcess else { return }
+        checkingOutOfProcess = true
+        Self.grantedAccordingToFreshProcess { [weak self] granted in
+            Task { @MainActor in
+                guard let self else { return }
+                self.checkingOutOfProcess = false
+                if granted, self.screenRecording != .granted {
+                    self.screenRecording = .grantedNeedsRestart
                 }
             }
         }
