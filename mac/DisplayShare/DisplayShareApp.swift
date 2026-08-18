@@ -74,6 +74,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         FileHandle.standardError.write(Data(out.utf8))
+        // --out writes the same report to a file. Necessary because stderr is
+        // discarded when the app is launched through LaunchServices, and that
+        // is the ONLY way to observe the app's real TCC identity: run the
+        // binary from a shell and macOS attributes it to the terminal instead.
+        if let index = CommandLine.arguments.firstIndex(of: "--out"),
+            index + 1 < CommandLine.arguments.count
+        {
+            try? out.write(
+                toFile: CommandLine.arguments[index + 1], atomically: true, encoding: .utf8)
+        }
         exit(0)
     }
 

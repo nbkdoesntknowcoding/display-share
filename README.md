@@ -241,7 +241,7 @@ the setting and measure it on your own hardware.
 | Receiver cannot find the Mac | mDNS blocked, or different subnets | Type the Mac's IP manually in the receiver. Guest and AP-isolated Wi-Fi block Bonjour |
 | `busy — another receiver is already connected` | One receiver at a time, by design | Close the other receiver, or wait ~10 s for the socket to drop |
 | Stutter, image goes soft under load | Adaptive bitrate reducing quality | Working as designed: sharpness degrades rather than latency accumulating. Move to 5 GHz or Ethernet |
-| Mouse and keyboard do nothing after pressing F8 | Accessibility not granted | The Mac reports `input_unavailable`; grant Accessibility and retry |
+| Mouse and keyboard do nothing after pressing F8 | **Accessibility** not granted — it is a SEPARATE permission from Screen Recording, so video can work perfectly while input is blocked | Enable Display Share under Privacy & Security → Accessibility. To check what the app actually sees: `open -a /Applications/DisplayShare.app --args --check-permissions --out /tmp/p.txt && sleep 3 && cat /tmp/p.txt` |
 | Windows scattered after a crash | The display was destroyed | Relaunch within ~8 s and the helper re-attaches the *same* display, preserving arrangement |
 | Second display gone after Mac sleep | Capture died on wake | Recovers automatically, typically under 0.1 s. If not, toggle Stop then Start |
 | Opened the app on the Mac and got "Enter the Mac's address and press Connect" | That is the **receiver**, not the sender | Close it. The sender is `DisplayShare.app` and appears only in the **menu bar** |
