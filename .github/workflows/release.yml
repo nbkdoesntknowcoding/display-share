@@ -17,6 +17,11 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and attach artifacts to (e.g. v0.2.0)"
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -49,10 +54,24 @@ jobs:
   # ------------------------------------------------------------- macOS dmg
   macos:
     name: macOS (universal .dmg)
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release-please]
+    # A tag pushed by GITHUB_TOKEN does NOT trigger a workflow run — GitHub
+    # blocks that to prevent recursion — so gating only on `refs/tags/v*` means
+    # a release-please release silently builds nothing. Also accept the
+    # release_created output, and a manual dispatch for re-attaching assets.
+    # always() is required because release-please is skipped on a tag push, and
+    # a skipped dependency would otherwise skip this job too.
+    if: |
+      always() && (
+        startsWith(github.ref, 'refs/tags/v') ||
+        needs.release-please.outputs.release_created == 'true' ||
+        inputs.tag != ''
+      )
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - run: brew install xcodegen create-dmg
 
@@ -81,6 +100,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
           files: |
             mac/dist/*.dmg
             mac/dist/SHA256SUMS-macos.txt
@@ -89,10 +109,24 @@ jobs:
   # -------------------------------------------------------- Windows exe/msi
   windows:
     name: Windows (NSIS .exe)
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release-please]
+    # A tag pushed by GITHUB_TOKEN does NOT trigger a workflow run — GitHub
+    # blocks that to prevent recursion — so gating only on `refs/tags/v*` means
+    # a release-please release silently builds nothing. Also accept the
+    # release_created output, and a manual dispatch for re-attaching assets.
+    # always() is required because release-please is skipped on a tag push, and
+    # a skipped dependency would otherwise skip this job too.
+    if: |
+      always() && (
+        startsWith(github.ref, 'refs/tags/v') ||
+        needs.release-please.outputs.release_created == 'true' ||
+        inputs.tag != ''
+      )
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -136,6 +170,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
           files: |
             windows/src-tauri/target/release/bundle/nsis/*.exe
             windows/src-tauri/target/release/bundle/msi/*.msi
@@ -145,15 +180,16 @@ jobs:
   # ------------------------------------------------------------- publish
   notes:
     name: Release notes
-    needs: [macos, windows]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release-please, macos, windows]
+    if: |
+      always() && needs.macos.result == 'success' && needs.windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Prepend the unsigned-build notice
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
         # Put the warning where people are standing when they hit it, rather
         # than only in the docs.
         run: |
