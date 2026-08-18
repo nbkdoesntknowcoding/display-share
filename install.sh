@@ -100,6 +100,62 @@ fi
 BUILT="$REPO_DIR/mac/.build/Build/Products/Release/DisplayShare.app"
 [[ -d "$BUILT" ]] || die "build reported success but $BUILT is missing."
 
+# --- stable signing identity -------------------------------------------
+#
+# WHY THIS EXISTS. macOS ties permissions (Screen Recording, Accessibility) to
+# an app's "designated requirement". For an AD-HOC signed app that requirement
+# is the cdhash — the hash of the binary — so every rebuild is literally a
+# different application and every previously granted permission is dropped.
+# Measured on this project:
+#
+#   ad-hoc      designated => cdhash H"b4402bc6..."          (changes each build)
+#   self-signed designated => identifier "..." and certificate root = H"8fa2..."
+#                                                            (stable forever)
+#
+# So we sign with a local self-signed certificate instead. It is NOT trusted by
+# Gatekeeper and does not pretend to be — it exists purely to give macOS a
+# stable identity to hang permissions on, so you grant them once instead of
+# after every rebuild.
+IDENTITY="Display Share Local Signing"
+
+if ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+  bold "Creating a local signing identity (one time)"
+  TMPDIR_ID="$(mktemp -d)"
+  cat > "$TMPDIR_ID/ext.cnf" <<'CNF'
+[req]
+distinguished_name = dn
+x509_extensions = v3
+prompt = no
+[dn]
+CN = Display Share Local Signing
+O  = Display Share
+[v3]
+basicConstraints = critical,CA:false
+keyUsage = critical,digitalSignature
+extendedKeyUsage = critical,codeSigning
+CNF
+  openssl req -x509 -newkey rsa:2048 -keyout "$TMPDIR_ID/k.pem" -out "$TMPDIR_ID/c.pem" \
+    -days 3650 -nodes -config "$TMPDIR_ID/ext.cnf" >/dev/null 2>&1
+  # Legacy PBE on purpose: macOS cannot import OpenSSL 3's default PKCS#12.
+  openssl pkcs12 -export -inkey "$TMPDIR_ID/k.pem" -in "$TMPDIR_ID/c.pem" \
+    -out "$TMPDIR_ID/c.p12" -passout pass:dsl -name "$IDENTITY" \
+    -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 >/dev/null 2>&1
+  security import "$TMPDIR_ID/c.p12" -k ~/Library/Keychains/login.keychain-db \
+    -P dsl -T /usr/bin/codesign -A >/dev/null 2>&1
+  rm -rf "$TMPDIR_ID"
+  if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    ok "created \"$IDENTITY\" — permissions will now survive rebuilds"
+  else
+    warn "could not create a signing identity; falling back to ad-hoc"
+    warn "you will have to re-grant permissions after each rebuild"
+  fi
+fi
+
+SIGN_WITH="-"
+if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+  SIGN_WITH="$IDENTITY"
+fi
+
 # Re-sign with an EXPLICIT identifier.
 #
 # macOS keys TCC permissions on the code-signing identifier. Left to itself an
@@ -108,15 +164,19 @@ BUILT="$REPO_DIR/mac/.build/Build/Products/Release/DisplayShare.app"
 # user already granted — permission appears granted in System Settings while the
 # app still reports it missing. Sign nested code first, then the bundle.
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$BUILT/Contents/Info.plist")"
-codesign --force --sign - --identifier "$BUNDLE_ID.core" \
+codesign --force --sign "$SIGN_WITH" --identifier "$BUNDLE_ID.core" \
   "$BUILT/Contents/Frameworks/DisplayShareCore.framework" 2>/dev/null || true
-codesign --force --sign - --identifier "$BUNDLE_ID.vd-helper" \
+codesign --force --sign "$SIGN_WITH" --identifier "$BUNDLE_ID.vd-helper" \
   "$BUILT/Contents/MacOS/vd_helper" 2>/dev/null || true
-codesign --force --sign - --identifier "$BUNDLE_ID" \
+codesign --force --sign "$SIGN_WITH" --identifier "$BUNDLE_ID" \
   --entitlements "$REPO_DIR/mac/DisplayShare/DisplayShare.entitlements" "$BUILT"
 SIGNED_ID="$(codesign -dvv "$BUILT" 2>&1 | awk -F= '/^Identifier=/{print $2}')"
 [[ "$SIGNED_ID" == "$BUNDLE_ID" ]] || die "signing identifier is '$SIGNED_ID', expected '$BUNDLE_ID'"
-ok "signed as $SIGNED_ID (this is the identity macOS ties permissions to)"
+if [[ "$SIGN_WITH" == "-" ]]; then
+  ok "signed as $SIGNED_ID (ad-hoc — permissions reset on every rebuild)"
+else
+  ok "signed as $SIGNED_ID with \"$SIGN_WITH\" — permissions persist across rebuilds"
+fi
 # Native arch only, deliberately: this is your machine, so a universal binary
 # would double the build time for nothing. The released .dmg is universal.
 ok "built $(du -sh "$BUILT" | cut -f1) app bundle for $(uname -m)"
