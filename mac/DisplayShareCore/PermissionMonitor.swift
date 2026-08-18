@@ -33,6 +33,8 @@ public final class PermissionMonitor: ObservableObject {
 
     private var timer: Timer?
     private var probing = false
+    private var checkingOutOfProcess = false
+    private var outOfProcessChecksSinceLastRun = 0
 
     public init() {}
 
@@ -69,7 +71,31 @@ public final class PermissionMonitor: ObservableObject {
 
         let flag = CGPreflightScreenCaptureAccess()
         if !flag {
-            screenRecording = .denied
+            // CGPreflightScreenCaptureAccess CACHES its answer for the lifetime
+            // of the process. An app that was running when the user granted
+            // permission keeps reading false forever, so polling it can never
+            // notice the grant — the window sits on "Not granted" while the
+            // permission is plainly enabled in System Settings.
+            //
+            // A short-lived child process has no cached answer, so ask one.
+            // Throttled: this costs a process spawn, and only runs while
+            // onboarding is open and the flag still reads false.
+            outOfProcessChecksSinceLastRun += 1
+            if outOfProcessChecksSinceLastRun >= 3, !checkingOutOfProcess {
+                outOfProcessChecksSinceLastRun = 0
+                checkingOutOfProcess = true
+                Self.grantedAccordingToFreshProcess { [weak self] granted in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.checkingOutOfProcess = false
+                        // Granted in reality, invisible to THIS process: the
+                        // only cure is a relaunch, so say exactly that.
+                        self.screenRecording = granted ? .grantedNeedsRestart : .denied
+                    }
+                }
+            } else if screenRecording != .grantedNeedsRestart {
+                screenRecording = .denied
+            }
             return
         }
         // The flag says yes. Confirm capture actually works before claiming it.
@@ -83,6 +109,30 @@ public final class PermissionMonitor: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Runs our own executable with `--check-permissions` and reads the answer.
+    ///
+    /// The point is the FRESH PROCESS: it has no cached preflight result, so it
+    /// reports the permission as it stands right now rather than as it stood
+    /// when this process launched.
+    private static func grantedAccordingToFreshProcess(
+        completion: @escaping @Sendable (Bool) -> Void
+    ) {
+        guard let executable = Bundle.main.executableURL else { return completion(false) }
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = ["--check-permissions"]
+        let pipe = Pipe()
+        process.standardError = pipe
+        process.standardOutput = Pipe()
+        process.terminationHandler = { _ in
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let text = String(decoding: data, as: UTF8.self)
+            let granted = text.contains("CGPreflightScreenCaptureAccess: true")
+            completion(granted)
+        }
+        do { try process.run() } catch { completion(false) }
     }
 
     /// Asks ScreenCaptureKit for content. Succeeding here is the only reliable

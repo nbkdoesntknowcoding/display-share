@@ -7,7 +7,10 @@
 // version. See the LICENSE file at the repository root.
 
 import AppKit
+import ApplicationServices
+import CoreGraphics
 import DisplayShareCore
+import ScreenCaptureKit
 import SwiftUI
 
 /// Menu bar app.
@@ -43,7 +46,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // --no-pairing is for automated tests only; pairing is on by default.
         requirePairing: !CommandLine.arguments.contains("--no-pairing"))
 
+    /// `--check-permissions` prints what THIS bundle can actually see and exits.
+    /// Permission bugs are otherwise impossible to diagnose from outside: a probe
+    /// run from a terminal reports the terminal's TCC identity, not the app's.
+    private func runPermissionDiagnosticIfRequested() {
+        guard CommandLine.arguments.contains("--check-permissions") else { return }
+
+        let bundleID = Bundle.main.bundleIdentifier ?? "?"
+        var out = "bundle id                     : \(bundleID)\n"
+        out += "bundle path                   : \(Bundle.main.bundleURL.path)\n"
+        out += "CGPreflightScreenCaptureAccess: \(CGPreflightScreenCaptureAccess())\n"
+        out += "AXIsProcessTrusted            : \(AXIsProcessTrusted())\n"
+
+        let semaphore = DispatchSemaphore(value: 0)
+        SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) {
+            content, error in
+            out += "SCShareableContent displays   : \(content?.displays.count ?? -1)\n"
+            out += "SCShareableContent error      : \(error?.localizedDescription ?? "none")\n"
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + 10)
+
+        FileHandle.standardError.write(Data(out.utf8))
+        exit(0)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        runPermissionDiagnosticIfRequested()
+
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
 

@@ -167,7 +167,7 @@ private struct PermissionRow: View {
         case .granted:
             Text("Granted").font(.caption).foregroundStyle(.green)
         case .grantedNeedsRestart:
-            Text("Restart needed").font(.caption).foregroundStyle(.orange)
+            Text("Granted — restart").font(.caption).foregroundStyle(.orange)
         case .denied:
             Text("Not granted").font(.caption).foregroundStyle(.secondary)
         case .unknown:

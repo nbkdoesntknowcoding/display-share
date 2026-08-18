@@ -142,8 +142,15 @@ echo
 echo "  Remote control (optional) additionally needs Accessibility."
 echo
 warn "macOS will not let a script grant these. You must click them yourself."
-echo "  A freshly built copy is a NEW identity to macOS, so if you have granted"
-echo "  these before for a different copy, you must grant them again for this one."
+echo
+echo "  IMPORTANT: grant them AFTER this install, not before, and then avoid"
+echo "  re-running this script. An unsigned app is identified by the hash of its"
+echo "  binary, and every rebuild changes that hash — so macOS sees a brand new"
+echo "  app and silently drops the previous grant. Reinstalling in a loop while"
+echo "  trying to fix a permission problem is what keeps it broken."
+echo
+echo "  If the entry is already listed but the app still says Not granted:"
+echo "  remove it with the minus button, then grant again."
 
 if [[ "$OPEN_SETTINGS" == 1 ]]; then
   open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture" 2>/dev/null || true
