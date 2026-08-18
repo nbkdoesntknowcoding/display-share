@@ -177,6 +177,37 @@ which needs no display driver and no certificate. The mirror image — making th
 Mac a second display *for* Windows — would need a signed Windows Indirect Display
 Driver, so it is deliberately not planned.
 
+### Viewing Windows from the Mac
+
+The reverse direction is a **remote desktop**, not a second display. One install
+on each machine does both; you pick a direction rather than reinstalling.
+
+1. **Windows** — open Display Share Receiver and click **Share this PC's screen
+   instead**. It shows the machine name and port.
+2. **Mac** — menu bar icon → **View a Windows PC…**. It finds the PC on its own;
+   if mDNS is blocked, type the address and port `7879`.
+
+**Only one direction runs at a time.** Both apps refuse the second one rather
+than trusting you not to try it: two machines each capturing and encoding the
+other feeds each screen back into the other, saturating the link, and the
+adaptive bitrate controller assumes a single stream — so it would react to
+congestion it was itself creating.
+
+### Turning the mirror into a real extra desktop
+
+By default this duplicates the Windows screen, so the Mac shows whatever the
+Windows monitor shows. Windows cannot be given a *virtual* display without an
+Indirect Display Driver, and that needs a signed driver — see above.
+
+A **dummy display adapter** (an HDMI or DisplayPort plug that reports a monitor,
+roughly the price of a coffee) sidesteps this entirely. Windows genuinely
+extends onto it, and the display picker next to the share button lets you share
+*that* output instead. The Windows laptop keeps its own screen, and the Mac shows
+a separate desktop. No driver, no certificate.
+
+> Unverified: this has not been tried with a real adapter yet. The code path is
+> exercised, the hardware is not.
+
 ---
 
 ## Requirements
