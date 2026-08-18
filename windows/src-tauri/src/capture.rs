@@ -216,7 +216,7 @@ fn create_duplication(
         // gated behind the GDI feature because DXGI_OUTPUT_DESC carries an
         // HMONITOR, and pulling in GDI for a width and a height is not a trade
         // worth making.
-        let desc = unsafe { duplication.GetDesc() };
+        let desc = duplication.GetDesc();
         Ok((duplication, desc.ModeDesc.Width, desc.ModeDesc.Height))
     }
 }

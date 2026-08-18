@@ -107,7 +107,9 @@ impl H264Encoder {
         let sequence_header = unsafe { read_sequence_header(&transform) };
 
         unsafe {
-            transform.ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, 0)?;
+            // No COMMAND_FLUSH here. The Microsoft H.264 MFT returns E_FAIL for
+            // a flush issued before streaming has begun — there is nothing to
+            // flush yet — and the encoder is freshly created anyway.
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0)?;
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0)?;
         }
