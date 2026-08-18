@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.4.0...v0.5.0) (2026-08-18)
+
+
+### Features
+
+* **mac:** view and decode a Windows desktop in the Mac app ([#6](https://github.com/nbkdoesntknowcoding/display-share/issues/6)) ([e1cf6e3](https://github.com/nbkdoesntknowcoding/display-share/commit/e1cf6e3a7faf51d2090af4029757ea40caeae7de))
+
 ## [0.4.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.3.0...v0.4.0) (2026-08-18)
 
 
