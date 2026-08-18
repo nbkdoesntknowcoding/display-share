@@ -171,8 +171,11 @@ cd windows && npm ci && npx tauri build
   onto the second screen and control returns automatically. F8, or Esc, hands the
   pointer back at any time.
 
-Controlling *Windows applications* from the Mac is **not** a feature — the
-laptop is a display for the Mac, not the other way round.
+Controlling *Windows applications* from the Mac is **not** in this version. It is
+planned as Phase 8: capturing the real Windows desktop and viewing it on the Mac,
+which needs no display driver and no certificate. The mirror image — making the
+Mac a second display *for* Windows — would need a signed Windows Indirect Display
+Driver, so it is deliberately not planned.
 
 ---
 
@@ -332,9 +335,8 @@ Stated plainly, because everything above was measured but these were not:
 * **Latency on Windows is unmeasured.** Video is confirmed working there, but no
   one has recorded the numbers on WebView2 — press `H` for the HUD and `A` to
   compare software against hardware decode.
-* **Input forwarding is unverified on Windows.** The Mac side is tested
-  (coordinate mapping exact at four points, 9/9 injection checks); the Windows
-  capture half has only ever run on macOS.
+* **Cursor roaming past the screen edge is unverified.** The clamping is covered
+  by tests, but the pointer-lock handoff has only been reasoned about, not used.
 * **Latency over a real LAN is unmeasured.** All figures above are localhost.
 * **No real sleep/wake cycle.** The recovery path was exercised through the same
   entry point the wake notification calls, not by actually sleeping the Mac.
