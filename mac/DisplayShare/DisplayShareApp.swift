@@ -255,6 +255,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var runningWindow: NSWindow?
 
+    /// The Mac viewing a Windows desktop (Task 8.2).
+    ///
+    /// A window rather than a whole second app: the app already installed on
+    /// this machine gains a second role. Shipping a separate viewer was
+    /// rejected because two near-identically named apps already caused real
+    /// confusion in this project.
+    private var viewerWindow: NSWindow?
+
+    func showViewerWindow() {
+        // Viewing needs no Screen Recording or Accessibility grant — nothing is
+        // captured or injected here — so this deliberately does not run the
+        // onboarding gate that showStatusWindow() does.
+        NSApp.setActivationPolicy(.regular)
+        if viewerWindow == nil {
+            let hosting = NSHostingController(rootView: ViewerView())
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "Windows PC"
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.isReleasedWhenClosed = false
+            window.setContentSize(NSSize(width: 960, height: 600))
+            window.center()
+            viewerWindow = window
+        }
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            self.viewerWindow?.makeKeyAndOrderFront(nil)
+        }
+    }
+
     /// A clean quit must remove the display immediately rather than leaving the
     /// helper to time out its grace period.
     func applicationWillTerminate(_ notification: Notification) {
@@ -323,6 +352,12 @@ private struct ControlPanel: View {
             }
 
             Divider()
+
+            Divider()
+
+            Button("View a Windows PC…") {
+                (NSApp.delegate as? AppDelegate)?.showViewerWindow()
+            }
 
             HStack {
                 Button(controller.state.isActive ? "Stop" : "Start") {

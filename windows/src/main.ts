@@ -484,3 +484,30 @@ void (async () => {
 // Auto-connect when a host is remembered AND we hold a token, so a paired
 // receiver reconnects without interaction.
 if (addressInput.value && identity?.token) connectButton.click();
+
+// ---------------------------------------------------------------- Task 8.2
+// Sharing this PC's screen so a Mac can view it — the reverse of everything
+// above. Kept to a single button here; picking a direction properly, and
+// preventing both from running at once, is Task 8.4.
+const shareButton = document.getElementById("share") as HTMLButtonElement | null;
+const shareStatus = document.getElementById("share-status") as HTMLSpanElement | null;
+
+shareButton?.addEventListener("click", async () => {
+  shareButton.disabled = true;
+  if (shareStatus) shareStatus.textContent = "Starting…";
+  try {
+    const info = (await invoke("start_sharing", {})) as {
+      port: number;
+      host: string;
+    };
+    if (shareStatus) {
+      // Show the port as well as the name: Bonjour fails often enough on
+      // locked-down networks that the manual fallback needs to be visible
+      // rather than something to go hunting for.
+      shareStatus.textContent = `Sharing as “${info.host}” — on the Mac, choose View a Windows PC (port ${info.port})`;
+    }
+  } catch (error) {
+    if (shareStatus) shareStatus.textContent = `Could not start: ${error}`;
+    shareButton.disabled = false;
+  }
+});
