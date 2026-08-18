@@ -193,6 +193,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(Arc::new(ConnectionState::default()))
+        .manage(SharingState::default())
         .invoke_handler(tauri::generate_handler![
             detect_panel,
             default_host,
@@ -201,7 +202,9 @@ pub fn run() {
             connect,
             send_control,
             set_fullscreen,
-            capture_probe
+            capture_probe,
+            start_sharing,
+            sharing_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running Display Share receiver");
@@ -386,4 +389,104 @@ async fn capture_probe(frames: Option<u32>) -> Result<CaptureProbe, String> {
         .await
         .map_err(|e| e.to_string())?
     }
+}
+
+// ------------------------------------------------- Task 8.2: sharing this PC
+/// The reverse direction's port. Separate from the Mac sender's 8787/8788 so a
+/// single machine can hold both roles without a clash (SPEC §2).
+pub const REVERSE_PORT: u16 = 7879;
+/// A distinct Bonjour type, NOT `_displayshare._tcp`. Sharing one type would
+/// make this app list other Windows machines as senders, and the Mac list
+/// itself. Kept under the 15-character DNS-SD service name limit.
+pub const REVERSE_SERVICE: &str = "_dsreverse._tcp.local.";
+
+#[derive(Default)]
+pub struct SharingState {
+    inner: std::sync::Mutex<Option<SharingInfo>>,
+    /// Held so the advertisement lives as long as the process. Dropping the
+    /// daemon silently withdraws the service and the Mac stops seeing it.
+    mdns: std::sync::Mutex<Option<mdns_sd::ServiceDaemon>>,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct SharingInfo {
+    pub port: u16,
+    pub host: String,
+    pub service: String,
+}
+
+/// Starts capturing and serving this PC's screen.
+///
+/// Idempotent: calling it again returns the running session rather than binding
+/// a second listener, so a double click on the button cannot half-start a
+/// second capture thread.
+#[tauri::command]
+async fn start_sharing(state: State<'_, SharingState>, port: Option<u16>) -> Result<SharingInfo, String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = (state, port);
+        Err("sharing this screen is only implemented on Windows".into())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(existing) = state.inner.lock().unwrap().clone() {
+            return Ok(existing);
+        }
+        let port = port.unwrap_or(REVERSE_PORT);
+        sender::serve(port, sender::Source::Desktop, 30, 8_000_000)
+            .await
+            .map_err(|e| format!("could not start sharing: {e}"))?;
+
+        let host = hostname();
+        let info = SharingInfo {
+            port,
+            host: host.clone(),
+            service: REVERSE_SERVICE.to_string(),
+        };
+
+        // Advertising is best-effort: a firewall or a missing mDNS responder
+        // must not stop sharing, because the Mac can still be pointed at the
+        // address by hand.
+        match advertise(&host, port) {
+            Ok(daemon) => *state.mdns.lock().unwrap() = Some(daemon),
+            Err(e) => eprintln!("could not advertise on Bonjour: {e}"),
+        }
+
+        *state.inner.lock().unwrap() = Some(info.clone());
+        Ok(info)
+    }
+}
+
+#[tauri::command]
+fn sharing_status(state: State<'_, SharingState>) -> Option<SharingInfo> {
+    state.inner.lock().unwrap().clone()
+}
+
+fn hostname() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "Windows PC".into())
+}
+
+#[cfg(target_os = "windows")]
+fn advertise(host: &str, port: u16) -> Result<mdns_sd::ServiceDaemon, String> {
+    let daemon = mdns_sd::ServiceDaemon::new().map_err(|e| e.to_string())?;
+    // Instance names may not contain dots: mdns-sd would read them as label
+    // separators and register a name nobody browses for.
+    let instance = host.replace('.', "-");
+    let service = mdns_sd::ServiceInfo::new(
+        REVERSE_SERVICE,
+        &instance,
+        &format!("{instance}.local."),
+        (),
+        port,
+        &[("v", "1"), ("platform", "windows")][..],
+    )
+    .map_err(|e| e.to_string())?
+    // Let the daemon track this machine's addresses itself: hard-coding one
+    // breaks the moment the user moves between Wi-Fi and Ethernet.
+    .enable_addr_auto();
+    daemon.register(service).map_err(|e| e.to_string())?;
+    Ok(daemon)
 }

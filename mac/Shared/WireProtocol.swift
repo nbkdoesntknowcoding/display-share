@@ -95,26 +95,18 @@ public enum WireProtocol {
 
     /// Derives the WebCodecs codec string (e.g. "avc1.640028") from the SPS in
     /// an Annex-B payload. Returns nil when no SPS is present.
+    ///
+    /// Delegates the scan to `AnnexB` rather than walking the bytes here. The
+    /// hand-rolled version only recognised 4-byte start codes, which was
+    /// invisible for as long as VideoToolbox — which always emits 4 — was the
+    /// only sender. The Windows Media Foundation encoder mixes 3- and 4-byte
+    /// forms, and the failure mode is a nil codec string rather than an error.
     public static func codecString(fromAnnexB payload: Data) -> String? {
-        let bytes = [UInt8](payload)
-        var index = 0
-        while index + 4 < bytes.count {
-            // Locate a 4-byte start code.
-            guard bytes[index] == 0, bytes[index + 1] == 0, bytes[index + 2] == 0, bytes[index + 3] == 1
-            else {
-                index += 1
-                continue
-            }
-            let naluStart = index + 4
-            guard naluStart + 3 < bytes.count else { return nil }
-            let naluType = bytes[naluStart] & 0x1F
-            if naluType == 7 {  // SPS
-                let profile = bytes[naluStart + 1]
-                let constraints = bytes[naluStart + 2]
-                let level = bytes[naluStart + 3]
-                return String(format: "avc1.%02X%02X%02X", profile, constraints, level)
-            }
-            index = naluStart
+        for unit in AnnexB.nalUnits(payload) where unit.type == AnnexB.sps {
+            let bytes = [UInt8](unit.data)
+            // header byte, then profile_idc, constraint flags, level_idc
+            guard bytes.count >= 4 else { return nil }
+            return String(format: "avc1.%02X%02X%02X", bytes[1], bytes[2], bytes[3])
         }
         return nil
     }

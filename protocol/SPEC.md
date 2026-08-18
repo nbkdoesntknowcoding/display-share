@@ -19,6 +19,21 @@ A single **WebSocket** connection carries everything.
 | Binary messages | video access units (§3) |
 | Text messages | JSON control channel (§4) |
 
+### 1.1 The reverse direction
+
+A Windows machine sharing **its** screen to a Mac uses the same framing, the same
+control channel and the same pairing, with the roles swapped — the message
+formats are direction-agnostic and are deliberately NOT forked, so there is one
+specification to keep correct rather than two.
+
+| | |
+|---|---|
+| WebSocket port | `7879` |
+| Endpoint | `ws://<windows-host>:7879` |
+
+The port is separate from `8787`/`8788` so a single machine can hold both roles
+without a clash.
+
 The video/control socket and the development viewer page are on **separate
 ports** because `NWProtocolWebSocket` performs the upgrade handshake for every
 connection on its listener, so a plain HTTP GET cannot share that port. The
@@ -386,6 +401,21 @@ address typed in:
 A receiver browses the service, shows the discovered senders, and connects to the
 chosen one's resolved address and port. Manual entry stays available for networks
 where mDNS is blocked.
+
+The reverse direction advertises under a **different service type**:
+
+| | |
+|---|---|
+| Service type | `_dsreverse._tcp` |
+| Port | `7879` |
+| TXT `v` | protocol version |
+| TXT `platform` | `windows` |
+
+> **Why not reuse `_displayshare._tcp`?** Because both roles browse on the same
+> network. If a Windows machine sharing its screen advertised the same type a Mac
+> sender does, the Windows receiver would list other Windows machines as senders
+> and the Mac viewer would list itself. The name is also kept to nine characters:
+> DNS-SD caps a service name at fifteen.
 
 ---
 
