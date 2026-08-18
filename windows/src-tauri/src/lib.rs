@@ -11,6 +11,15 @@
 //! 2. **Reconnect control.** Backoff, cancellation and panel re-negotiation are
 //!    far easier to reason about in Rust than across a webview lifecycle.
 
+// Public so the encoder self-test (examples/encode_selftest.rs) can drive the
+// same code CI checks with ffprobe.
+pub mod annexb;
+pub mod capture;
+pub mod convert;
+pub mod encode;
+pub mod sender;
+pub mod wire;
+
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -191,7 +200,8 @@ pub fn run() {
             device_identity,
             connect,
             send_control,
-            set_fullscreen
+            set_fullscreen,
+            capture_probe
         ])
         .run(tauri::generate_context!())
         .expect("error while running Display Share receiver");
@@ -298,4 +308,82 @@ fn hostname_or_default() -> String {
     std::env::var("COMPUTERNAME")
         .or_else(|_| std::env::var("HOSTNAME"))
         .unwrap_or_else(|_| "Receiver".to_string())
+}
+
+// ---------------------------------------------------------------- Task 8.1
+/// Result of a desktop-capture smoke test.
+#[derive(serde::Serialize)]
+pub struct CaptureProbe {
+    pub width: u32,
+    pub height: u32,
+    pub frames: u64,
+    pub idle: u64,
+    pub reinits: u64,
+    pub fps: f64,
+    /// Bytes in the last frame — proves pixels actually arrived rather than an
+    /// empty buffer of the right shape.
+    pub last_frame_bytes: usize,
+    /// Mean luminance of the last frame. A duplication that "succeeds" but hands
+    /// back a black texture is a real failure mode, and frame counts alone
+    /// cannot tell it apart from a working capture.
+    pub last_frame_mean: f64,
+}
+
+/// Grabs a few frames from the real desktop and reports what came back.
+///
+/// Exists so capture can be proven on hardware before any encoder is attached;
+/// if this fails, nothing downstream is worth debugging.
+#[tauri::command]
+async fn capture_probe(frames: Option<u32>) -> Result<CaptureProbe, String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = frames;
+        Err("desktop capture is only implemented on Windows".into())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let want = frames.unwrap_or(30).clamp(1, 600);
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut cap = capture::DesktopCapture::new().map_err(|e| e.to_string())?;
+            let (width, height) = cap.size();
+            let mut last_bytes = 0usize;
+            let mut last_mean = 0.0f64;
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+
+            while cap.stats.frames < want as u64 {
+                // An idle desktop produces no frames at all, so a frame target
+                // alone would hang forever on a still screen.
+                if std::time::Instant::now() > deadline {
+                    break;
+                }
+                match cap.next_frame(100) {
+                    Ok(Some(frame)) => {
+                        last_bytes = frame.bgra.len();
+                        // Sample rather than sum 8 MB per frame; every 997th byte
+                        // is coprime with the 4-byte pixel stride, so this does
+                        // not land on one channel.
+                        let sum: u64 = frame.bgra.iter().step_by(997).map(|b| *b as u64).sum();
+                        let n = frame.bgra.len().div_ceil(997).max(1);
+                        last_mean = sum as f64 / n as f64;
+                    }
+                    Ok(None) => {}
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
+
+            Ok(CaptureProbe {
+                width,
+                height,
+                frames: cap.stats.frames,
+                idle: cap.stats.idle,
+                reinits: cap.stats.reinits,
+                fps: cap.fps(),
+                last_frame_bytes: last_bytes,
+                last_frame_mean: last_mean,
+            })
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
 }
