@@ -24,6 +24,24 @@ streams it over your LAN to a receiver app on the laptop.
 
 ---
 
+## Two apps, and which one you need
+
+Display Share is a pair. Installing or opening the wrong half is the most
+likely way to get confused, so:
+
+| | Runs on | What it looks like | You want it if |
+|---|---|---|---|
+| **DisplayShare** (sender) | the **Mac** | a **menu bar icon** — no Dock icon, no window | you want an extra screen |
+| **Display Share Receiver** | the **laptop** | a fullscreen window | it is the screen being borrowed |
+
+The sender showing "no window" is not a failure — it is a menu bar app. Look at
+the top-right of the screen for a display icon.
+
+If you see **"Enter the Mac's address and press Connect"**, you have opened the
+*receiver* on the Mac. That is the wrong half; close it and open the sender.
+
+---
+
 ## Installing
 
 ### The one-command way (recommended)
@@ -206,6 +224,8 @@ the setting and measure it on your own hardware.
 | Mouse and keyboard do nothing after pressing F8 | Accessibility not granted | The Mac reports `input_unavailable`; grant Accessibility and retry |
 | Windows scattered after a crash | The display was destroyed | Relaunch within ~8 s and the helper re-attaches the *same* display, preserving arrangement |
 | Second display gone after Mac sleep | Capture died on wake | Recovers automatically, typically under 0.1 s. If not, toggle Stop then Start |
+| Opened the app on the Mac and got "Enter the Mac's address and press Connect" | That is the **receiver**, not the sender | Close it. The sender is `DisplayShare.app` and appears only in the **menu bar** |
+| Launched the sender and nothing happened | It is a menu bar app — `LSUIElement`, so no Dock icon and no window by design | Look at the top-right menu bar for a display icon and click it |
 
 ---
 
