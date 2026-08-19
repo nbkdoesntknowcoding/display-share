@@ -227,6 +227,47 @@ a separate desktop. No driver, no certificate.
 
 ---
 
+## Using a cable instead of Wi-Fi
+
+Wi-Fi is usually the largest source of lag, and not because of bandwidth — a
+1080p stream needs roughly 10-15 Mbps, which any modern link manages. It is
+**jitter**: frames arrive in clumps, and a clump is felt as a stutter even when
+the average frame rate looks perfect. A cable removes it, and costs nothing in
+sharpness or frame rate.
+
+The apps need no configuration for this. Display Share runs over whatever IP link
+exists, and both ends advertise and browse on every interface, so plugging in a
+cable is the entire procedure.
+
+**The HUD names the link it is actually using** — `Ethernet`, `Wi-Fi`, and
+`direct` when the two machines are wired straight to each other. If the link is
+wireless and measurably costing time, the receiver says so once, with the number.
+
+### Which cable
+
+| Setup | Works | Notes |
+|---|---|---|
+| Ethernet, both into the router | Yes | Simplest. Removes Wi-Fi from both ends. |
+| Ethernet, machine to machine | Yes | Lowest latency. Modern ports auto-negotiate, so no crossover cable is needed. |
+| Thunderbolt / USB4, machine to machine | Yes, if **both** ends support it | macOS calls this Thunderbolt Bridge. Very fast. |
+| A plain USB-C cable | **No** | USB-C is a connector, not a network. Without Thunderbolt on both ends it carries no IP at all. |
+
+> **Check before buying anything.** On Windows, look for a *Thunderbolt* controller
+> in Device Manager. Many laptops have USB-C ports that do power and DisplayPort
+> but not Thunderbolt, and those cannot bridge. If yours is one of them, two
+> USB-C-to-Ethernet adapters and a cable achieve the same result for very little.
+
+### Wiring the two machines directly
+
+With no router in between, neither machine gets an address from DHCP, so both
+self-assign one in `169.254.x.x`. This is normal and needs no setup — discovery
+works over it, and the HUD shows `direct` when it happens.
+
+The Mac keeps its normal Wi-Fi connection at the same time, so the internet
+carries on working; the cable is used only for the machine-to-machine traffic.
+
+---
+
 ## Requirements
 
 | | |

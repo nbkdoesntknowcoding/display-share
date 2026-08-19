@@ -66,6 +66,21 @@ let acceleration: Acceleration =
 
 const messageEl = document.getElementById("message") as HTMLDivElement;
 const card = document.getElementById("card");
+
+interface LinkInfo {
+  name: string;
+  kind: string;
+  wired: boolean;
+  local_ip: string;
+  speed_mbps: number;
+  direct: boolean;
+}
+/// Which adapter this session is running over (Task 10.2). Wi-Fi jitter is the
+/// largest remaining source of felt lag, and the fix is a cable rather than a
+/// quality trade-off — but "use a cable" is useless advice if the app cannot say
+/// what you are on now.
+let activeLink: LinkInfo | null = null;
+let linkAdvised = false;
 /// Whether the user wants the HUD when a stream is running. Persisted so the
 /// preference survives a reconnect and a restart.
 let hudWanted = localStorage.getItem("ds.hud") !== "0";
@@ -144,6 +159,7 @@ function setupDecoder(codec: string) {
       // The first frame is the moment the shortcut is worth knowing, and the
       // only moment the overlay is not covering the screen to say it.
       showFirstRunHint();
+      void describeLink();
     },
     error: () => {
       decodeErrors++;
@@ -349,6 +365,8 @@ setInterval(() => {
     windowStart = now;
     // Peaks describe the last second, not the whole session, or one early
     // hiccup would mask everything that follows.
+    // Judged on the window that just ended, before the peaks are cleared.
+    maybeAdviseCable();
     peakQueueingMs = 0;
     worstGapMs = 0;
   }
@@ -368,6 +386,17 @@ setInterval(() => {
     ["accel", acceleration.replace("prefer-", "")],
     ["panel", `${panel.width}x${panel.height} @${panel.scale}x`],
   ];
+  if (activeLink) {
+    const speed = activeLink.speed_mbps > 0 ? ` · ${activeLink.speed_mbps} Mbps` : "";
+    // A cable run straight between two machines self-assigns 169.254.x.x, which
+    // is worth calling out: it is the lowest-latency arrangement available.
+    const direct = activeLink.direct ? " · direct" : "";
+    rows.splice(4, 0, [
+      "link",
+      `${activeLink.name}${speed}${direct}`,
+      activeLink.wired ? undefined : "warn",
+    ]);
+  }
   if (decodeErrors > 0) rows.push(["errors", String(decodeErrors), "warn"]);
 
   hud.replaceChildren(
@@ -711,5 +740,33 @@ function showFirstRunHint() {
   if (!hintEl || localStorage.getItem("ds.hinted")) return;
   localStorage.setItem("ds.hinted", "1");
   hintEl.innerHTML = "Press <kbd>H</kbd> for stats · <kbd>F</kbd> for fullscreen";
+  hintEl.classList.add("show");
+}
+
+// --- Which link are we on? (Task 10.2) --------------------------------------
+async function describeLink() {
+  if (activeLink) return;
+  try {
+    activeLink = (await invoke("link_info")) as LinkInfo | null;
+  } catch {
+    // Not knowing the link is not a failure worth showing: the stream works
+    // either way and the HUD simply omits the row.
+    activeLink = null;
+  }
+}
+
+/// Suggests a cable once per session, and only when it is actually true — the
+/// link is wireless AND measurably costing time. Nagging a link that is behaving
+/// would train the user to ignore the one message worth reading.
+function maybeAdviseCable() {
+  if (linkAdvised || !activeLink || activeLink.wired) return;
+  if (peakQueueingMs < 60) return;
+  linkAdvised = true;
+  if (!hintEl) return;
+  hintEl.textContent =
+    `${activeLink.name} is adding about ${peakQueueingMs.toFixed(0)} ms. ` +
+    "A cable between the two machines removes it.";
+  hintEl.classList.remove("show");
+  void hintEl.offsetWidth;
   hintEl.classList.add("show");
 }
