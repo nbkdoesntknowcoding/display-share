@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.5.0...v0.6.0) (2026-08-19)
+
+
+### Chores
+
+* release 0.6.0 ([e4c106a](https://github.com/nbkdoesntknowcoding/display-share/commit/e4c106ae5fbdd64bad76f878d01e15d728ac6d9d))
+
 ## [0.5.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.4.0...v0.5.0) (2026-08-18)
 
 
