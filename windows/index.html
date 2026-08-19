@@ -64,6 +64,9 @@
     box-shadow:0 0 0 4px rgba(59,130,246,.16);
   }
   h1 { margin:0; font-size:16px; font-weight:650; letter-spacing:-.01em; }
+  #version { margin-left:auto; font-size:11.5px; color:var(--muted);
+             font-variant-numeric:tabular-nums; }
+  #version.warn { color:#f5b544; }
   #role { margin:0 0 18px; font-size:12.5px; color:var(--muted); line-height:1.5; }
 
   /* Dedicated status element — never the container. */
@@ -135,6 +138,9 @@
       <div id="brand">
         <span id="brand-dot"></span>
         <h1>Display Share</h1>
+        <!-- Updates apply silently at launch now, so the version is the only
+             way to tell what you are running or whether one landed. -->
+        <span id="version"></span>
       </div>
       <p id="role">
         This PC becomes a second display for your Mac. The Mac runs the sender,
@@ -165,14 +171,6 @@
         <button id="stop-share" class="ghost" hidden>Stop sharing</button>
         <span id="share-status"></span>
       </div>
-    </div>
-    <!-- The reverse direction (Task 8.2). Deliberately below the receiving
-         controls and visually quieter: receiving is what most people install
-         this for, and a prominent second action here is how the two-apps
-         confusion started. Full role selection is Task 8.4. -->
-    <div id="share-row">
-      <button id="share">Share this PC's screen instead</button>
-      <span id="share-status"></span>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>
