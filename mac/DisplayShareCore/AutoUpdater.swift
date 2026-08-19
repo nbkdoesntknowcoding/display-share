@@ -251,14 +251,19 @@ public final class AutoUpdater: @unchecked Sendable {
 
     /// Reads GitHub's compare status into a decision.
     ///
-    /// `behind` means the base commit is behind the release, i.e. the release
-    /// already contains it. `identical` is the same thing with nothing in
-    /// between. `ahead` and `diverged` both mean the local build has work the
-    /// release does not, which is exactly what must not be overwritten.
+    /// **The status describes HEAD relative to BASE**, and the comparison here is
+    /// `installedCommit...releaseTag`. So `ahead` means the RELEASE is ahead of
+    /// the installed build — the release contains it, and replacing it loses
+    /// nothing. `behind` means the opposite: the installed build carries commits
+    /// the release does not.
+    ///
+    /// This reads backwards on first encounter and was in fact implemented
+    /// backwards, which refused every safe update and, far worse, would have
+    /// accepted exactly the case the guard exists to prevent.
     public static func containment(fromCompareStatus status: String) -> Containment {
         switch status {
-        case "behind", "identical": return .contained
-        case "ahead": return .notContained("is ahead of")
+        case "ahead", "identical": return .contained
+        case "behind": return .notContained("is ahead of")
         case "diverged": return .notContained("has diverged from")
         default: return .unknown("unrecognised compare status \(status)")
         }
@@ -280,6 +285,9 @@ public final class AutoUpdater: @unchecked Sendable {
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                 let status = json["status"] as? String
             else { return .unknown("no status in the compare response") }
+            if ProcessInfo.processInfo.environment["DS_UPDATE_TRACE"] != nil {
+                print("compare \(commit)...\(tag) -> \(status)")
+            }
             return Self.containment(fromCompareStatus: status)
         } catch {
             return .unknown("\(error.localizedDescription)")
