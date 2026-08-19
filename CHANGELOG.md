@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.2...v0.7.3) (2026-08-19)
+
+
+### Bug Fixes
+
+* **windows:** show the version, and delete the duplicated share button ([#16](https://github.com/nbkdoesntknowcoding/display-share/issues/16)) ([ba7e9ca](https://github.com/nbkdoesntknowcoding/display-share/commit/ba7e9ca76987e8181997cb4e5a2cb27359e8a8e2))
+
 ## [0.7.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.1...v0.7.2) (2026-08-19)
 
 
