@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.0...v0.7.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **release:** point latest.json at the asset GitHub actually created ([#12](https://github.com/nbkdoesntknowcoding/display-share/issues/12)) ([3c1e49d](https://github.com/nbkdoesntknowcoding/display-share/commit/3c1e49d6f1101b1bf8b9336c0ecaa2c306cc7a93))
+
 ## [0.7.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.6.0...v0.7.0) (2026-08-19)
 
 
