@@ -1,5 +1,6 @@
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   codecStringFromAnnexB,
   decodeVideoMessage,
@@ -463,12 +464,36 @@ void scanForSenders();
 // This runs BEFORE the auto-connect below on purpose. Replacing the binary
 // underneath a live session would drop the stream and read as a crash, and at
 // launch there is no session yet — so this is the only safe moment.
+const versionLabel = document.getElementById("version") as HTMLSpanElement | null;
+
+/// Shows which version is running.
+///
+/// Not decoration. Updates now apply themselves silently at launch, so without
+/// this there is no way to tell what you are on, whether an update landed, or
+/// whether the update path is broken — the three questions that follow removing
+/// a visible "Update" button.
+async function showVersion(suffix = "") {
+  if (!versionLabel) return;
+  try {
+    versionLabel.textContent = `v${await getVersion()}${suffix}`;
+  } catch {
+    versionLabel.textContent = suffix.trim();
+  }
+}
+
+void showVersion();
+
 async function applyUpdateOnLaunch(): Promise<boolean> {
   let status;
   try {
     status = await checkForUpdate();
-  } catch {
-    // A failed check must never stop the app being used offline.
+  } catch (error) {
+    // A failed check must never stop the app being used offline — but it must
+    // not be invisible either, or a broken update path looks identical to
+    // being up to date.
+    versionLabel?.classList.add("warn");
+    void showVersion(" · update check failed");
+    console.warn("update check failed", error);
     return false;
   }
   if (!status.available || !status.version) return false;
