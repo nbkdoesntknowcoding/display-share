@@ -1,0 +1,50 @@
+Display Share Receiver — please read before installing
+======================================================
+
+WHAT THIS INSTALLS
+
+  Display Share Receiver turns this PC into a second display for a Mac.
+  The Mac runs the sender, which lives in its menu bar. The two find each
+  other over your local network; nothing is sent to the internet.
+
+  It installs for the current user only, so it needs no administrator
+  password and touches nothing outside your own profile.
+
+
+WINDOWS WILL WARN ABOUT THIS INSTALLER
+
+  You may have already seen a blue "Windows protected your PC" dialog, or
+  you may see one now. That warning is expected and it is not a sign that
+  anything is wrong with the download.
+
+  Display Share is open source and does not buy a code signing certificate,
+  which costs a few hundred pounds a year and would have to be paid for by
+  someone. SmartScreen flags any installer it has not seen signed by a known
+  publisher, so it flags this one.
+
+  To continue past it:
+
+      More info   ->   Run anyway
+
+  If you would rather not accept that, you can build the app yourself from
+  source and no warning appears at all. Instructions are in the project's
+  README. You can also check the download against the SHA256SUMS file
+  published with every release.
+
+
+AFTER INSTALLING
+
+  1. Start Display Share on the Mac and click Start.
+  2. Open Display Share Receiver here. It looks for senders automatically.
+  3. Type the 4-digit PIN shown on the Mac to pair the two machines.
+
+  Windows Firewall may ask whether to allow the app on your network the
+  first time. It needs that permission to receive the screen. Allow it for
+  private networks.
+
+  Updates apply themselves when the app starts, so you will not need to run
+  this installer again.
+
+
+  Source code and releases:
+  https://github.com/nbkdoesntknowcoding/display-share

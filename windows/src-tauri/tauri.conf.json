@@ -28,6 +28,10 @@
   },
   "bundle": {
     "active": true,
+    "publisher": "The Boring People",
+    "shortDescription": "Turn this PC into a second display for a Mac",
+    "longDescription": "Display Share Receiver turns this PC into a genuine second display for a Mac over your local network, and can also share this PC's screen back to the Mac.",
+    "licenseFile": "INSTALL-NOTICE.txt",
     "targets": [
       "nsis",
       "msi",
@@ -42,7 +46,8 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico"
       }
     }
   },

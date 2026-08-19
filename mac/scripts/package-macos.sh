@@ -163,14 +163,30 @@ step "Building DMG"
 STAGE="$BUILD_DIR/dmg-stage"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
-# The Applications symlink is what makes drag-to-install obvious.
-ln -s /Applications "$STAGE/Applications"
+# NO Applications symlink here. create-dmg's --app-drop-link makes its own, and
+# a pre-existing one makes it die with "ln: .../Applications: File exists" — which
+# this script hid behind >/dev/null || true, so every release since this file was
+# written silently shipped the unstyled hdiutil fallback instead. The fallback
+# below adds the symlink for the case where create-dmg really is unavailable.
 
 DMG="$BUILD_DIR/$DMG_NAME-$VERSION.dmg"
 rm -f "$DMG"
 
+# Task 9.3: the window explains the install and warns about the unsigned first
+# launch BEFORE the user meets that dialog. The text is drawn into the
+# background rather than shipped as a read-me beside the app, because a second
+# icon competes with the drag gesture and mostly goes unread.
+BACKGROUND="$BUILD_DIR/dmg-background.png"
+BACKGROUND_ARGS=()
+if swift "$HERE/make-dmg-background.swift" "$BACKGROUND" "$VERSION" 2>/dev/null; then
+  BACKGROUND_ARGS=(--background "$BACKGROUND")
+else
+  warn "could not render the DMG background; the window will be plain"
+fi
+
 if command -v create-dmg >/dev/null; then
   # Styled window, sized and positioned so the drag gesture is self-evident.
+  # The icon row sits at y=180 to line up with the arrow in the background.
   create-dmg \
     --volname "$APP_NAME $VERSION" \
     --window-pos 200 120 --window-size 640 400 \
@@ -178,11 +194,18 @@ if command -v create-dmg >/dev/null; then
     --icon "$APP_NAME.app" 160 180 \
     --app-drop-link 480 180 \
     --no-internet-enable \
-    "$DMG" "$STAGE" >/dev/null 2>&1 || true
+    "${BACKGROUND_ARGS[@]}" \
+    "$DMG" "$STAGE" >"$BUILD_DIR/create-dmg.log" 2>&1 || true
+  # Report the reason rather than discarding it. Silently degrading to an
+  # unstyled image is how the broken --app-drop-link above went unnoticed.
+  if [[ ! -f "$DMG" ]]; then
+    warn "create-dmg failed: $(tail -1 "$BUILD_DIR/create-dmg.log" 2>/dev/null)"
+  fi
 fi
 
 if [[ ! -f "$DMG" ]]; then
-  warn "create-dmg unavailable or failed; using hdiutil (unstyled but valid)"
+  warn "falling back to hdiutil (valid, but unstyled and without the notice)"
+  ln -s /Applications "$STAGE/Applications" 2>/dev/null || true
   hdiutil create -volname "$APP_NAME $VERSION" -srcfolder "$STAGE" \
     -ov -format UDZO "$DMG" >/dev/null
 fi
