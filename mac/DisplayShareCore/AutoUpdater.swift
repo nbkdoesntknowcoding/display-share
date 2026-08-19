@@ -20,7 +20,10 @@ public final class AutoUpdater: @unchecked Sendable {
 
     public enum Outcome: Equatable, Sendable {
         case upToDate
-        case applied(version: String)
+        /// Applied. `permissionsReset` is true only when the installed copy was
+        /// ad-hoc signed, so its requirement could not be preserved and macOS
+        /// will ask for Screen Recording and Accessibility once more.
+        case applied(version: String, permissionsReset: Bool)
         /// Deliberately not attempted, with a reason worth showing.
         case skipped(String)
         case failed(String)
@@ -115,15 +118,39 @@ public final class AutoUpdater: @unchecked Sendable {
         }
         // A build made from the repository reports whatever version the branch
         // happens to carry, which can be BEHIND a release while containing more
-        // than it. Replacing it by version comparison would quietly remove work.
+        // than it. Version comparison alone would quietly remove work, so ask
+        // GitHub whether the release actually CONTAINS this build's commit.
+        // If it does, replacing it loses nothing; if it does not, the build is
+        // ahead of or beside the release and must be left alone.
+        var sourceCommit: String?
         if let origin = Self.buildOrigin(installedAppURL) {
-            return .skipped("built from source (\(origin)) — run install.sh to update")
+            guard let commit = Self.commit(fromOrigin: origin) else {
+                return .skipped("built from source (\(origin)) — run install.sh to update")
+            }
+            sourceCommit = commit
         }
 
         do {
             guard let release = try await fetchLatest() else { return .upToDate }
             guard UpdateChecker.isNewer(release.version, than: currentVersion) else {
                 return .upToDate
+            }
+            // For a source build the version number proves nothing, so the
+            // release must be shown to contain this exact commit before it is
+            // allowed to replace it.
+            if let commit = sourceCommit {
+                switch await containment(of: commit, in: release.version) {
+                case .contained:
+                    break
+                case .notContained(let status):
+                    return .skipped(
+                        "built from source (\(commit)) and \(status) the release — run install.sh"
+                    )
+                case .unknown(let reason):
+                    // Never guess in this direction: an unanswered question is
+                    // a reason to leave a working app alone.
+                    return .skipped("cannot confirm the release contains \(commit): \(reason)")
+                }
             }
             guard let assets = Self.selectAssets(release.assets) else {
                 return .failed("release \(release.version) has no .dmg and checksums")
@@ -150,22 +177,120 @@ public final class AutoUpdater: @unchecked Sendable {
             try resign(staged)
             let before = try Self.designatedRequirement(installedAppURL)
             let after = try Self.designatedRequirement(staged)
-            guard before == after else {
+            var permissionsReset = false
+            switch Self.classify(before: before, after: after) {
+            case .unchanged:
+                break
+            case .stabilising:
+                // The installed copy was ad-hoc, so its requirement is a hash
+                // that changes on every build and could never have been
+                // preserved. Moving to the machine identity costs one re-grant
+                // and makes every future update seamless, so it is worth doing
+                // once — but the caller must be able to say so.
+                permissionsReset = true
+            case .dangerous:
                 return .failed(
                     "signing requirement would change, which resets permissions — update abandoned"
                 )
             }
 
             if swapIn { try swap(staged) }
-            return .applied(version: release.version)
+            return .applied(version: release.version, permissionsReset: permissionsReset)
         } catch {
             return .failed("\(error)")
+        }
+    }
+
+    /// Whether a release contains a given commit.
+    public enum Containment: Equatable, Sendable {
+        case contained
+        /// The build sits ahead of, or beside, the release.
+        case notContained(String)
+        /// The question could not be answered — treated as "do not touch it".
+        case unknown(String)
+    }
+
+    /// How a requirement would change if the update were applied.
+    public enum RequirementChange: Equatable, Sendable {
+        /// Identical — permissions carry over untouched. The normal case.
+        case unchanged
+        /// Ad-hoc becoming identity-signed: a one-time re-grant buys stability
+        /// for every update afterwards.
+        case stabilising
+        /// Anything else, including identity-signed becoming something else.
+        /// Applying this would cost permissions for no gain.
+        case dangerous
+    }
+
+    /// True when a requirement is pinned to the binary's hash.
+    ///
+    /// An ad-hoc signature produces `cdhash H"..."`, which is different for every
+    /// build, so permissions granted to one build never apply to the next. A
+    /// certificate-backed requirement names the identifier and the root instead
+    /// and is stable across rebuilds.
+    public static func isAdHoc(_ requirement: String) -> Bool {
+        requirement.contains("cdhash") && !requirement.contains("certificate root")
+    }
+
+    public static func classify(before: String, after: String) -> RequirementChange {
+        if before == after { return .unchanged }
+        // Only this one direction is worth a re-grant.
+        if isAdHoc(before) && !isAdHoc(after) { return .stabilising }
+        return .dangerous
+    }
+
+    /// Extracts the commit from the marker install.sh writes ("source <sha>").
+    public static func commit(fromOrigin origin: String) -> String? {
+        let token = origin.split(separator: " ").last.map(String.init) ?? ""
+        // Hex and long enough to be a short sha; anything else is a marker
+        // format this version does not understand, and guessing would be worse
+        // than declining.
+        let isHex = token.allSatisfy { $0.isHexDigit }
+        return isHex && token.count >= 7 ? token : nil
+    }
+
+    /// Reads GitHub's compare status into a decision.
+    ///
+    /// `behind` means the base commit is behind the release, i.e. the release
+    /// already contains it. `identical` is the same thing with nothing in
+    /// between. `ahead` and `diverged` both mean the local build has work the
+    /// release does not, which is exactly what must not be overwritten.
+    public static func containment(fromCompareStatus status: String) -> Containment {
+        switch status {
+        case "behind", "identical": return .contained
+        case "ahead": return .notContained("is ahead of")
+        case "diverged": return .notContained("has diverged from")
+        default: return .unknown("unrecognised compare status \(status)")
+        }
+    }
+
+    private func containment(of commit: String, in tag: String) async -> Containment {
+        let path = "https://api.github.com/repos/\(repository)/compare/\(commit)...\(tag)"
+        guard let url = URL(string: path) else { return .unknown("bad compare URL") }
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 15
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return .unknown("no HTTP response") }
+            // 404 means the commit is not on this repository at all — a local
+            // build that was never pushed.
+            if http.statusCode == 404 { return .notContained("is not published in") }
+            guard http.statusCode == 200 else { return .unknown("HTTP \(http.statusCode)") }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let status = json["status"] as? String
+            else { return .unknown("no status in the compare response") }
+            return Self.containment(fromCompareStatus: status)
+        } catch {
+            return .unknown("\(error.localizedDescription)")
         }
     }
 
     // MARK: - Steps
 
     private struct ReleaseInfo {
+        /// tag_name, e.g. "v0.6.0". Used both as the version and as the git ref
+        /// the compare API is asked about.
         let version: String
         let assets: [Asset]
     }
