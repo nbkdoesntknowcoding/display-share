@@ -46,6 +46,29 @@ The installer triggers SmartScreen:
 
 **To install:** click **More info**, then **Run anyway**.
 
+### The installers say this before it happens
+
+Both install flows warn about the block **in advance**, with the exact click
+path, so nobody meets the dialog cold and assumes the download is malware.
+
+* **macOS** — the DMG window's background carries the instruction and the
+  warning. It is generated at package time by
+  `mac/scripts/make-dmg-background.swift`, versioned to match the build. The
+  text lives in the background rather than in a read-me file beside the app,
+  because a second icon in that window competes with the drag gesture and mostly
+  goes unread.
+* **Windows** — `windows/src-tauri/INSTALL-NOTICE.txt` is shown as a page in the
+  NSIS wizard, covering what gets installed, the SmartScreen warning, the
+  firewall prompt, and the fact that updates now apply themselves.
+
+> A caution for anyone changing the DMG script: `create-dmg` creates its own
+> Applications symlink via `--app-drop-link`, and dies with `ln: File exists` if
+> the staging folder already contains one. That failure was swallowed by
+> `>/dev/null 2>&1 || true` for the whole life of the script, so every release
+> silently shipped the unstyled `hdiutil` fallback while appearing to succeed.
+> The failure is now reported with its reason. If the DMG ever comes out plain,
+> read `create-dmg.log` in the build directory rather than guessing.
+
 ---
 
 ## Why we don't just tell people to trust us
