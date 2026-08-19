@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.4.0...v0.5.0) (2026-08-18)
+
+
+### Features
+
+* **mac:** view and decode a Windows desktop in the Mac app ([#6](https://github.com/nbkdoesntknowcoding/display-share/issues/6)) ([e1cf6e3](https://github.com/nbkdoesntknowcoding/display-share/commit/e1cf6e3a7faf51d2090af4029757ea40caeae7de))
+
+## [0.4.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.3.0...v0.4.0) (2026-08-18)
+
+
+### Features
+
+* **windows:** capture, encode and serve the Windows desktop (Task 8.1) ([#4](https://github.com/nbkdoesntknowcoding/display-share/issues/4)) ([91f02c0](https://github.com/nbkdoesntknowcoding/display-share/commit/91f02c02b8a3328d961418ef84caabcf45ca8f24))
+
 ## [0.3.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.2.1...v0.3.0) (2026-08-18)
 
 
