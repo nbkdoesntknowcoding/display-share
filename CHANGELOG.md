@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.6.0...v0.7.0) (2026-08-19)
+
+
+### Features
+
+* **mac:** let source installs update themselves once the release contains them ([#10](https://github.com/nbkdoesntknowcoding/display-share/issues/10)) ([bce16a1](https://github.com/nbkdoesntknowcoding/display-share/commit/bce16a14c2eae5e138bdd7af82ec95515bfe5b0a))
+
 ## [0.6.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.5.0...v0.6.0) (2026-08-19)
 
 
