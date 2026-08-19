@@ -69,6 +69,77 @@ final class AutoUpdaterTests: XCTestCase {
         XCTAssertEqual(ours, theirs)
     }
 
+    // MARK: - Requirement changes (t-700)
+
+    private let adHoc = #"designated => cdhash H"b4402bc6ff1a2c3d4e5f60718293a4b5c6d7e8f9""#
+    private let identity =
+        #"designated => identifier "in.theboringpeople.displayshare" and certificate root = H"8fa250b1""#
+
+    func testAdHocIsRecognisedByItsHashPin() {
+        XCTAssertTrue(AutoUpdater.isAdHoc(adHoc))
+        // A certificate-backed requirement is stable across rebuilds even
+        // though it may also mention a hash elsewhere.
+        XCTAssertFalse(AutoUpdater.isAdHoc(identity))
+    }
+
+    func testIdenticalRequirementsNeedNoRegrant() {
+        XCTAssertEqual(AutoUpdater.classify(before: identity, after: identity), .unchanged)
+    }
+
+    func testAdHocToIdentityIsWorthOneRegrant() {
+        // The installed copy's requirement could never have been preserved, so
+        // one re-grant buys stability for every update afterwards.
+        XCTAssertEqual(AutoUpdater.classify(before: adHoc, after: identity), .stabilising)
+    }
+
+    func testLosingACertificateBackedRequirementIsRefused() {
+        // The dangerous direction: permissions already granted would be dropped
+        // for nothing in return.
+        XCTAssertEqual(AutoUpdater.classify(before: identity, after: adHoc), .dangerous)
+        let otherIdentity = identity.replacingOccurrences(of: "8fa250b1", with: "deadbeef")
+        XCTAssertEqual(AutoUpdater.classify(before: identity, after: otherIdentity), .dangerous)
+    }
+
+    // MARK: - Source builds
+
+    func testCommitIsReadFromTheInstallMarker() {
+        XCTAssertEqual(AutoUpdater.commit(fromOrigin: "source 57c2cff"), "57c2cff")
+        XCTAssertEqual(
+            AutoUpdater.commit(fromOrigin: "source 4d3f1389ab2c"), "4d3f1389ab2c")
+    }
+
+    func testUnreadableMarkersAreNotGuessedAt() {
+        // A marker this version does not understand must leave the app alone
+        // rather than be interpreted optimistically.
+        XCTAssertNil(AutoUpdater.commit(fromOrigin: "source"))
+        XCTAssertNil(AutoUpdater.commit(fromOrigin: "source not-a-sha"))
+        XCTAssertNil(AutoUpdater.commit(fromOrigin: "source abc"))
+        XCTAssertNil(AutoUpdater.commit(fromOrigin: ""))
+    }
+
+    func testOnlyABehindOrIdenticalCommitMayBeReplaced() {
+        // "behind" means the release already contains this build.
+        XCTAssertEqual(AutoUpdater.containment(fromCompareStatus: "behind"), .contained)
+        XCTAssertEqual(AutoUpdater.containment(fromCompareStatus: "identical"), .contained)
+    }
+
+    func testABuildAheadOfTheReleaseIsLeftAlone() {
+        // This is the case that would silently delete unreleased work.
+        guard case .notContained = AutoUpdater.containment(fromCompareStatus: "ahead") else {
+            return XCTFail("a build ahead of the release must not be replaced")
+        }
+        guard case .notContained = AutoUpdater.containment(fromCompareStatus: "diverged") else {
+            return XCTFail("a diverged build must not be replaced")
+        }
+    }
+
+    func testAnUnrecognisedStatusIsTreatedAsUnknownNotAsSafe() {
+        // Failing open here would replace a build on any API change.
+        guard case .unknown = AutoUpdater.containment(fromCompareStatus: "something-new") else {
+            return XCTFail("an unrecognised status must not count as contained")
+        }
+    }
+
     func testStreamingSessionIsNotInterrupted() async {
         // Replacing the binary mid-session tears down the virtual display, which
         // looks like a crash from the user's side.
