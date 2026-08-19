@@ -118,9 +118,12 @@ public final class CaptureSession: NSObject, @unchecked Sendable {
         streamConfig.pixelFormat = configuration.pixelFormat
         streamConfig.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(configuration.fps))
         streamConfig.showsCursor = configuration.showsCursor
-        // SCK's own buffer pool. Kept small: deep pools trade latency for
-        // smoothness, and latency is the product.
-        streamConfig.queueDepth = 6
+        // SCK's own buffer pool. The comment below used to say "kept small" while
+        // setting 6, which at 60fps is up to 100ms of frames waiting their turn.
+        // Depth only helps a consumer that stalls and then catches up; ours is a
+        // bounded queue of 2 that drops the oldest, so anything SCK holds back is
+        // staleness we can never use. 3 is the documented practical floor.
+        streamConfig.queueDepth = 3
         pixelSize = CGSize(width: display.width, height: display.height)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])

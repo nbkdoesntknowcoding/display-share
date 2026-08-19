@@ -19,7 +19,10 @@ import { applyUpdate, checkForUpdate } from "./updater";
  */
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d", { alpha: false })!;
+// desynchronized decouples painting from the compositor's frame cadence, which
+// is the difference between showing a frame now and showing it at the next
+// composite. alpha:false avoids a needless blend of an opaque video.
+const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true })!;
 const hud = document.getElementById("hud") as HTMLDivElement;
 const overlay = document.getElementById("overlay") as HTMLDivElement;
 const addressInput = document.getElementById("address") as HTMLInputElement;
@@ -53,8 +56,13 @@ const decodeStarts = new Map<number, number>();
  * the choice can be re-measured on the real receiver rather than assumed.
  */
 type Acceleration = "prefer-software" | "prefer-hardware" | "no-preference";
+// no-preference lets the engine pick, which is right far more often than
+// forcing either. This previously defaulted to prefer-software on the strength
+// of one measurement claiming software was 22x faster — implausible enough that
+// inheriting it was a mistake. [A] still cycles the modes, and the HUD now
+// reports decode cost, so the choice can be settled by measurement per machine.
 let acceleration: Acceleration =
-  (localStorage.getItem("ds.acceleration") as Acceleration) ?? "prefer-software";
+  (localStorage.getItem("ds.acceleration") as Acceleration) ?? "no-preference";
 
 const messageEl = document.getElementById("message") as HTMLDivElement;
 
@@ -70,6 +78,34 @@ function setStatus(text: string, visible = true) {
   // The HUD reports a live stream's statistics. While the overlay is up there is
   // no live stream, so leaving it on shows stale numbers bleeding through.
   if (visible) hud.classList.add("hidden");
+}
+
+// --- Latency measurement (Task 10.1) ----------------------------------------
+// The sender's timestamps come from ITS monotonic clock, so they cannot be
+// compared to ours directly — the offset is unknown. But the offset is CONSTANT,
+// so it cancels: track (arrival - senderTimestamp) and subtract the smallest
+// value ever seen. What remains is delay above the best path this session has
+// managed, which is exactly the queuing and jitter that accumulates and gets
+// felt as lag. A steady stream sits near zero however far apart the clocks are.
+let bestOffsetMs = Number.POSITIVE_INFINITY;
+let queueingMs = 0;
+let peakQueueingMs = 0;
+/// Gap between consecutive arrivals, which exposes a stalling link even when
+/// the average frame rate looks healthy.
+let lastArrival = 0;
+let worstGapMs = 0;
+
+function noteArrival(senderTimestampMicros: number) {
+  const now = performance.now();
+  const offset = now - senderTimestampMicros / 1000;
+  if (offset < bestOffsetMs) bestOffsetMs = offset;
+  queueingMs = offset - bestOffsetMs;
+  if (queueingMs > peakQueueingMs) peakQueueingMs = queueingMs;
+  if (lastArrival) {
+    const gap = now - lastArrival;
+    if (gap > worstGapMs) worstGapMs = gap;
+  }
+  lastArrival = now;
 }
 
 function setupDecoder(codec: string) {
@@ -146,6 +182,7 @@ function handleFrame(bytes: Uint8Array) {
   }
 
   lastTimestamp = timestampMicros;
+  noteArrival(timestampMicros);
   decodeStarts.set(timestampMicros, performance.now());
   try {
     decoder!.decode(
@@ -293,6 +330,10 @@ setInterval(() => {
     paintedInWindow = 0;
     bytesInWindow = 0;
     windowStart = now;
+    // Peaks describe the last second, not the whole session, or one early
+    // hiccup would mask everything that follows.
+    peakQueueingMs = 0;
+    worstGapMs = 0;
   }
 
   const pad = (v: string | number, n: number) => String(v).padStart(n);
@@ -306,6 +347,9 @@ setInterval(() => {
     `frames    ${pad(decodedFrames, 14)}\n` +
     `errors    ${pad(decodeErrors, 14)}\n` +
     `queue     ${pad(decoder?.decodeQueueSize ?? 0, 14)}\n` +
+    `delay     ${pad(queueingMs.toFixed(1), 14)} ms\n` +
+    `peak      ${pad(peakQueueingMs.toFixed(1), 14)} ms\n` +
+    `worst gap ${pad(worstGapMs.toFixed(1), 14)} ms\n` +
     `\n[F] fullscreen  [H] hud  [K] keyframe  [A] accel`;
 
   // SPEC §4.6 — echo the last rendered timestamp so the sender can measure a
