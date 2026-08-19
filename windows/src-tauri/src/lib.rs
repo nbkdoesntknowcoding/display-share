@@ -14,9 +14,12 @@
 // Public so the encoder self-test (examples/encode_selftest.rs) can drive the
 // same code CI checks with ffprobe.
 pub mod annexb;
+pub mod coords;
+pub mod keymap;
 pub mod capture;
 pub mod convert;
 pub mod encode;
+pub mod input;
 pub mod sender;
 pub mod wire;
 

@@ -69,6 +69,17 @@ public final class ViewerClient: NSObject, @unchecked Sendable {
         }
     }
 
+    /// Sends a text message on the same socket (SPEC §4.10 input, §4 control).
+    public func send(_ text: String) {
+        queue.async { [self] in
+            guard let task else { return }
+            // Failures are dropped rather than surfaced: input is a stream of
+            // disposable events, and one lost mouse move is not worth tearing
+            // the session down or showing an error for.
+            task.send(.string(text)) { _ in }
+        }
+    }
+
     public func disconnect() {
         queue.async { [self] in
             disconnectLocked()

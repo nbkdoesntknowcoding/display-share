@@ -11,8 +11,8 @@
 
 #![cfg(target_os = "windows")]
 
-use crate::{convert, encode, wire};
-use futures_util::SinkExt;
+use crate::{convert, encode, input, wire};
+use futures_util::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -29,6 +29,10 @@ pub struct Frame {
 #[derive(Clone)]
 pub struct SenderHandle {
     frames: broadcast::Sender<Frame>,
+    /// Built once and shared by every connection: it resolves the shared
+    /// display's position on the desktop, which is what makes a normalised
+    /// coordinate mean anything (see `coords`).
+    injector: Option<Arc<input::Injector>>,
     /// Set when a client connects so the next encoded frame is an IDR.
     force_idr: Arc<AtomicBool>,
     pub clients: Arc<AtomicU64>,
@@ -55,6 +59,12 @@ pub async fn serve(port: u16, source: Source, fps: u32, bitrate: u32) -> Result<
     let (frames, _) = broadcast::channel::<Frame>(8);
     let handle = SenderHandle {
         frames: frames.clone(),
+        injector: match source {
+            Source::Desktop { output } => Some(Arc::new(input::Injector::new(output))),
+            // A synthetic source has no desktop to drive, so input is ignored
+            // rather than aimed at whatever happens to be on screen.
+            Source::Synthetic { .. } => None,
+        },
         force_idr: Arc::new(AtomicBool::new(true)),
         clients: Arc::new(AtomicU64::new(0)),
         port,
@@ -63,6 +73,7 @@ pub async fn serve(port: u16, source: Source, fps: u32, bitrate: u32) -> Result<
     let listener = TcpListener::bind(("0.0.0.0", port))
         .await
         .map_err(|e| format!("could not bind port {port}: {e}"))?;
+
 
     {
         let force_idr = handle.force_idr.clone();
@@ -81,6 +92,7 @@ pub async fn serve(port: u16, source: Source, fps: u32, bitrate: u32) -> Result<
         loop {
             let Ok((stream, peer)) = listener.accept().await else { continue };
             let mut rx = accept.frames.subscribe();
+            let injector = accept.injector.clone();
             // A client joining mid-stream cannot decode a delta frame, so ask
             // for a keyframe now rather than making it wait for the next
             // scheduled one.
@@ -97,7 +109,32 @@ pub async fn serve(port: u16, source: Source, fps: u32, bitrate: u32) -> Result<
                         return;
                     }
                 };
-                let (mut sink, _read) = futures_util::StreamExt::split(ws);
+                let (mut sink, mut read) = ws.split();
+
+                // Input arrives on the same socket, in the other direction
+                // (SPEC §4.10). Reading it in its own task keeps a burst of
+                // mouse motion from delaying the next frame.
+                if let Some(injector) = injector {
+                    tokio::spawn(async move {
+                        while let Some(Ok(message)) = read.next().await {
+                            let tokio_tungstenite::tungstenite::Message::Text(text) = message
+                            else {
+                                continue;
+                            };
+                            let Ok(batch) = serde_json::from_str::<InputBatch>(&text) else {
+                                continue;
+                            };
+                            if batch.r#type != "input" {
+                                continue;
+                            }
+                            // Order matters across the batch as well as within
+                            // it: a press and its release must not be reordered.
+                            for event in &batch.events {
+                                injector.handle(event);
+                            }
+                        }
+                    });
+                }
 
                 let mut started = false;
                 loop {
@@ -201,4 +238,11 @@ fn capture_loop(
 
 fn encode_err<T>(r: windows::core::Result<T>) -> Result<T, String> {
     r.map_err(|e| e.to_string())
+}
+
+/// A batch of input events (SPEC §4.10).
+#[derive(serde::Deserialize)]
+struct InputBatch {
+    r#type: String,
+    events: Vec<input::InputEvent>,
 }

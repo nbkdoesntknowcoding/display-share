@@ -193,6 +193,23 @@ other feeds each screen back into the other, saturating the link, and the
 adaptive bitrate controller assumes a single stream — so it would react to
 congestion it was itself creating.
 
+### Controlling Windows from the Mac
+
+Click **Control this PC** in the viewer window. Your mouse and keyboard then
+drive Windows while the window has focus; click it again to stop. A green badge
+shows while it is on, because forwarding the keyboard is a strong capability and
+should never be ambiguous.
+
+Windows needs no permission for this — there is no equivalent of macOS's
+Accessibility prompt. It does refuse to inject into **windows running as
+administrator**: Task Manager, an elevated PowerShell, and the UAC prompt itself
+will ignore the Mac's keyboard while everything else keeps working. That is a
+deliberate Windows security boundary, not a fault in Display Share. If you need
+it, run the receiver as administrator too.
+
+Keys are sent by physical position rather than by the character they produce, so
+a UK Mac driving a US Windows machine types what you actually pressed.
+
 ### Turning the mirror into a real extra desktop
 
 By default this duplicates the Windows screen, so the Mac shows whatever the
