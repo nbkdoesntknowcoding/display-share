@@ -99,7 +99,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // from that point on would silently cost the user their permissions.
         if CommandLine.arguments.contains("--check-update") {
             Task {
-                let installed = URL(fileURLWithPath: "/Applications/DisplayShare.app")
+                // --apply-to <dir> runs the REAL swap against a copy. The dry
+                // run proves everything up to the swap and nothing after it, so
+                // without this the one step that replaces the user's app is the
+                // only step never executed outside of production.
+                var installed = URL(fileURLWithPath: "/Applications/DisplayShare.app")
+                if let index = CommandLine.arguments.firstIndex(of: "--apply-to"),
+                    index + 1 < CommandLine.arguments.count
+                {
+                    let target = URL(fileURLWithPath: CommandLine.arguments[index + 1])
+                    try? FileManager.default.removeItem(at: target)
+                    try? FileManager.default.copyItem(at: installed, to: target)
+                    installed = target
+                    let updater = AutoUpdater(currentVersion: "0.0.1", installedAppURL: installed)
+                    let outcome = await updater.applyIfAvailable(isStreaming: false)
+                    print("apply: \(outcome)")
+                    let version =
+                        (try? String(
+                            contentsOf: target.appendingPathComponent("Contents/Info.plist"),
+                            encoding: .isoLatin1)) ?? ""
+                    print("copy is now version: \(version.contains("0.7.0") ? "0.7.0" : "?")")
+                    if let requirement = try? AutoUpdater.designatedRequirement(target) {
+                        print("copy requirement: \(requirement)")
+                    }
+                    exit(String(describing: outcome).contains("applied") ? 0 : 1)
+                }
                 let updater = AutoUpdater(currentVersion: "0.0.1", installedAppURL: installed)
                 let outcome = await updater.dryRun()
                 print("dry run: \(outcome)")
@@ -307,8 +331,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let updater = AutoUpdater(installedAppURL: bundle)
             let outcome = await updater.applyIfAvailable(isStreaming: controller.state.isActive)
             switch outcome {
-            case .applied(let version):
+            case .applied(let version, let permissionsReset):
                 self.log("update: installed \(version), relaunching")
+                if permissionsReset {
+                    // The old copy was ad-hoc signed, so macOS sees a different
+                    // app and drops its grants. Say so plainly; silently losing
+                    // Screen Recording after an update is indistinguishable from
+                    // the app breaking.
+                    self.log(
+                        "update: this copy was ad-hoc signed, so Screen Recording and "
+                            + "Accessibility must be granted once more"
+                    )
+                }
                 self.relaunch(bundle)
             case .upToDate:
                 self.log("update: already current")

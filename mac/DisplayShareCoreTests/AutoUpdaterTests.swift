@@ -117,15 +117,21 @@ final class AutoUpdaterTests: XCTestCase {
         XCTAssertNil(AutoUpdater.commit(fromOrigin: ""))
     }
 
-    func testOnlyABehindOrIdenticalCommitMayBeReplaced() {
-        // "behind" means the release already contains this build.
-        XCTAssertEqual(AutoUpdater.containment(fromCompareStatus: "behind"), .contained)
+    func testOnlyAContainedCommitMayBeReplaced() {
+        // The comparison is installedCommit...releaseTag, and the status
+        // describes HEAD relative to BASE. So "ahead" means the RELEASE is ahead
+        // of the installed build — it contains it. Verified against the live API:
+        // a303bde...v0.7.1 reports "ahead", and a303bde is in fact in v0.7.1.
+        XCTAssertEqual(AutoUpdater.containment(fromCompareStatus: "ahead"), .contained)
         XCTAssertEqual(AutoUpdater.containment(fromCompareStatus: "identical"), .contained)
     }
 
     func testABuildAheadOfTheReleaseIsLeftAlone() {
-        // This is the case that would silently delete unreleased work.
-        guard case .notContained = AutoUpdater.containment(fromCompareStatus: "ahead") else {
+        // "behind" = the release is behind the installed build, so that build
+        // holds commits the release does not. Replacing it deletes unreleased
+        // work, which is the entire reason this guard exists. Reading the status
+        // the other way round makes this case pass silently.
+        guard case .notContained = AutoUpdater.containment(fromCompareStatus: "behind") else {
             return XCTFail("a build ahead of the release must not be replaced")
         }
         guard case .notContained = AutoUpdater.containment(fromCompareStatus: "diverged") else {
