@@ -22,8 +22,42 @@ use windows::Win32::Graphics::Direct3D11::{
 };
 use windows::Win32::Graphics::Dxgi::{
     IDXGIDevice, IDXGIOutput1, IDXGIOutputDuplication, IDXGIResource, DXGI_ERROR_ACCESS_LOST,
-    DXGI_ERROR_WAIT_TIMEOUT, DXGI_OUTDUPL_FRAME_INFO,
+    DXGI_ERROR_NOT_FOUND, DXGI_ERROR_WAIT_TIMEOUT, DXGI_OUTDUPL_FRAME_INFO,
 };
+
+/// Lists the displays that can be shared.
+pub fn list_outputs() -> windows::core::Result<Vec<crate::OutputInfo>> {
+    let (device, _context) = create_device()?;
+    let mut outputs = Vec::new();
+    unsafe {
+        let dxgi: IDXGIDevice = device.cast()?;
+        let adapter = dxgi.GetAdapter()?;
+        let mut index = 0u32;
+        loop {
+            let output = match adapter.EnumOutputs(index) {
+                Ok(output) => output,
+                // The documented end of the list, not a failure.
+                Err(e) if e.code() == DXGI_ERROR_NOT_FOUND => break,
+                Err(e) => return Err(e),
+            };
+            let desc = output.GetDesc()?;
+            let end = desc.DeviceName.iter().position(|c| *c == 0).unwrap_or(desc.DeviceName.len());
+            let bounds = desc.DesktopCoordinates;
+            outputs.push(crate::OutputInfo {
+                index,
+                name: String::from_utf16_lossy(&desc.DeviceName[..end]),
+                width: (bounds.right - bounds.left) as u32,
+                height: (bounds.bottom - bounds.top) as u32,
+                x: bounds.left,
+                y: bounds.top,
+                is_primary: bounds.left == 0 && bounds.top == 0,
+                attached: desc.AttachedToDesktop.as_bool(),
+            });
+            index += 1;
+        }
+    }
+    Ok(outputs)
+}
 
 /// One captured frame, BGRA8, tightly packed.
 pub struct Frame {
@@ -52,12 +86,14 @@ pub struct DesktopCapture {
     height: u32,
     pub stats: CaptureStats,
     started: Instant,
+    output: u32,
 }
 
 impl DesktopCapture {
-    pub fn new() -> windows::core::Result<Self> {
+    /// Captures the display at `output`. Index 0 is the primary screen.
+    pub fn new(output: u32) -> windows::core::Result<Self> {
         let (device, context) = create_device()?;
-        let (duplication, width, height) = create_duplication(&device)?;
+        let (duplication, width, height) = create_duplication(&device, output)?;
         Ok(Self {
             device,
             context,
@@ -67,6 +103,7 @@ impl DesktopCapture {
             height,
             stats: CaptureStats::default(),
             started: Instant::now(),
+            output,
         })
     }
 
@@ -172,7 +209,7 @@ impl DesktopCapture {
     fn reinit(&mut self) -> windows::core::Result<()> {
         self.stats.reinits += 1;
         self.staging = None;
-        let (duplication, width, height) = create_duplication(&self.device)?;
+        let (duplication, width, height) = create_duplication(&self.device, self.output)?;
         self.duplication = duplication;
         self.width = width;
         self.height = height;
@@ -204,12 +241,12 @@ fn create_device() -> windows::core::Result<(ID3D11Device, ID3D11DeviceContext)>
 
 fn create_duplication(
     device: &ID3D11Device,
+    output: u32,
 ) -> windows::core::Result<(IDXGIOutputDuplication, u32, u32)> {
     unsafe {
         let dxgi: IDXGIDevice = device.cast()?;
         let adapter = dxgi.GetAdapter()?;
-        // Output 0 = primary display. Multi-monitor selection is Task 8.4.
-        let output1: IDXGIOutput1 = adapter.EnumOutputs(0)?.cast()?;
+        let output1: IDXGIOutput1 = adapter.EnumOutputs(output)?.cast()?;
         let duplication = output1.DuplicateOutput(device)?;
 
         // Ask the duplication rather than IDXGIOutput::GetDesc: the latter is

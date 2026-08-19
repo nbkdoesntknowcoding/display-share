@@ -26,7 +26,10 @@ struct DisplayShareApp: App {
             "Display Share",
             systemImage: appDelegate.controller.state.isActive ? "display.2" : "display"
         ) {
-            ControlPanel(controller: appDelegate.controller)
+            ControlPanel(
+                controller: appDelegate.controller,
+                openViewer: appDelegate.showViewerWindow
+            )
         }
         .menuBarExtraStyle(.window)
     }
@@ -90,13 +93,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         runPermissionDiagnosticIfRequested()
 
+        // Downloads, verifies and re-signs the latest release WITHOUT swapping
+        // it in, then reports whether the designated requirement survived. Kept
+        // as a permanent diagnostic: if it ever stops matching, every update
+        // from that point on would silently cost the user their permissions.
+        if CommandLine.arguments.contains("--check-update") {
+            Task {
+                let installed = URL(fileURLWithPath: "/Applications/DisplayShare.app")
+                let updater = AutoUpdater(currentVersion: "0.0.1", installedAppURL: installed)
+                let outcome = await updater.dryRun()
+                print("dry run: \(outcome)")
+                if let requirement = try? AutoUpdater.designatedRequirement(installed) {
+                    print("installed: \(requirement)")
+                }
+                exit(outcome == .upToDate ? 0 : (String(describing: outcome).contains("applied") ? 0 : 1))
+            }
+            return
+        }
+
+        // Opens the viewer straight away. Kept as a permanent diagnostic: a
+        // menu bar item cannot be clicked from a script without an
+        // Accessibility grant, so without this there is no way to tell a
+        // menu-wiring fault from a window-presentation one — which is exactly
+        // the distinction that mattered when this button first did nothing.
+        if CommandLine.arguments.contains("--viewer") {
+            DispatchQueue.main.async { self.showViewerWindow() }
+        }
+
         // Menu bar only — no Dock icon, no main window.
         NSApp.setActivationPolicy(.accessory)
 
-        // Check once at launch. Never downloads or installs on its own — this
-        // app is unsigned, so a silent self-replacing binary would be exactly
-        // the behaviour a user should distrust.
-        Task { await controller.checkForUpdate() }
+        applyUpdateIfAvailable()
 
         permissions.refresh()
         // Show onboarding when it has never been completed, or when the required
@@ -253,6 +280,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Applies a pending update at launch (Task 9.1).
+    ///
+    /// Automatic application was chosen deliberately after the risk was raised.
+    /// It is defensible because the payload is verified — the artifact's SHA-256
+    /// must match the checksum published in the same release, fetched over TLS —
+    /// and because AutoUpdater re-signs with the local identity and ABANDONS the
+    /// update if the designated requirement would change. An update that cost
+    /// the user their Screen Recording grant would be worse than no update.
+    private func applyUpdateIfAvailable() {
+        // Relaunched by the updater: checking again would loop.
+        if CommandLine.arguments.contains("--updated") {
+            log("update: running the freshly installed version")
+            return
+        }
+        // Only ever replace a real installation. A build running out of a
+        // developer's build directory must not be overwritten by a release.
+        let bundle = Bundle.main.bundleURL
+        guard bundle.path.hasPrefix("/Applications/") else {
+            Task { await controller.checkForUpdate() }
+            return
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            let updater = AutoUpdater(installedAppURL: bundle)
+            let outcome = await updater.applyIfAvailable(isStreaming: controller.state.isActive)
+            switch outcome {
+            case .applied(let version):
+                self.log("update: installed \(version), relaunching")
+                self.relaunch(bundle)
+            case .upToDate:
+                self.log("update: already current")
+            case .skipped(let reason):
+                self.log("update: skipped — \(reason)")
+                // Still tell the user a version exists, so a skipped automatic
+                // update does not silently become no update at all.
+                await self.controller.checkForUpdate()
+            case .failed(let reason):
+                self.log("update: failed — \(reason)")
+                await self.controller.checkForUpdate()
+            }
+        }
+    }
+
+    private func relaunch(_ bundle: URL) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", "-a", bundle.path, "--args", "--updated"]
+        try? process.run()
+        NSApp.terminate(nil)
+    }
+
     private var runningWindow: NSWindow?
 
     /// The Mac viewing a Windows desktop (Task 8.2).
@@ -269,7 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // onboarding gate that showStatusWindow() does.
         NSApp.setActivationPolicy(.regular)
         if viewerWindow == nil {
-            let hosting = NSHostingController(rootView: ViewerView())
+            let hosting = NSHostingController(rootView: ViewerView(controller: controller))
             let window = NSWindow(contentViewController: hosting)
             window.title = "Windows PC"
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
@@ -293,6 +372,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private struct ControlPanel: View {
     @ObservedObject var controller: DisplayShareController
+    /// Opening the viewer is handed in rather than recovered from
+    /// `NSApp.delegate`: SwiftUI's `NSApplicationDelegateAdaptor` installs its
+    /// OWN forwarding delegate, so `NSApp.delegate as? AppDelegate` is nil and
+    /// the optional-chained call silently did nothing.
+    let openViewer: () -> Void
     @State private var quality: Double = 0.7
 
     private static let resolutions: [(label: String, width: UInt32, height: UInt32)] = [
@@ -353,10 +437,18 @@ private struct ControlPanel: View {
 
             Divider()
 
-            Divider()
-
-            Button("View a Windows PC…") {
-                (NSApp.delegate as? AppDelegate)?.showViewerWindow()
+            // The reverse direction, labelled rather than left as a bare button:
+            // "View a Windows PC" sitting next to Start/Stop gave no clue that
+            // the two do opposite things.
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Other direction")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Button("View a Windows PC…") { openViewer() }
+                Text("Watch and control a Windows machine from this Mac.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
@@ -387,10 +479,18 @@ private struct ControlPanel: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Display Share").font(.headline)
-            Text(statusText)
-                .font(.caption)
-                .foregroundStyle(statusColor)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                // Colour carries the state; the dot makes it legible at a glance
+                // instead of requiring the sentence to be read.
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 7, height: 7)
+                    .offset(y: -1)
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(statusColor)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if controller.reattached {
                 Text("Re-attached to an existing display — your windows were preserved.")
                     .font(.caption2)

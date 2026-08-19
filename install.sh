@@ -163,6 +163,16 @@ fi
 # the bundle id, so it looks like a DIFFERENT app to macOS than any copy the
 # user already granted — permission appears granted in System Settings while the
 # app still reports it missing. Sign nested code first, then the bundle.
+# Mark this as a source build, BEFORE signing so the signature covers it.
+#
+# A branch build's version number does not describe its contents: it can carry
+# work newer than the latest release while reporting an older version. The
+# automatic updater would then "upgrade" it to a release that has less in it, so
+# it refuses to replace a bundle carrying this marker and notifies instead.
+mkdir -p "$BUILT/Contents/Resources"
+printf 'source %s\n' "$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+  > "$BUILT/Contents/Resources/build-origin.txt"
+
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$BUILT/Contents/Info.plist")"
 codesign --force --sign "$SIGN_WITH" --identifier "$BUNDLE_ID.core" \
   "$BUILT/Contents/Frameworks/DisplayShareCore.framework" 2>/dev/null || true

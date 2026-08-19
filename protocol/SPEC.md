@@ -34,6 +34,18 @@ specification to keep correct rather than two.
 The port is separate from `8787`/`8788` so a single machine can hold both roles
 without a clash.
 
+**Only one direction may run at a time between a pair of machines.** Two machines
+each capturing and encoding the other is a feedback loop: it saturates the link,
+and the adaptive bitrate controller assumes a single stream, so it reacts to
+congestion it is itself producing. Both apps refuse the second direction rather
+than relying on the user not to try it.
+
+The Windows sender duplicates **one existing display**, chosen by index. It does
+not create a virtual one — that would need an Indirect Display Driver, which
+requires a signed driver. Attaching a dummy display adapter therefore turns the
+reverse direction from a mirror into a genuine extra desktop, with no driver and
+no certificate.
+
 The video/control socket and the development viewer page are on **separate
 ports** because `NWProtocolWebSocket` performs the upgrade handshake for every
 connection on its listener, so a plain HTTP GET cannot share that port. The

@@ -35,6 +35,9 @@ jobs:
       # Run the binary directly rather than via a third-party action: the
       # reviewdog wrapper needs checks:write, which this workflow deliberately
       # does not grant.
+      - name: Key maps must agree across the two languages
+        run: python3 scripts/check-keymap-parity.py
+
       - name: actionlint
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)

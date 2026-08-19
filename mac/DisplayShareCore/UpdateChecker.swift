@@ -92,7 +92,7 @@ public final class UpdateChecker: @unchecked Sendable {
     // MARK: - Version comparison
 
     /// Strips a leading "v" so "v0.2.0" and "0.2.0" compare equal.
-    static func normalise(_ version: String) -> String {
+    public static func normalise(_ version: String) -> String {
         var v = version.trimmingCharacters(in: .whitespaces)
         if v.hasPrefix("v") || v.hasPrefix("V") { v.removeFirst() }
         return v
@@ -100,7 +100,7 @@ public final class UpdateChecker: @unchecked Sendable {
 
     /// Numeric component comparison, so "0.10.0" is correctly newer than
     /// "0.9.0" — a plain string compare gets that backwards.
-    static func isNewer(_ candidate: String, than current: String) -> Bool {
+    public static func isNewer(_ candidate: String, than current: String) -> Bool {
         let a = components(candidate)
         let b = components(current)
         for index in 0..<max(a.count, b.count) {

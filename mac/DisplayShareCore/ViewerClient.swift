@@ -63,8 +63,20 @@ public final class ViewerClient: NSObject, @unchecked Sendable {
                 $0.connected = false
                 $0.message = "Connecting to \(host)…"
             }
+            Self.trace("connect -> \(url.absoluteString)")
             task.resume()
             receiveNext()
+        }
+    }
+
+    /// Sends a text message on the same socket (SPEC §4.10 input, §4 control).
+    public func send(_ text: String) {
+        queue.async { [self] in
+            guard let task else { return }
+            // Failures are dropped rather than surfaced: input is a stream of
+            // disposable events, and one lost mouse move is not worth tearing
+            // the session down or showing an error for.
+            task.send(.string(text)) { _ in }
         }
     }
 
@@ -110,6 +122,7 @@ public final class ViewerClient: NSObject, @unchecked Sendable {
     }
 
     private func handle(_ data: Data) {
+        if windowFrames < 3 { Self.trace("frame \(data.count) bytes") }
         let message: WireProtocol.VideoMessage
         do {
             message = try WireProtocol.decode(data)
@@ -120,6 +133,27 @@ public final class ViewerClient: NSObject, @unchecked Sendable {
 
         do {
             let image = try decoder.decode(message)
+            if let image, Self.isTracing, windowFrames < 1 {
+                // Mean luminance of what actually came out of the decoder. A
+                // stream that decodes perfectly and renders black is impossible
+                // to tell from one that never rendered, unless the pixels are
+                // measured here.
+                CVPixelBufferLockBaseAddress(image, .readOnly)
+                if let base = CVPixelBufferGetBaseAddress(image) {
+                    let height = CVPixelBufferGetHeight(image)
+                    let rowBytes = CVPixelBufferGetBytesPerRow(image)
+                    let bytes = base.assumingMemoryBound(to: UInt8.self)
+                    var total = 0, count = 0, peak = 0
+                    for y in stride(from: 0, to: height, by: 17) {
+                        for x in stride(from: 0, to: rowBytes, by: 997) {
+                            let v = Int(bytes[y * rowBytes + x])
+                            total += v; count += 1; peak = max(peak, v)
+                        }
+                    }
+                    Self.trace("decoded mean=\(count > 0 ? total / count : -1) peak=\(peak) size=\(CVPixelBufferGetWidth(image))x\(height)")
+                }
+                CVPixelBufferUnlockBaseAddress(image, .readOnly)
+            }
             if let image {
                 DispatchQueue.main.async { [weak self] in self?.onFrame?(image) }
             }
@@ -150,6 +184,24 @@ public final class ViewerClient: NSObject, @unchecked Sendable {
                 $0.message = "Connected"
                 $0.decoder = decoder.stats
             }
+        }
+    }
+
+    /// Set DS_VIEWER_TRACE=1 to log what the viewer actually receives.
+    ///
+    /// Kept rather than deleted: when the picture was black, no amount of
+    /// reasoning distinguished "no frames arrived" from "frames arrived, decoded
+    /// correctly, and were never drawn". Measuring the decoded pixels is what
+    /// separated them, and it took one run.
+    static let isTracing = ProcessInfo.processInfo.environment["DS_VIEWER_TRACE"] != nil
+
+    static func trace(_ text: String) {
+        guard isTracing else { return }
+        let url = URL(fileURLWithPath: "/tmp/ds-viewer-trace.log")
+        if let data = "\(Date()) \(text)\n".data(using: .utf8) {
+            if let h = try? FileHandle(forWritingTo: url) {
+                h.seekToEndOfFile(); h.write(data); try? h.close()
+            } else { try? data.write(to: url) }
         }
     }
 

@@ -14,9 +14,12 @@
 // Public so the encoder self-test (examples/encode_selftest.rs) can drive the
 // same code CI checks with ffprobe.
 pub mod annexb;
+pub mod coords;
+pub mod keymap;
 pub mod capture;
 pub mod convert;
 pub mod encode;
+pub mod input;
 pub mod sender;
 pub mod wire;
 
@@ -92,11 +95,18 @@ fn detect_panel(app: AppHandle) -> Panel {
 async fn connect(
     app: AppHandle,
     state: State<'_, Arc<ConnectionState>>,
+    sharing: State<'_, SharingState>,
     url: String,
     panel: Panel,
     identity: Option<serde_json::Value>,
     on_frame: Channel<InvokeResponseBody>,
 ) -> Result<(), String> {
+    // The other half of the mutual exclusion in start_sharing. Guarding only
+    // one direction would still let the loop form, just by starting the two in
+    // the opposite order.
+    if sharing.inner.lock().unwrap().is_some() {
+        return Err("This PC is currently sharing its screen. Stop sharing first.".into());
+    }
     let (stream, _) = tokio_tungstenite::connect_async(&url)
         .await
         .map_err(|e| format!("connect to {url} failed: {e}"))?;
@@ -204,7 +214,9 @@ pub fn run() {
             set_fullscreen,
             capture_probe,
             start_sharing,
-            sharing_status
+            stop_sharing,
+            sharing_status,
+            list_display_outputs
         ])
         .run(tauri::generate_context!())
         .expect("error while running Display Share receiver");
@@ -337,18 +349,22 @@ pub struct CaptureProbe {
 /// Exists so capture can be proven on hardware before any encoder is attached;
 /// if this fails, nothing downstream is worth debugging.
 #[tauri::command]
-async fn capture_probe(frames: Option<u32>) -> Result<CaptureProbe, String> {
+async fn capture_probe(frames: Option<u32>, output: Option<u32>) -> Result<CaptureProbe, String> {
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = frames;
+        let _ = (frames, output);
         Err("desktop capture is only implemented on Windows".into())
     }
 
     #[cfg(target_os = "windows")]
     {
         let want = frames.unwrap_or(30).clamp(1, 600);
+        // Probing a specific display matters for the dummy-adapter setup: the
+        // whole point is to confirm the SECOND output is being captured, not
+        // the laptop's own screen.
+        let output = output.unwrap_or(0);
         tauri::async_runtime::spawn_blocking(move || {
-            let mut cap = capture::DesktopCapture::new().map_err(|e| e.to_string())?;
+            let mut cap = capture::DesktopCapture::new(output).map_err(|e| e.to_string())?;
             let (width, height) = cap.size();
             let mut last_bytes = 0usize;
             let mut last_mean = 0.0f64;
@@ -394,6 +410,28 @@ async fn capture_probe(frames: Option<u32>) -> Result<CaptureProbe, String> {
 // ------------------------------------------------- Task 8.2: sharing this PC
 /// The reverse direction's port. Separate from the Mac sender's 8787/8788 so a
 /// single machine can hold both roles without a clash (SPEC §2).
+/// A display attached to this machine.
+///
+/// Enumerated so the user can share a screen OTHER than the primary one. That is
+/// what makes a dummy display adapter useful: Windows extends onto it, and
+/// sharing that output gives a genuinely separate desktop rather than a mirror
+/// of the laptop's own screen. Extending without extra hardware would need an
+/// Indirect Display Driver, which requires a signed driver this project has
+/// decided not to buy.
+#[derive(Clone, serde::Serialize)]
+pub struct OutputInfo {
+    pub index: u32,
+    /// Windows' device name, e.g. `\\\\.\\DISPLAY2`.
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub x: i32,
+    pub y: i32,
+    /// The display whose top-left corner is the desktop origin.
+    pub is_primary: bool,
+    pub attached: bool,
+}
+
 pub const REVERSE_PORT: u16 = 7879;
 /// A distinct Bonjour type, NOT `_displayshare._tcp`. Sharing one type would
 /// make this app list other Windows machines as senders, and the Mac list
@@ -413,6 +451,7 @@ pub struct SharingInfo {
     pub port: u16,
     pub host: String,
     pub service: String,
+    pub output: u32,
 }
 
 /// Starts capturing and serving this PC's screen.
@@ -421,20 +460,36 @@ pub struct SharingInfo {
 /// a second listener, so a double click on the button cannot half-start a
 /// second capture thread.
 #[tauri::command]
-async fn start_sharing(state: State<'_, SharingState>, port: Option<u16>) -> Result<SharingInfo, String> {
+async fn start_sharing(
+    state: State<'_, SharingState>,
+    connection: State<'_, Arc<ConnectionState>>,
+    port: Option<u16>,
+    output: Option<u32>,
+) -> Result<SharingInfo, String> {
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = (state, port);
+        let _ = (state, connection, port, output);
         Err("sharing this screen is only implemented on Windows".into())
     }
 
     #[cfg(target_os = "windows")]
     {
+        // One direction at a time. Two machines each capturing and encoding the
+        // other is a feedback loop: it saturates the link, and the adaptive
+        // bitrate controller assumes a single stream, so it reacts to congestion
+        // it is itself creating.
+        if connection.outbound.lock().await.is_some() {
+            return Err(
+                "This PC is currently receiving a screen. Disconnect first, then share."
+                    .into(),
+            );
+        }
         if let Some(existing) = state.inner.lock().unwrap().clone() {
             return Ok(existing);
         }
         let port = port.unwrap_or(REVERSE_PORT);
-        sender::serve(port, sender::Source::Desktop, 30, 8_000_000)
+        let output = output.unwrap_or(0);
+        sender::serve(port, sender::Source::Desktop { output }, 30, 8_000_000)
             .await
             .map_err(|e| format!("could not start sharing: {e}"))?;
 
@@ -443,6 +498,7 @@ async fn start_sharing(state: State<'_, SharingState>, port: Option<u16>) -> Res
             port,
             host: host.clone(),
             service: REVERSE_SERVICE.to_string(),
+            output,
         };
 
         // Advertising is best-effort: a firewall or a missing mDNS responder
@@ -489,4 +545,33 @@ fn advertise(host: &str, port: u16) -> Result<mdns_sd::ServiceDaemon, String> {
     .enable_addr_auto();
     daemon.register(service).map_err(|e| e.to_string())?;
     Ok(daemon)
+}
+
+/// Withdraws the advertisement and forgets the session.
+///
+/// The capture thread and listener stay up for this process's lifetime — tearing
+/// a DXGI duplication down and back up mid-session is a reliable way to hit
+/// ACCESS_LOST — but the machine stops advertising, so it is no longer offered
+/// to viewers and the direction can be switched.
+#[tauri::command]
+fn stop_sharing(state: State<'_, SharingState>) -> Result<(), String> {
+    if let Some(daemon) = state.mdns.lock().unwrap().take() {
+        let _ = daemon.shutdown();
+    }
+    *state.inner.lock().unwrap() = None;
+    Ok(())
+}
+
+/// Displays available to share.
+#[tauri::command]
+fn list_display_outputs() -> Result<Vec<OutputInfo>, String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("listing displays is only implemented on Windows".into())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        capture::list_outputs().map_err(|e| e.to_string())
+    }
 }

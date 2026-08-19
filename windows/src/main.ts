@@ -66,6 +66,9 @@ function setStatus(text: string, visible = true) {
   // every later update wrote into detached nodes.
   messageEl.textContent = text;
   overlay.style.display = visible ? "flex" : "none";
+  // The HUD reports a live stream's statistics. While the overlay is up there is
+  // no live stream, so leaving it on shows stale numbers bleeding through.
+  if (visible) hud.classList.add("hidden");
 }
 
 function setupDecoder(codec: string) {
@@ -450,53 +453,109 @@ if (identity) {
 setStatus("Looking for senders…");
 void scanForSenders();
 
-// --- Updates (Task 7.2) -----------------------------------------------------
-// Checked once at launch, never applied without the user agreeing: this app
-// ships unsigned, so a silent auto-update is exactly what a user should
-// distrust.
-void (async () => {
-  const status = await checkForUpdate();
-  if (!status.available || !status.version) return;
+// --- Updates (Tasks 7.2 / 9.1) ----------------------------------------------
+// Applied automatically at launch. Chosen deliberately after the risk was
+// raised: every payload is verified against the minisign public key in
+// tauri.conf.json, whose private half lives in GitHub secrets, so the download
+// cannot be tampered with even though the installer itself carries no code
+// signing certificate. Unsigned is not the same thing as unverified.
+//
+// This runs BEFORE the auto-connect below on purpose. Replacing the binary
+// underneath a live session would drop the stream and read as a crash, and at
+// launch there is no session yet — so this is the only safe moment.
+async function applyUpdateOnLaunch(): Promise<boolean> {
+  let status;
+  try {
+    status = await checkForUpdate();
+  } catch {
+    // A failed check must never stop the app being used offline.
+    return false;
+  }
+  if (!status.available || !status.version) return false;
 
   const bar = document.createElement("div");
   bar.id = "update-bar";
-  bar.innerHTML = `<span>Version ${status.version} is available.</span>`;
-  const install = document.createElement("button");
-  install.textContent = "Update and restart";
-  install.addEventListener("click", () => {
-    install.disabled = true;
-    install.textContent = "Downloading… 0%";
-    void applyUpdate((pct) => {
-      install.textContent = pct < 100 ? `Downloading… ${pct}%` : "Restarting…";
-    }).catch((e) => {
-      install.disabled = false;
-      install.textContent = `Update failed: ${e}`;
-    });
-  });
-  const dismiss = document.createElement("button");
-  dismiss.textContent = "Later";
-  dismiss.className = "ghost";
-  dismiss.addEventListener("click", () => bar.remove());
-  bar.append(install, dismiss);
+  const label = document.createElement("span");
+  label.textContent = `Updating to ${status.version}…`;
+  bar.appendChild(label);
   document.body.appendChild(bar);
+
+  try {
+    await applyUpdate((pct) => {
+      label.textContent =
+        pct < 100 ? `Updating to ${status.version}… ${pct}%` : "Restarting…";
+    });
+    return true;
+  } catch (error) {
+    // Say so and carry on with the version already installed, rather than
+    // leaving the user staring at a stalled progress line.
+    label.textContent = `Update failed, continuing on this version: ${error}`;
+    return false;
+  }
+}
+
+void (async () => {
+  const restarting = await applyUpdateOnLaunch();
+  if (restarting) return;
+
+  // Auto-connect when a host is remembered AND we hold a token, so a paired
+  // receiver reconnects without interaction.
+  if (addressInput.value && identity?.token) connectButton.click();
 })();
 
-// Auto-connect when a host is remembered AND we hold a token, so a paired
-// receiver reconnects without interaction.
-if (addressInput.value && identity?.token) connectButton.click();
-
-// ---------------------------------------------------------------- Task 8.2
+// ---------------------------------------------------------- Tasks 8.2 / 8.4
 // Sharing this PC's screen so a Mac can view it — the reverse of everything
-// above. Kept to a single button here; picking a direction properly, and
-// preventing both from running at once, is Task 8.4.
+// above. Only one direction runs at a time; the backend refuses both ways
+// round, because two machines each capturing the other is a feedback loop that
+// saturates the link and confuses the adaptive bitrate controller.
 const shareButton = document.getElementById("share") as HTMLButtonElement | null;
+const stopShareButton = document.getElementById("stop-share") as HTMLButtonElement | null;
 const shareStatus = document.getElementById("share-status") as HTMLSpanElement | null;
+const shareOutput = document.getElementById("share-output") as HTMLSelectElement | null;
+
+interface DisplayOutput {
+  index: number;
+  name: string;
+  width: number;
+  height: number;
+  is_primary: boolean;
+  attached: boolean;
+}
+
+/// Fills the display picker. Failing here must not break the receiver, which is
+/// what most people opened this app for.
+async function loadOutputs() {
+  if (!shareOutput) return;
+  try {
+    const outputs = (await invoke("list_display_outputs")) as DisplayOutput[];
+    shareOutput.innerHTML = "";
+    for (const output of outputs) {
+      const option = document.createElement("option");
+      option.value = String(output.index);
+      // Name the role, not just the device: "\\.\DISPLAY2" tells the user
+      // nothing about which physical screen it is.
+      const role = output.is_primary ? "this screen" : "second screen";
+      option.textContent = `${role} — ${output.width}×${output.height} (${output.name})`;
+      shareOutput.appendChild(option);
+    }
+    shareOutput.hidden = outputs.length < 2;
+    if (outputs.length < 2 && shareStatus) {
+      shareStatus.textContent =
+        "Only one display detected — sharing it mirrors this screen. A dummy display adapter adds a second one.";
+    }
+  } catch {
+    shareOutput.hidden = true;
+  }
+}
+
+void loadOutputs();
 
 shareButton?.addEventListener("click", async () => {
   shareButton.disabled = true;
   if (shareStatus) shareStatus.textContent = "Starting…";
   try {
-    const info = (await invoke("start_sharing", {})) as {
+    const output = shareOutput && !shareOutput.hidden ? Number(shareOutput.value) : 0;
+    const info = (await invoke("start_sharing", { output })) as {
       port: number;
       host: string;
     };
@@ -506,8 +565,20 @@ shareButton?.addEventListener("click", async () => {
       // rather than something to go hunting for.
       shareStatus.textContent = `Sharing as “${info.host}” — on the Mac, choose View a Windows PC (port ${info.port})`;
     }
+    if (stopShareButton) stopShareButton.hidden = false;
   } catch (error) {
     if (shareStatus) shareStatus.textContent = `Could not start: ${error}`;
     shareButton.disabled = false;
+  }
+});
+
+stopShareButton?.addEventListener("click", async () => {
+  try {
+    await invoke("stop_sharing");
+    if (shareStatus) shareStatus.textContent = "Stopped sharing.";
+    if (shareButton) shareButton.disabled = false;
+    stopShareButton.hidden = true;
+  } catch (error) {
+    if (shareStatus) shareStatus.textContent = `Could not stop: ${error}`;
   }
 });
