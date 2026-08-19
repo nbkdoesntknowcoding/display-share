@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.1...v0.7.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **mac:** read GitHub's compare direction the right way round ([#14](https://github.com/nbkdoesntknowcoding/display-share/issues/14)) ([4b2e845](https://github.com/nbkdoesntknowcoding/display-share/commit/4b2e84522213d8576d96f998f348fec0e73321e6))
+
 ## [0.7.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.0...v0.7.1) (2026-08-19)
 
 
