@@ -16,6 +16,7 @@
 pub mod annexb;
 pub mod coords;
 pub mod keymap;
+pub mod link;
 pub mod capture;
 pub mod convert;
 pub mod encode;
@@ -52,6 +53,8 @@ impl Default for Panel {
 pub struct ConnectionState {
     /// Sender half for outbound control messages; None when disconnected.
     outbound: Mutex<Option<mpsc::UnboundedSender<String>>>,
+    /// The network link the current session is running over (Task 10.2).
+    link: std::sync::Mutex<Option<link::LinkInfo>>,
 }
 
 /// Reads the ACTUAL panel geometry from the monitor the window is on.
@@ -110,6 +113,15 @@ async fn connect(
     let (stream, _) = tokio_tungstenite::connect_async(&url)
         .await
         .map_err(|e| format!("connect to {url} failed: {e}"))?;
+
+    // Which adapter the socket actually bound to. Asked here rather than
+    // guessed from the sender's address: a machine with Wi-Fi and a cable both
+    // up has two answers, and only the socket knows which one is carrying this.
+    if let tokio_tungstenite::MaybeTlsStream::Plain(tcp) = stream.get_ref() {
+        let described = tcp.local_addr().ok().and_then(|addr| link::describe(addr.ip()));
+        *state.link.lock().unwrap() = described;
+    }
+
     let (mut write, mut read) = stream.split();
 
     let mut hello = serde_json::json!({
@@ -213,6 +225,7 @@ pub fn run() {
             send_control,
             set_fullscreen,
             capture_probe,
+            link_info,
             start_sharing,
             stop_sharing,
             sharing_status,
@@ -574,4 +587,14 @@ fn list_display_outputs() -> Result<Vec<OutputInfo>, String> {
     {
         capture::list_outputs().map_err(|e| e.to_string())
     }
+}
+
+/// The link the current session is using, or None when not connected.
+///
+/// Exposed so the receiver can name it in the HUD and, when a wireless link is
+/// measurably costing time, say that a cable would remove it — advice that is
+/// only worth giving when both halves are true.
+#[tauri::command]
+fn link_info(state: State<'_, Arc<ConnectionState>>) -> Option<link::LinkInfo> {
+    state.link.lock().unwrap().clone()
 }
