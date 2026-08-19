@@ -198,12 +198,20 @@ jobs:
           SIG="${EXE}.sig"
           if [ -f "$SIG" ]; then
             VER="${TAG#v}"
-            NAME=$(basename "$EXE")
-            python3 - "$VER" "$NAME" "$SIG" "$TAG" > latest.json <<'PYEOF'
-          import json, sys, urllib.parse, datetime
-          ver, name, sig_path, tag = sys.argv[1:5]
-          url = ("https://github.com/nbkdoesntknowcoding/display-share/releases/download/"
-                 + tag + "/" + urllib.parse.quote(name))
+            # Ask GitHub what it CALLED the asset rather than deriving the name
+            # locally. Upload rewrites spaces to dots, so a URL built from
+            # "Display Share Receiver_x64-setup.exe" — percent-encoded or not —
+            # points at a file that does not exist, and every Windows update
+            # failed with 404 while latest.json itself served perfectly.
+            URL=$(gh release view "$TAG" --json assets \
+              -q '.assets[] | select(.name | endswith("-setup.exe")) | .url' | head -1)
+            if [ -z "$URL" ]; then
+              echo "::error::no -setup.exe asset found on $TAG; updater manifest not published"
+              exit 1
+            fi
+            python3 - "$VER" "$URL" "$SIG" "$TAG" > latest.json <<'PYEOF'
+          import json, sys, datetime
+          ver, url, sig_path, tag = sys.argv[1:5]
           print(json.dumps({
               "version": ver,
               "notes": "See the release page for details.",
@@ -219,6 +227,18 @@ jobs:
           PYEOF
             cat latest.json
             gh release upload "$TAG" latest.json --clobber
+
+            # Follow the URL the manifest actually publishes. A reachable,
+            # correctly signed manifest pointing at a missing file looks healthy
+            # from every check that stops at latest.json — which is exactly how
+            # the 404 above shipped. Fail the release instead.
+            PUBLISHED=$(python3 -c "import json;print(json.load(open('latest.json'))['platforms']['windows-x86_64']['url'])")
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' -L "$PUBLISHED")
+            if [ "$CODE" != "200" ]; then
+              echo "::error::latest.json points at $PUBLISHED which returns HTTP $CODE"
+              exit 1
+            fi
+            echo "updater payload reachable: $PUBLISHED"
           else
             echo "::warning::no .sig produced — updater manifest not published"
             find nsis -type f | head -20
