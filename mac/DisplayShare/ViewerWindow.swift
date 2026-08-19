@@ -370,16 +370,24 @@ struct ViewerView: View {
             if model.status.connected {
                 // A strong capability, so its state is unmissable and its
                 // release is stated rather than left to be discovered.
-                VStack(spacing: 6) {
+                VStack(spacing: 7) {
                     Button(model.inputEnabled ? "Stop controlling" : "Control this PC") {
-                        model.setInputEnabled(!model.inputEnabled)
+                        // Animated so the badge arrives rather than blinks into
+                        // place; the state change is what the motion explains.
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            model.setInputEnabled(!model.inputEnabled)
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
                     if model.inputEnabled {
                         Text("Your keyboard and mouse are driving Windows")
-                            .font(.caption2)
-                            .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(.green.opacity(0.85), in: Capsule())
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 11).padding(.vertical, 5)
+                            .background(Color.green, in: Capsule())
                             .foregroundStyle(.black)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
@@ -412,23 +420,45 @@ struct ViewerView: View {
     /// The acceptance for this task is a measured frame rate and a visible
     /// decode path, so the HUD is a requirement rather than a nicety.
     private var hud: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(String(format: "%.0f fps", model.status.fps))
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-            Text("\(model.status.decoder.width)×\(model.status.decoder.height)")
-            Text(model.status.decoder.decodePath)
-            Text(String(format: "%.0f kbps · %.1f ms decode",
-                        model.status.kilobitsPerSecond,
-                        model.status.decoder.meanDecodeMs))
+        // Label/value rows on a native material rather than a monospace slab on
+        // black: it reads at a glance mid-session, and matches the receiver so
+        // the two apps look like one product.
+        VStack(alignment: .leading, spacing: 3) {
+            hudRow("fps", String(format: "%.0f", model.status.fps), lead: true)
+            hudRow("size", "\(model.status.decoder.width)×\(model.status.decoder.height)")
+            hudRow("decode", String(format: "%.1f ms", model.status.decoder.meanDecodeMs))
+            hudRow("bitrate", String(format: "%.0f kbps", model.status.kilobitsPerSecond))
+            hudRow("path", model.status.decoder.decodePath)
             if model.status.decoder.decodeFailures > 0 {
-                Text("\(model.status.decoder.decodeFailures) decode failures")
-                    .foregroundStyle(.orange)
+                hudRow("errors", "\(model.status.decoder.decodeFailures)", warn: true)
             }
         }
-        .font(.system(size: 11, design: .monospaced))
-        .foregroundStyle(.white)
-        .padding(8)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    private func hudRow(
+        _ label: String, _ value: String, lead: Bool = false, warn: Bool = false
+    ) -> some View {
+        HStack(spacing: 14) {
+            Text(label)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            Text(value)
+                // Tabular figures so the numbers stop twitching as they change.
+                .font(.system(size: lead ? 12.5 : 11, weight: lead ? .semibold : .regular))
+                .monospacedDigit()
+                .foregroundStyle(warn ? Color.orange : Color.primary)
+        }
+        .frame(minWidth: 132, alignment: .leading)
     }
 
     /// Shown instead of the connect controls while this Mac is sending.

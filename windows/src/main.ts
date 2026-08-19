@@ -65,6 +65,10 @@ let acceleration: Acceleration =
   (localStorage.getItem("ds.acceleration") as Acceleration) ?? "no-preference";
 
 const messageEl = document.getElementById("message") as HTMLDivElement;
+const card = document.getElementById("card");
+/// Whether the user wants the HUD when a stream is running. Persisted so the
+/// preference survives a reconnect and a restart.
+let hudWanted = localStorage.getItem("ds.hud") !== "0";
 
 function setStatus(text: string, visible = true) {
   // Write to the MESSAGE element, never to #overlay. Setting overlay.textContent
@@ -73,11 +77,21 @@ function setStatus(text: string, visible = true) {
   // a single text node. The first status update at startup therefore deleted the
   // entire UI, leaving only the sentence and no way to type an address, and
   // every later update wrote into detached nodes.
+  if (messageEl.textContent !== text) {
+    // Restart the fade rather than letting a repeated class do nothing.
+    messageEl.classList.remove("changed");
+    void messageEl.offsetWidth;
+    messageEl.classList.add("changed");
+  }
   messageEl.textContent = text;
   overlay.style.display = visible ? "flex" : "none";
   // The HUD reports a live stream's statistics. While the overlay is up there is
   // no live stream, so leaving it on shows stale numbers bleeding through.
-  if (visible) hud.classList.add("hidden");
+  // The HUD describes a live stream, so it goes away while the overlay is up —
+  // and MUST come back when the stream returns. Hiding it here without
+  // restoring it left the HUD gone for the whole session after connecting,
+  // needing two presses of H to recover.
+  hud.classList.toggle("hidden", visible || !hudWanted);
 }
 
 // --- Latency measurement (Task 10.1) ----------------------------------------
@@ -127,6 +141,9 @@ function setupDecoder(codec: string) {
       paintedInWindow++;
       frame.close();
       setStatus("", false);
+      // The first frame is the moment the shortcut is worth knowing, and the
+      // only moment the overlay is not covering the screen to say it.
+      showFirstRunHint();
     },
     error: () => {
       decodeErrors++;
@@ -336,21 +353,44 @@ setInterval(() => {
     worstGapMs = 0;
   }
 
-  const pad = (v: string | number, n: number) => String(v).padStart(n);
-  hud.textContent =
-    `codec     ${pad(configuredCodec ?? "—", 14)}\n` +
-    `accel     ${pad(acceleration.replace("prefer-", ""), 14)}\n` +
-    `panel     ${pad(`${panel.width}x${panel.height} @${panel.scale}x`, 14)}\n` +
-    `painted   ${pad(fps.toFixed(1), 14)} fps\n` +
-    `decode    ${pad(lastDecodeMs.toFixed(2), 14)} ms\n` +
-    `bandwidth ${pad(mbps.toFixed(2), 14)} Mbps\n` +
-    `frames    ${pad(decodedFrames, 14)}\n` +
-    `errors    ${pad(decodeErrors, 14)}\n` +
-    `queue     ${pad(decoder?.decodeQueueSize ?? 0, 14)}\n` +
-    `delay     ${pad(queueingMs.toFixed(1), 14)} ms\n` +
-    `peak      ${pad(peakQueueingMs.toFixed(1), 14)} ms\n` +
-    `worst gap ${pad(worstGapMs.toFixed(1), 14)} ms\n` +
-    `\n[F] fullscreen  [H] hud  [K] keyframe  [A] accel`;
+  // Rows rather than padded monospace: the HUD is read at a glance mid-session,
+  // and latency is the number that matters now, so it leads and turns amber when
+  // delay is climbing.
+  const rows: Array<[string, string, string?]> = [
+    ["delay", `${queueingMs.toFixed(0)} ms`, queueingMs > 60 ? "lead warn" : "lead"],
+    ["painted", `${fps.toFixed(0)} fps`],
+    ["decode", `${lastDecodeMs.toFixed(1)} ms`],
+    ["peak / gap", `${peakQueueingMs.toFixed(0)} / ${worstGapMs.toFixed(0)} ms`,
+      worstGapMs > 120 ? "warn" : undefined],
+    ["bandwidth", `${mbps.toFixed(1)} Mbps`],
+    ["queue", String(decoder?.decodeQueueSize ?? 0)],
+    ["codec", configuredCodec ?? "—"],
+    ["accel", acceleration.replace("prefer-", "")],
+    ["panel", `${panel.width}x${panel.height} @${panel.scale}x`],
+  ];
+  if (decodeErrors > 0) rows.push(["errors", String(decodeErrors), "warn"]);
+
+  hud.replaceChildren(
+    ...rows.map(([label, value, cls]) => {
+      const row = document.createElement("div");
+      row.className = cls ? `hud-row ${cls}` : "hud-row";
+      const l = document.createElement("span");
+      l.className = "hud-label";
+      l.textContent = label;
+      const v = document.createElement("span");
+      v.className = "hud-value";
+      v.textContent = value;
+      row.append(l, v);
+      return row;
+    })
+  );
+  const keys = document.createElement("div");
+  keys.className = "hud-keys";
+  // Shortcuts named where they are used, rather than left to be discovered.
+  keys.innerHTML =
+    "<kbd>F</kbd> fullscreen &nbsp; <kbd>H</kbd> hide &nbsp; " +
+    "<kbd>K</kbd> keyframe &nbsp; <kbd>A</kbd> decoder";
+  hud.appendChild(keys);
 
   // SPEC §4.6 — echo the last rendered timestamp so the sender can measure a
   // round trip against its own clock.
@@ -376,7 +416,10 @@ addEventListener("keydown", (event) => {
       void invoke("set_fullscreen", { enabled: fullscreen });
       break;
     case "h":
-      hud.classList.toggle("hidden");
+      // Remember the choice, so reconnecting does not overrule the user.
+      hudWanted = !hudWanted;
+      hud.classList.toggle("hidden", !hudWanted);
+      localStorage.setItem("ds.hud", hudWanted ? "1" : "0");
       break;
     case "k":
       void sendControl({ type: "request_keyframe" });
@@ -426,7 +469,11 @@ function showPinPrompt(message: string, isError = false) {
   pinRow.style.display = "flex";
   pinMessage.style.display = "block";
   pinMessage.textContent = message;
-  pinMessage.style.color = isError ? "#f87171" : "#d8d8d8";
+  pinMessage.classList.toggle("error", isError);
+  // While a PIN is pending, pairing IS the step: the manual address row is
+  // stood down so there is one primary action rather than two blue buttons
+  // competing for the same decision.
+  card?.classList.add("pairing");
   overlay.style.display = "flex";
   pinInput.value = "";
   pinInput.focus();
@@ -435,6 +482,7 @@ function showPinPrompt(message: string, isError = false) {
 function hidePinPrompt() {
   pinRow.style.display = "none";
   pinMessage.style.display = "none";
+  card?.classList.remove("pairing");
 }
 
 pinSubmit.addEventListener("click", () => {
@@ -479,6 +527,8 @@ async function scanForSenders() {
     const target = sender.addresses[0] ?? sender.host;
     const button = document.createElement("button");
     button.className = "sender";
+    // Staggered by position: a list that lands together reads as a flash.
+    button.style.animationDelay = `${senderList.childElementCount * 40}ms`;
     button.textContent = `${sender.name} — ${target}:${sender.port}`;
     button.addEventListener("click", () => void connect(`ws://${target}:${sender.port}`));
     senderList.appendChild(button);
@@ -651,3 +701,15 @@ stopShareButton?.addEventListener("click", async () => {
     if (shareStatus) shareStatus.textContent = `Could not stop: ${error}`;
   }
 });
+
+// --- First-connect hint (Task 10.3) -----------------------------------------
+// Shown once ever, then never again. A permanent shortcut bar would be furniture
+// on a screen whose whole purpose is to be a display.
+const hintEl = document.getElementById("hint") as HTMLDivElement | null;
+
+function showFirstRunHint() {
+  if (!hintEl || localStorage.getItem("ds.hinted")) return;
+  localStorage.setItem("ds.hinted", "1");
+  hintEl.innerHTML = "Press <kbd>H</kbd> for stats · <kbd>F</kbd> for fullscreen";
+  hintEl.classList.add("show");
+}
