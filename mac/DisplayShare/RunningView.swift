@@ -47,14 +47,18 @@ struct RunningView: View {
                     .foregroundStyle(.secondary)
             }
 
+            // One toggling control, from the shared system, so this window and
+            // the popover cannot disagree about what Stop looks like.
             HStack {
-                if controller.state.isActive {
-                    Button("Stop") { controller.stop() }
-                } else {
-                    Button("Start") { controller.start() }.keyboardShortcut(.defaultAction)
+                DSButton(
+                    controller.state.isActive ? "Stop" : "Start",
+                    variant: .forSession(isActive: controller.state.isActive),
+                    defaultAction: true
+                ) {
+                    controller.state.isActive ? controller.stop() : controller.start()
                 }
                 Spacer()
-                Button("Quit Display Share") {
+                DSButton("Quit Display Share", variant: .ghost) {
                     controller.shutdownForQuit()
                     NSApp.terminate(nil)
                 }

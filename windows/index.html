@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Display Share — Receiver</title>
 <link rel="stylesheet" href="/src/styles/tokens.css">
+<link rel="stylesheet" href="/src/styles/controls.css">
 <style>
   /* Task 10.3 — macOS-minimal. Restraint rather than decoration: one obvious
      primary action, muted secondaries, generous whitespace, depth from
@@ -35,10 +36,12 @@
     --ok: var(--ds-live);
     --warn: var(--ds-warn);
     --error: var(--ds-error);
-    /* One curve everywhere: macOS motion decelerates hard and settles. */
-    --ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --fast: 140ms;
-    --base: 200ms;
+    /* One curve everywhere: macOS motion decelerates hard and settles.
+       Generated too (Command 7) — the Mac animates its controls on the same
+       curve and duration, from the same line in tokens.json. */
+    --ease: var(--ds-ease);
+    --fast: var(--ds-fast);
+    --base: var(--ds-base);
   }
 
   html, body {
@@ -101,49 +104,21 @@
   #message.changed { animation: status-in var(--fast) var(--ease); }
   @keyframes status-in { from { opacity: 0; transform: translateY(-2px) } to { opacity: 1 } }
 
+  /* Geometry and behaviour only. Everything about how a control LOOKS now
+     lives in src/styles/controls.css, which both this screen and the settings
+     panel draw from — the audit found three unrelated button treatments across
+     two screens, each defined by its own id selector. */
   #senders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
   #senders:empty { display: none; }
-  .sender {
-    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
-    background: rgba(255, 255, 255, 0.06); border: 0.5px solid var(--hairline);
-    color: var(--text); font-size: 13px; padding: 10px 12px; border-radius: 9px;
-    cursor: pointer; transition: background var(--fast) var(--ease),
-                                 transform var(--fast) var(--ease);
-    /* Staggered by index below, so a list arrives rather than appearing. */
-    animation: row-in var(--base) var(--ease) both;
-  }
+  /* Staggered by index below, so a list arrives rather than appearing. */
+  .sender { animation: row-in var(--base) var(--ease) both; }
   @keyframes row-in { from { opacity: 0; transform: translateY(5px) } to { opacity: 1 } }
-  .sender:hover { background: rgba(255, 255, 255, 0.11); }
-  .sender:active { transform: scale(0.985); }
 
   .field-row { display: flex; gap: 7px; }
-  input, button, select {
-    font: inherit; font-size: 13px; padding: 8px 11px; border-radius: 9px;
-    border: 0.5px solid var(--hairline-strong);
-    background: rgba(255, 255, 255, 0.07); color: var(--text); outline: none;
-    transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
-                transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
-  }
-  input { flex: 1; min-width: 0; }
-  input::placeholder { color: var(--faint); }
-  input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(240, 153, 123, 0.28);
-  }
-  button { cursor: pointer; flex: none; font-weight: 510; }
-  button:active { transform: scale(0.96); }
-  button:disabled { opacity: 0.45; cursor: default; transform: none; }
-  /* Exactly one primary action on screen. */
-  #connect, #pin-submit {
-    background: var(--accent); border-color: transparent; color: var(--accent-ink);
-    font-weight: 600;
-  }
-  #connect:hover, #pin-submit:hover { background: var(--accent-hover); }
-  button.ghost { background: rgba(255, 255, 255, 0.05); color: var(--muted); }
-  button.ghost:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+  .field-row .ds-input { flex: 1; min-width: 0; }
 
   #pin-row { display: none; gap: 7px; margin-bottom: 11px; }
-  #pin { flex: none; width: 96px; text-align: center; font-size: 17px;
+  #pin { flex: none; width: 96px; text-align: center; font-size: var(--ds-font-5);
          letter-spacing: 6px; font-variant-numeric: tabular-nums; }
   #pin-message { display: none; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   #pin-message.error { color: var(--error); }
@@ -170,37 +145,24 @@
   .empty-guidance { font-size: 12.5px; color: var(--muted); }
 
   /* --------------------------------------------- device as hero (Command 4) */
-  /* Full width, accent fill, and the tallest control on screen: discovery
-     already worked, and the interface was demoting it below a manual IP field. */
-  #connect-hero {
-    width: 100%; height: 44px; margin-bottom: 10px;
-    background: var(--accent); color: var(--accent-ink); border-color: transparent;
-    font-size: 14px; font-weight: 600;
-  }
-  #connect-hero:hover { background: var(--accent-hover); }
+  /* `btn btn--primary btn--hero` carries the fill, the 44px height and the
+     full width; only its place in the stack is set here. */
+  #connect-hero { margin-bottom: 10px; }
   #connect-hero[hidden] { display: none; }
 
-  .sender.selected {
-    border-color: var(--accent);
-    background: rgba(240, 153, 123, 0.08);
-  }
   .sender .sender-name { font-size: 14px; font-weight: 600; }
   .sender .sender-address {
     display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted);
     font-family: ui-monospace, "Cascadia Mono", "SF Mono", monospace;
   }
 
-  /* Manual entry is a way out, not the way in. */
+  /* Manual entry is a way out, not the way in — but a way out still has to be
+     hittable. These were 12px underlined text, a target a few pixels tall; as
+     ghost buttons they stay visually quiet and become 36px of clickable. */
   #secondary-row {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
-    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 2px; margin-bottom: 4px;
+    margin-left: -14px;
   }
-  .linkish {
-    background: none; border: none; padding: 0; color: var(--muted);
-    font-size: 12px; text-decoration: underline; text-underline-offset: 2px;
-  }
-  .linkish:hover { color: var(--text); }
-  .dot-sep { color: var(--faint); }
   #bar[hidden] { display: none; }
 
   /* ------------------------------------------- humanised errors (Command 3) */
@@ -223,10 +185,7 @@
     margin-top: 18px; padding-top: 15px; border-top: 0.5px solid var(--hairline);
     display: flex; flex-direction: column; gap: 8px;
   }
-  #share-row select { width: 100%; }
-  #share-row button { background: rgba(255, 255, 255, 0.05); color: var(--muted);
-                      font-weight: 400; }
-  #share-row button:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+  #share-row .ds-input { width: 100%; }
   #share-status { font-size: 11.5px; color: var(--faint); }
 
   /* -------------------------------------------------------------------- HUD */
@@ -297,13 +256,15 @@
   /* ------------------------------------------------- settings (Task 11.1) */
   /* Quiet until wanted: revealed on pointer movement, gone again after a
      moment, so a screen meant to be a display is not permanently furnished. */
+  /* A secondary button wearing floating chrome: translucent and pill-shaped
+     because it sits over live video, but the same height, type and focus ring
+     as every other button in the app. */
   #controls-toggle {
     position: fixed; top: 14px; right: 14px; z-index: 20;
-    padding: 7px 13px; border-radius: 999px; font-size: 12px; color: var(--text);
+    border-radius: 999px;
     background: rgba(30, 30, 32, 0.72); backdrop-filter: blur(24px) saturate(180%);
-    border: 0.5px solid var(--hairline-strong); cursor: pointer;
     opacity: 0; pointer-events: none;
-    transition: opacity var(--base) var(--ease), transform var(--fast) var(--ease);
+    transition: opacity var(--base) var(--ease), background var(--fast) var(--ease);
   }
   #controls-toggle.revealed { opacity: 1; pointer-events: auto; }
   #controls-toggle:hover { background: rgba(48, 48, 52, 0.85); }
@@ -332,7 +293,7 @@
     text-transform: uppercase; color: var(--faint);
   }
   #panel label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; }
-  #panel select { width: 100%; }
+  #panel .ds-input { width: 100%; }
   .field-note { margin: 7px 0 0; font-size: 11.5px; color: var(--faint); line-height: 1.45; }
   #conn-facts { margin: 0 0 10px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
   #conn-facts dt { font-size: 12px; color: var(--faint); }
@@ -347,9 +308,12 @@
            color: var(--text) !important; font-size: 12.5px; }
   .check input { width: auto; flex: none; margin: 0; accent-color: var(--accent); }
 
-  /* Keyboard operation has to be visible, not merely possible. */
+  /* Keyboard operation has to be visible, not merely possible. Buttons and
+     inputs get this from controls.css; this covers everything else on the page
+     — disclosure summaries, checkboxes — with the identical ring. */
   :focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+    outline: 2px solid rgba(var(--ds-accent-rgb), 0.6); outline-offset: 2px;
+    border-radius: var(--ds-radius-sm);
   }
   /* Announced, never shown. */
   .sr-only {
@@ -376,28 +340,28 @@
        and revealed on pointer movement, but present — everything adjustable was
        previously behind an unlabelled single-key shortcut, which a mouse-only
        user could not reach at all. -->
-  <button id="controls-toggle" type="button" aria-haspopup="dialog"
-          aria-expanded="false" aria-controls="panel"
+  <button id="controls-toggle" type="button" class="btn btn--secondary"
+          aria-haspopup="dialog" aria-expanded="false" aria-controls="panel"
           title="Session settings">Settings</button>
 
   <div id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
     <div id="panel-inner">
       <div class="panel-head">
         <h2 id="panel-title">Session</h2>
-        <button id="panel-close" type="button" class="ghost">Done</button>
+        <button id="panel-close" type="button" class="btn btn--ghost">Done</button>
       </div>
 
       <section aria-labelledby="conn-title">
         <h3 id="conn-title">Connection</h3>
         <dl id="conn-facts"></dl>
         <p id="conn-advice" hidden></p>
-        <button id="disconnect" type="button" class="ghost">Disconnect</button>
+        <button id="disconnect" type="button" class="btn btn--destructive">Disconnect</button>
       </section>
 
       <section aria-labelledby="display-title">
         <h3 id="display-title">Display</h3>
         <label for="res-select">Resolution</label>
-        <select id="res-select">
+        <select id="res-select" class="ds-input">
           <option value="match">Match this screen</option>
           <option value="1920x1080">1920 × 1080</option>
           <option value="1600x900">1600 × 900</option>
@@ -410,7 +374,7 @@
       <section aria-labelledby="quality-title">
         <h3 id="quality-title">Decoding</h3>
         <label for="accel-select">Decoder</label>
-        <select id="accel-select">
+        <select id="accel-select" class="ds-input">
           <option value="no-preference">Automatic</option>
           <option value="prefer-hardware">Prefer hardware</option>
           <option value="prefer-software">Prefer software</option>
@@ -465,17 +429,20 @@
           the same Wi-Fi.
         </div>
       </div>
-      <div id="senders" role="list" aria-label="Macs found on this network"></div>
+      <!-- A listbox, not a list: these rows are single-select, and a <button>
+           carrying role="listitem" loses its button role entirely — a screen
+           reader announced them as static list items with no hint they could
+           be pressed or which one was chosen. -->
+      <div id="senders" role="listbox" aria-label="Macs found on this network"></div>
 
       <!-- Command 4. Discovery already worked; the interface demoted it below a
            manual IP field, so typing an address read as the primary path. The
            device is now the hero and manual entry is a disclosure. -->
-      <button id="connect-hero" type="button" hidden>Connect</button>
+      <button id="connect-hero" type="button" class="btn btn--primary btn--hero" hidden>Connect</button>
 
       <div id="secondary-row">
-        <button id="rescan-link" type="button" class="linkish">Rescan</button>
-        <span class="dot-sep">·</span>
-        <button id="manual-toggle" type="button" class="linkish"
+        <button id="rescan-link" type="button" class="btn btn--ghost">Rescan</button>
+        <button id="manual-toggle" type="button" class="btn btn--ghost"
                 aria-expanded="false" aria-controls="bar">Enter address manually</button>
       </div>
 
@@ -485,29 +452,29 @@
         <details id="failure-details">
           <summary>Technical details</summary>
           <pre id="failure-raw"></pre>
-          <button id="failure-copy" type="button" class="ghost">Copy</button>
+          <button id="failure-copy" type="button" class="btn btn--secondary">Copy</button>
         </details>
       </div>
 
       <div id="pin-message"></div>
       <div id="pin-row">
-        <input id="pin" aria-label="Pairing PIN" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
-        <button id="pin-submit">Pair</button>
+        <input id="pin" class="ds-input" aria-label="Pairing PIN" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
+        <button id="pin-submit" type="button" class="btn btn--primary">Pair</button>
       </div>
 
       <div id="bar" class="field-row" hidden>
-        <input id="address" aria-label="Mac address" placeholder="Mac address, e.g. 192.168.1.42" autocomplete="off" spellcheck="false">
-        <button id="connect">Connect</button>
-        <button id="rescan" class="ghost">Rescan</button>
+        <input id="address" class="ds-input" aria-label="Mac address" placeholder="Mac address, e.g. 192.168.1.42" autocomplete="off" spellcheck="false">
+        <button id="connect" type="button" class="btn btn--primary">Connect</button>
+        <button id="rescan" type="button" class="btn btn--secondary">Rescan</button>
       </div>
 
       <!-- The reverse direction (Tasks 8.2 / 8.4). Below the receiving controls
            and visually quieter on purpose: a prominent second action here is how
            the two-apps confusion started. -->
       <div id="share-row">
-        <select id="share-output" aria-label="Display to share" hidden></select>
-        <button id="share">Share this PC's screen instead</button>
-        <button id="stop-share" class="ghost" hidden>Stop sharing</button>
+        <select id="share-output" class="ds-input" aria-label="Display to share" hidden></select>
+        <button id="share" type="button" class="btn btn--ghost">Share this PC's screen instead</button>
+        <button id="stop-share" type="button" class="btn btn--destructive" hidden>Stop sharing</button>
         <span id="share-status"></span>
       </div>
     </div>

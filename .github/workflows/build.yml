@@ -55,6 +55,13 @@ jobs:
       - name: Key maps must agree across the two languages
         run: python3 scripts/check-keymap-parity.py
 
+      # Command 7. Three unrelated button treatments across two screens, each
+      # one a locally reasonable decision no test could object to. This reads
+      # controls.css for the variants it defines, then fails on any control in
+      # either app that was styled outside the system.
+      - name: Controls must come from the shared system
+        run: python3 scripts/check-controls.py
+
       - name: actionlint
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)

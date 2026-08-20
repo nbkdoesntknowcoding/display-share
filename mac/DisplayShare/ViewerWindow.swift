@@ -378,15 +378,16 @@ struct ViewerView: View {
                 // A strong capability, so its state is unmissable and its
                 // release is stated rather than left to be discovered.
                 VStack(spacing: 7) {
-                    Button(model.inputEnabled ? "Stop controlling" : "Control this PC") {
+                    DSButton(
+                        model.inputEnabled ? "Stop controlling" : "Control this PC",
+                        variant: model.inputEnabled ? .secondary : .primary
+                    ) {
                         // Animated so the badge arrives rather than blinks into
                         // place; the state change is what the motion explains.
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        withAnimation(DSMotion.ease(DSMotion.base)) {
                             model.setInputEnabled(!model.inputEnabled)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
                     .accessibilityLabel(
                         model.inputEnabled
                             ? "Stop controlling this PC" : "Control this PC"
@@ -506,8 +507,11 @@ struct ViewerView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 380)
-            Button("Stop sending and view instead") { controller.stop() }
-                .keyboardShortcut(.defaultAction)
+            // Primary despite stopping something: this panel exists only to
+            // offer it, and the label says exactly what will happen.
+            DSButton("Stop sending and view instead", variant: .primary, defaultAction: true) {
+                controller.stop()
+            }
         }
         .padding(28)
     }
@@ -525,7 +529,7 @@ struct ViewerView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Found on this network").font(.caption).foregroundStyle(.secondary)
                     ForEach(model.discovered) { sender in
-                        Button {
+                        DSButton(variant: .secondary) {
                             model.connect(to: sender)
                         } label: {
                             Label(sender.name, systemImage: "display")
@@ -537,14 +541,13 @@ struct ViewerView: View {
             }
 
             HStack {
-                TextField("Windows address", text: $model.host)
-                    .textFieldStyle(.roundedBorder)
+                DSTextField("Windows address", text: $model.host) { model.connect() }
                     .frame(width: 200)
-                TextField("Port", text: $model.port)
-                    .textFieldStyle(.roundedBorder)
+                DSTextField("Port", text: $model.port) { model.connect() }
                     .frame(width: 70)
-                Button("Connect") { model.connect() }
-                    .keyboardShortcut(.defaultAction)
+                DSButton("Connect", variant: .primary, defaultAction: true) {
+                    model.connect()
+                }
             }
 
             Text(model.status.message)

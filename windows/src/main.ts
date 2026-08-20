@@ -14,6 +14,7 @@ import {
 } from "./protocol";
 import { InputCapture } from "./input";
 import { backoffFor, humanise } from "./errors";
+import { installDisabledGuard, setEnabled, setVariant } from "./components/controls";
 
 /**
  * Display Share receiver frontend.
@@ -22,6 +23,8 @@ import { backoffFor, humanise } from "./errors";
  * arrive as raw bytes over a Tauri Channel, so nothing is JSON-encoded on the
  * hot path.
  */
+
+installDisabledGuard();
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement;
 // desynchronized decouples painting from the compositor's frame cadence, which
@@ -639,7 +642,8 @@ async function scanForSenders() {
   for (const sender of senders) {
     const target = wsTarget(sender.addresses, sender.host);
     const button = document.createElement("button");
-    button.className = "sender";
+    button.type = "button";
+    button.className = "btn btn--row sender";
     // Staggered by position: a list that lands together reads as a flash.
     button.style.animationDelay = `${senderList.childElementCount * 40}ms`;
     const url = `ws://${target}:${sender.port}`;
@@ -652,7 +656,8 @@ async function scanForSenders() {
     const wrap = document.createElement("span");
     wrap.append(name, address);
     button.replaceChildren(wrap);
-    button.setAttribute("role", "listitem");
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", "false");
     // The whole row selects; connecting is the hero button below, so the choice
     // and the action are separate and both obvious.
     button.addEventListener("click", () => selectSender(url, button));
@@ -755,7 +760,7 @@ async function loadOutputs() {
 void loadOutputs();
 
 shareButton?.addEventListener("click", async () => {
-  shareButton.disabled = true;
+  setEnabled(shareButton, false, "Already starting — one moment.");
   if (shareStatus) shareStatus.textContent = "Starting…";
   try {
     const output = shareOutput && !shareOutput.hidden ? Number(shareOutput.value) : 0;
@@ -770,9 +775,10 @@ shareButton?.addEventListener("click", async () => {
       shareStatus.textContent = `Sharing as “${info.host}” — on the Mac, choose View a Windows PC (port ${info.port})`;
     }
     if (stopShareButton) stopShareButton.hidden = false;
+    setEnabled(shareButton, false, "This PC is already sharing its screen.");
   } catch (error) {
     if (shareStatus) shareStatus.textContent = `Could not start: ${error}`;
-    shareButton.disabled = false;
+    setEnabled(shareButton, true);
   }
 });
 
@@ -780,7 +786,7 @@ stopShareButton?.addEventListener("click", async () => {
   try {
     await invoke("stop_sharing");
     if (shareStatus) shareStatus.textContent = "Stopped sharing.";
-    if (shareButton) shareButton.disabled = false;
+    setEnabled(shareButton, true);
     stopShareButton.hidden = true;
   } catch (error) {
     if (shareStatus) shareStatus.textContent = `Could not stop: ${error}`;
@@ -879,7 +885,10 @@ let lastFocused: HTMLElement | null = null;
 function focusable(): HTMLElement[] {
   return Array.from(
     panelEl.querySelectorAll<HTMLElement>("button, select, input, [href], [tabindex]:not([tabindex='-1'])")
-  ).filter((el) => !el.hasAttribute("disabled"));
+    // Both forms: native `disabled` for the checkboxes, `aria-disabled` for
+    // buttons, which stay in the tab order precisely so their tooltip can be
+    // reached — but must not be offered as the first thing focused.
+  ).filter((el) => !el.hasAttribute("disabled") && el.getAttribute("aria-disabled") !== "true");
 }
 
 function openPanel() {
@@ -1024,17 +1033,38 @@ let selectedUrl: string | null = null;
 
 export function selectSender(url: string, row?: HTMLElement) {
   selectedUrl = url;
-  for (const el of document.querySelectorAll(".sender")) el.classList.remove("selected");
-  row?.classList.add("selected");
+  // The attribute IS the state: styling reads [aria-selected], so what is
+  // announced and what is drawn cannot disagree.
+  for (const el of document.querySelectorAll(".sender")) {
+    el.setAttribute("aria-selected", "false");
+  }
+  row?.setAttribute("aria-selected", "true");
   if (heroButton) {
     heroButton.hidden = false;
-    heroButton.disabled = false;
+    setEnabled(heroButton, true);
   }
+  refreshPrimaryAction();
 }
 
 heroButton?.addEventListener("click", () => {
   if (selectedUrl) void connect(selectedUrl);
 });
+
+/**
+ * Keeps exactly one accent button on the connect screen.
+ *
+ * The discovered device is the recommended path whenever there is one, so it
+ * holds the primary and typing an address is a secondary. With nothing
+ * discovered, manual entry IS the path and takes it back.
+ */
+function refreshPrimaryAction() {
+  const manualBar = document.getElementById("bar");
+  const heroShowing = heroButton !== null && !heroButton.hidden;
+  const manualShowing = manualBar !== null && !manualBar.hidden;
+  setVariant(connectButton, heroShowing && manualShowing ? "secondary" : "primary");
+}
+
+refreshPrimaryAction();
 
 // Enter connects, so the common case needs no mouse at all.
 window.addEventListener("keydown", (event) => {
@@ -1055,6 +1085,7 @@ manualToggle?.addEventListener("click", () => {
   const showing = !bar.hidden;
   bar.hidden = showing;
   manualToggle.setAttribute("aria-expanded", String(!showing));
+  refreshPrimaryAction();
   if (!showing) (document.getElementById("address") as HTMLInputElement | null)?.focus();
 });
 
