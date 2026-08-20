@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.4...v0.8.0) (2026-08-20)
+
+
+### Features
+
+* release the Phase 10 interface, latency and wired-link work ([b9c4b72](https://github.com/nbkdoesntknowcoding/display-share/commit/b9c4b725dc1da34a61d954a612f9d741bda299f8))
+
 ## [0.7.4](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.3...v0.7.4) (2026-08-19)
 
 
