@@ -170,6 +170,7 @@ function setupDecoder(codec: string) {
       ctx.drawImage(frame, 0, 0);
       paintedInWindow++;
       frame.close();
+      hideConnecting();
       setStatus("", false);
       // The first frame is the moment the shortcut is worth knowing, and the
       // only moment the overlay is not covering the screen to say it.
@@ -299,7 +300,7 @@ export function manualUrl(input: string): string {
 async function connect(url: string) {
   closeDecoder();
   clearFailure();
-  setStatus(`Connecting to ${url}…`);
+  showConnecting(connectingLabel(url));
 
   panel = await invoke<ReceiverPanel>("detect_panel");
   // The browser knows the refresh rate the compositor is actually running at
@@ -324,6 +325,7 @@ async function connect(url: string) {
     if (wait === null) {
       // Retrying for ever is how a fixable problem stays hidden. Stop, and show
       // something with a next step in it.
+      hideConnecting();
       setStatus("");
       showFailure(String(e), true);
       return;
@@ -627,8 +629,10 @@ async function scanForSenders() {
     return;
   }
   if (senders.length === 0) {
-    senderList.textContent =
-      "No senders found. Check both devices are on the same network, or enter an address below.";
+    // Written into its own element, never into the list container: replacing a
+    // container's contents is what deleted the whole UI once before.
+    senderList.replaceChildren();
+    showEmptyState(true);
     return;
   }
   senderList.textContent = "";
@@ -654,6 +658,8 @@ async function scanForSenders() {
     button.addEventListener("click", () => selectSender(url, button));
     button.addEventListener("dblclick", () => void connect(url));
     senderList.appendChild(button);
+    senderNames.set(url, sender.name);
+    showEmptyState(false);
     // Exactly one Mac is the overwhelmingly common case: pre-select it so the
     // user has one thing to press.
     if (senders.length === 1) selectSender(url, button);
@@ -1076,4 +1082,60 @@ export function showFailure(raw: string, terminal: boolean) {
 
 export function clearFailure() {
   if (failureEl) failureEl.hidden = true;
+}
+
+// ------------------------------------------------------------- Command 8
+// The states that are not the happy path. The audit scored this category 0/6,
+// and the connect screen is mostly not the happy path — waiting, retrying and
+// failing all live here.
+
+const connectingEl = document.getElementById("connecting") as HTMLDivElement | null;
+const connectingLabelEl = document.getElementById("connecting-label") as HTMLSpanElement | null;
+const emptyStateEl = document.getElementById("empty-state") as HTMLDivElement | null;
+
+/// Names of discovered senders, so a connection can be described by machine
+/// rather than by socket. Keyed by the URL the app dials.
+const senderNames = new Map<string, string>();
+
+/// What to call the thing we are connecting to.
+///
+/// Never the URL. "Connecting to ws://192.168.29.8:8788…" tells the reader the
+/// transport and the port and nothing they can act on, which is the same failure
+/// as the raw error strings this project already removed.
+export function connectingLabel(url: string): string {
+  const known = senderNames.get(url);
+  if (known) return known;
+  // Fall back to the host alone — still no scheme, still no port.
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "your Mac";
+  }
+}
+
+function showConnecting(name: string) {
+  showEmptyState(false);
+  clearFailure();
+  if (!connectingEl || !connectingLabelEl) return;
+  // The attempt count appears only once retrying has clearly failed twice —
+  // showing "Attempt 1 of 4" immediately makes a normal connection look sickly.
+  const suffix = attempt >= 2 ? ` · attempt ${attempt + 1} of ${RETRY_LIMIT}` : "";
+  connectingLabelEl.textContent = `Connecting to ${name}…${suffix}`;
+  connectingEl.hidden = false;
+  setStatus("");
+  announce(`Connecting to ${name}`);
+}
+
+function hideConnecting() {
+  if (connectingEl) connectingEl.hidden = true;
+}
+
+function showEmptyState(visible: boolean) {
+  if (!emptyStateEl) return;
+  emptyStateEl.hidden = !visible;
+  if (visible) {
+    hideConnecting();
+    setStatus("");
+    announce("No Macs found on this network");
+  }
 }

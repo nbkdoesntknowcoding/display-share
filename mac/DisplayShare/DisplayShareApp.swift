@@ -612,18 +612,33 @@ private struct ControlPanel: View {
         }
     }
 
+    /// The browser fallback, collapsed (Command 8).
+    ///
+    /// This URL was the popover's most prominent instruction, and it points at
+    /// the BROWSER fallback on 8787 while the Windows app connects on 8788 — so
+    /// a user reading the Mac and holding the receiver was being told two
+    /// different things. It is a fallback, so it reads as one.
     private func receiverSection(url: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Open on the receiver").font(.caption).foregroundStyle(.secondary)
-            HStack {
-                Text(url).font(.caption.monospaced()).textSelection(.enabled)
-                Spacer()
-                Button("Copy") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(url, forType: .string)
+        DisclosureGroup("Connect without the app") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Open this address in a browser on the other machine. The app is the better path — this exists for machines you cannot install on.")
+                    .font(.system(size: DSFont.f2))
+                    .foregroundStyle(DSColor.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Text(url).font(.system(size: DSFont.f2, design: .monospaced))
+                        .textSelection(.enabled)
+                    Spacer()
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url, forType: .string)
+                    }
                 }
             }
+            .padding(.top, 4)
         }
+        .font(.system(size: DSFont.f2))
+        .foregroundStyle(DSColor.textMuted)
     }
 
     // MARK: - Bindings

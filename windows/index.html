@@ -151,6 +151,24 @@
      away rather than sitting beside Pair as a second blue button. */
   #card.pairing #bar { display: none; }
 
+  /* ------------------------------------------------ waiting states (Cmd 8) */
+  #connecting, #empty-state { margin-bottom: 12px; }
+  #connecting[hidden], #empty-state[hidden] { display: none; }
+  #connecting { display: flex; align-items: center; gap: 9px; font-size: 12.5px;
+                color: var(--muted); }
+  .spinner {
+    width: 16px; height: 16px; flex: none; border-radius: 50%;
+    border: 2px solid var(--ds-border-strong);
+    border-top-color: var(--accent);
+    animation: spin 700ms linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  #empty-state { text-align: center; padding: 8px 0 4px; }
+  .empty-icon { font-size: 26px; color: var(--faint); line-height: 1; margin-bottom: 8px; }
+  .empty-headline { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .empty-guidance { font-size: 12.5px; color: var(--muted); }
+
   /* --------------------------------------------- device as hero (Command 4) */
   /* Full width, accent fill, and the tallest control on screen: discovery
      already worked, and the interface was demoting it below a manual IP field. */
@@ -430,6 +448,23 @@
       </p>
 
       <div id="message">Looking for senders…</div>
+
+      <!-- Command 8. States scored 0/6 in the audit: every path that is not the
+           happy path was unhandled, and the connect screen is mostly not the
+           happy path — waiting, retrying and failing all live here. -->
+      <div id="connecting" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="connecting-label"></span>
+      </div>
+
+      <div id="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">⌕</div>
+        <div class="empty-headline">No Macs found on this network</div>
+        <div class="empty-guidance">
+          Make sure Display Share is running on your Mac and both machines are on
+          the same Wi-Fi.
+        </div>
+      </div>
       <div id="senders" role="list" aria-label="Macs found on this network"></div>
 
       <!-- Command 4. Discovery already worked; the interface demoted it below a
