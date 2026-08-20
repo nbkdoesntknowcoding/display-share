@@ -662,6 +662,19 @@ async function applyUpdateOnLaunch(): Promise<boolean> {
   }
 }
 
+// Launch alone is not enough. The receiver is left open for hours, so an
+// install that started before a release existed would never see it — the same
+// gap that left the Mac three releases behind while it sat running. Re-checked
+// on a timer, and never while a session is live: replacing the binary mid-stream
+// would drop the display and read as a crash.
+window.setInterval(
+  () => {
+    if (overlay.style.display === "none") return; // streaming — leave it alone
+    void applyUpdateOnLaunch();
+  },
+  6 * 60 * 60 * 1000
+);
+
 void (async () => {
   const restarting = await applyUpdateOnLaunch();
   if (restarting) return;
