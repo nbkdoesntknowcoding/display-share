@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.8.0...v0.9.0) (2026-08-20)
+
+
+### Features
+
+* add the settings, connection and accessibility the app never had ([#22](https://github.com/nbkdoesntknowcoding/display-share/issues/22)) ([efae4b4](https://github.com/nbkdoesntknowcoding/display-share/commit/efae4b4342d857674a9650d40246e2ea7718fcc5))
+* **design:** design tokens, brand mark, humanised errors, device-as-hero ([#31](https://github.com/nbkdoesntknowcoding/display-share/issues/31)) ([f49fbe3](https://github.com/nbkdoesntknowcoding/display-share/commit/f49fbe3956e1bea0c6aca363d98cf8b917f46b6f))
+* **mac:** a status line that tells the truth about the session ([#36](https://github.com/nbkdoesntknowcoding/display-share/issues/36)) ([4a774cd](https://github.com/nbkdoesntknowcoding/display-share/commit/4a774cd357920192b13394beb7d0fb527888debe))
+
+
+### Bug Fixes
+
+* check for updates while running, not only at launch ([#26](https://github.com/nbkdoesntknowcoding/display-share/issues/26)) ([b9f676f](https://github.com/nbkdoesntknowcoding/display-share/commit/b9f676fe1d22f04b7773dae2f0d2d8cb0d79fe3c))
+* **release:** never publish an updater manifest that loops ([#34](https://github.com/nbkdoesntknowcoding/display-share/issues/34)) ([5bebd59](https://github.com/nbkdoesntknowcoding/display-share/commit/5bebd59d0f2246af752e77ee5da56f845b48e01f))
+* **windows:** bracket IPv6 and prefer IPv4, so the URL parses at all ([#30](https://github.com/nbkdoesntknowcoding/display-share/issues/30)) ([1df9636](https://github.com/nbkdoesntknowcoding/display-share/commit/1df9636bee49ccb9f243f53da524bf7c3c0c6588))
+* **windows:** make the update path survive a broken release ([#28](https://github.com/nbkdoesntknowcoding/display-share/issues/28)) ([88d1512](https://github.com/nbkdoesntknowcoding/display-share/commit/88d1512538e7e8eb4f7fdbd46d8506d8a21aca3d))
+* **windows:** repair the startup crash that killed the whole receiver ([#24](https://github.com/nbkdoesntknowcoding/display-share/issues/24)) ([4394111](https://github.com/nbkdoesntknowcoding/display-share/commit/4394111d847bb7554217ea32be4f1d2f5595d918))
+
 ## [0.8.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.4...v0.8.0) (2026-08-20)
 
 
