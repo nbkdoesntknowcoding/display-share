@@ -71,6 +71,31 @@ path, so nobody meets the dialog cold and assumes the download is malware.
 
 ---
 
+## Accessibility (t-704)
+
+Both apps are operable without a mouse and readable by a screen reader.
+
+* Every control carries an accessible name — verified against the accessibility
+  tree rather than assumed, because a visible label and an accessible name are
+  not the same thing.
+* The connect overlay and the settings panel are real modals: `role="dialog"`,
+  `aria-modal`, labelled, focus trapped while open, `Escape` to dismiss, and
+  focus returned to whatever opened them.
+* Status changes are announced through a live region. Before this, status was
+  written into a plain `div`, so a screen reader user was never told that
+  pairing was required, that a connection had dropped, or that it recovered —
+  the app appeared to do nothing at all.
+* The statistics HUD is hidden from the accessibility tree. A grid of numbers
+  refreshing every second is noise to a screen reader, and the settings panel
+  carries the same facts in a readable form. The Mac's HUD collapses to one
+  summarised label for the same reason.
+
+If you add a control, give it a name and check the tree. The audit is one line
+in the browser console: select every `button, input, select` and assert that
+each resolves to an `aria-label`, an associated `<label>`, or text content.
+
+---
+
 ## Why we don't just tell people to trust us
 
 Because they shouldn't, and because they don't have to. This is the honest

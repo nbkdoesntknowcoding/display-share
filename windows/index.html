@@ -221,6 +221,69 @@
     animation: card-in var(--base) var(--ease) both;
   }
 
+  /* ------------------------------------------------- settings (Task 11.1) */
+  /* Quiet until wanted: revealed on pointer movement, gone again after a
+     moment, so a screen meant to be a display is not permanently furnished. */
+  #controls-toggle {
+    position: fixed; top: 14px; right: 14px; z-index: 20;
+    padding: 7px 13px; border-radius: 999px; font-size: 12px; color: var(--text);
+    background: rgba(30, 30, 32, 0.72); backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--hairline-strong); cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--base) var(--ease), transform var(--fast) var(--ease);
+  }
+  #controls-toggle.revealed { opacity: 1; pointer-events: auto; }
+  #controls-toggle:hover { background: rgba(48, 48, 52, 0.85); }
+
+  #panel {
+    position: fixed; inset: 0; z-index: 30; display: flex;
+    align-items: center; justify-content: center; padding: 24px;
+    background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(3px);
+    animation: overlay-in var(--fast) var(--ease);
+  }
+  #panel[hidden] { display: none; }
+  #panel-inner {
+    width: 100%; max-width: 400px; max-height: 84vh; overflow-y: auto;
+    background: var(--card); backdrop-filter: blur(30px) saturate(180%);
+    border: 0.5px solid var(--hairline-strong); border-radius: 14px;
+    padding: 18px 20px 20px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+    animation: card-in var(--base) var(--ease) both;
+  }
+  .panel-head { display: flex; align-items: center; margin-bottom: 6px; }
+  #panel h2 { margin: 0; font-size: 15px; font-weight: 590; letter-spacing: -0.01em; }
+  #panel-close { margin-left: auto; }
+  #panel section { padding-top: 14px; margin-top: 12px; border-top: 0.5px solid var(--hairline); }
+  #panel h3 {
+    margin: 0 0 9px; font-size: 11px; font-weight: 590; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  #panel label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 5px; }
+  #panel select { width: 100%; }
+  .field-note { margin: 7px 0 0; font-size: 11.5px; color: var(--faint); line-height: 1.45; }
+  #conn-facts { margin: 0 0 10px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+  #conn-facts dt { font-size: 12px; color: var(--faint); }
+  #conn-facts dd { margin: 0; font-size: 12px; text-align: right;
+                   font-variant-numeric: tabular-nums; }
+  #conn-advice {
+    margin: 0 0 10px; padding: 9px 11px; border-radius: 8px; font-size: 12px;
+    line-height: 1.45; color: #ffe9a8;
+    background: rgba(255, 214, 10, 0.1); border: 0.5px solid rgba(255, 214, 10, 0.28);
+  }
+  .check { display: flex !important; align-items: center; gap: 8px; margin-bottom: 8px;
+           color: var(--text) !important; font-size: 12.5px; }
+  .check input { width: auto; flex: none; margin: 0; accent-color: var(--accent); }
+
+  /* Keyboard operation has to be visible, not merely possible. */
+  :focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+  }
+  /* Announced, never shown. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
   /* Motion is an explanation here, not content: removing it must lose nothing. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -232,16 +295,76 @@
 </head>
 <body>
   <canvas id="screen"></canvas>
-  <div id="hud"></div>
+  <div id="hud" aria-hidden="true"></div>
   <div id="input-badge"></div>
   <div id="hint"></div>
-  <div id="overlay">
+
+  <!-- Task 11.1: a visible way into settings while streaming. Quiet by default
+       and revealed on pointer movement, but present — everything adjustable was
+       previously behind an unlabelled single-key shortcut, which a mouse-only
+       user could not reach at all. -->
+  <button id="controls-toggle" type="button" aria-haspopup="dialog"
+          aria-expanded="false" aria-controls="panel"
+          title="Session settings">Settings</button>
+
+  <div id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
+    <div id="panel-inner">
+      <div class="panel-head">
+        <h2 id="panel-title">Session</h2>
+        <button id="panel-close" type="button" class="ghost">Done</button>
+      </div>
+
+      <section aria-labelledby="conn-title">
+        <h3 id="conn-title">Connection</h3>
+        <dl id="conn-facts"></dl>
+        <p id="conn-advice" hidden></p>
+        <button id="disconnect" type="button" class="ghost">Disconnect</button>
+      </section>
+
+      <section aria-labelledby="display-title">
+        <h3 id="display-title">Display</h3>
+        <label for="res-select">Resolution</label>
+        <select id="res-select">
+          <option value="match">Match this screen</option>
+          <option value="1920x1080">1920 × 1080</option>
+          <option value="1600x900">1600 × 900</option>
+          <option value="1280x720">1280 × 720</option>
+        </select>
+        <p class="field-note">Applied to the existing display, so your window
+          arrangement on the Mac survives the change.</p>
+      </section>
+
+      <section aria-labelledby="quality-title">
+        <h3 id="quality-title">Decoding</h3>
+        <label for="accel-select">Decoder</label>
+        <select id="accel-select">
+          <option value="no-preference">Automatic</option>
+          <option value="prefer-hardware">Prefer hardware</option>
+          <option value="prefer-software">Prefer software</option>
+        </select>
+        <p class="field-note">Frame rate and bitrate are chosen by the Mac, which
+          adapts them to the link. They are shown above rather than set here.</p>
+      </section>
+
+      <section aria-labelledby="session-title">
+        <h3 id="session-title">This session</h3>
+        <label class="check"><input type="checkbox" id="opt-hud"> Show statistics overlay</label>
+        <label class="check"><input type="checkbox" id="opt-input"> Send my keyboard and mouse to the Mac</label>
+      </section>
+    </div>
+  </div>
+
+  <!-- Announcements for screen readers (Task 11.2). Status was written into a
+       plain div, so a blind user was never told that pairing was required, that
+       a connection dropped, or that it recovered. -->
+  <div id="live" role="status" aria-live="polite" class="sr-only"></div>
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="panel-brand-title">
     <div id="card">
       <!-- Header is static. It is NOT the status element, so status updates can
            never blank out the app's identity. -->
       <div id="brand">
         <span id="brand-dot"></span>
-        <h1>Display Share</h1>
+        <h1 id="panel-brand-title">Display Share</h1>
         <!-- Updates apply silently at launch now, so the version is the only
              way to tell what you are running or whether one landed. -->
         <span id="version"></span>
@@ -252,16 +375,16 @@
       </p>
 
       <div id="message">Looking for senders…</div>
-      <div id="senders"></div>
+      <div id="senders" role="list" aria-label="Senders found on this network"></div>
 
       <div id="pin-message"></div>
       <div id="pin-row">
-        <input id="pin" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
+        <input id="pin" aria-label="Pairing PIN" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
         <button id="pin-submit">Pair</button>
       </div>
 
       <div id="bar" class="field-row">
-        <input id="address" placeholder="Mac address, e.g. 192.168.1.42" autocomplete="off" spellcheck="false">
+        <input id="address" aria-label="Mac address" placeholder="Mac address, e.g. 192.168.1.42" autocomplete="off" spellcheck="false">
         <button id="connect">Connect</button>
         <button id="rescan" class="ghost">Rescan</button>
       </div>
@@ -270,7 +393,7 @@
            and visually quieter on purpose: a prominent second action here is how
            the two-apps confusion started. -->
       <div id="share-row">
-        <select id="share-output" hidden></select>
+        <select id="share-output" aria-label="Display to share" hidden></select>
         <button id="share">Share this PC's screen instead</button>
         <button id="stop-share" class="ghost" hidden>Stop sharing</button>
         <span id="share-status"></span>

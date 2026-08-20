@@ -106,6 +106,9 @@ function setStatus(text: string, visible = true) {
     messageEl.classList.add("changed");
   }
   messageEl.textContent = text;
+  // Announced as well as shown: a plain div changing its text tells a screen
+  // reader user nothing, so pairing prompts and drops went unnoticed entirely.
+  if (text) announce(text);
   overlay.style.display = visible ? "flex" : "none";
   // The HUD reports a live stream's statistics. While the overlay is up there is
   // no live stream, so leaving it on shows stale numbers bleeding through.
@@ -787,3 +790,176 @@ function maybeAdviseCable() {
   void hintEl.offsetWidth;
   hintEl.classList.add("show");
 }
+
+// ============================================================ Tasks 11.1/11.2
+// A settings and connection panel reachable with the mouse, and the screen
+// reader support the app never had.
+
+const controlsToggle = document.getElementById("controls-toggle") as HTMLButtonElement;
+const panelEl = document.getElementById("panel") as HTMLDivElement;
+const panelClose = document.getElementById("panel-close") as HTMLButtonElement;
+const connFacts = document.getElementById("conn-facts") as HTMLDListElement;
+const connAdvice = document.getElementById("conn-advice") as HTMLParagraphElement;
+const disconnectButton = document.getElementById("disconnect") as HTMLButtonElement;
+const resSelect = document.getElementById("res-select") as HTMLSelectElement;
+const accelSelect = document.getElementById("accel-select") as HTMLSelectElement;
+const optHud = document.getElementById("opt-hud") as HTMLInputElement;
+const optInput = document.getElementById("opt-input") as HTMLInputElement;
+const liveRegion = document.getElementById("live") as HTMLDivElement;
+
+/// Announces a state change to a screen reader.
+///
+/// Status was written into a plain div, so a blind user was never told that
+/// pairing was required, that the connection dropped, or that it recovered.
+function announce(text: string) {
+  if (!liveRegion || !text) return;
+  // Cleared first: an identical string written twice is not re-announced.
+  liveRegion.textContent = "";
+  setTimeout(() => (liveRegion.textContent = text), 30);
+}
+
+// --- revealing the control ---------------------------------------------------
+let revealTimer: number | undefined;
+function revealControls() {
+  if (overlay.style.display !== "none") return; // the overlay has its own controls
+  controlsToggle?.classList.add("revealed");
+  window.clearTimeout(revealTimer);
+  revealTimer = window.setTimeout(() => {
+    if (panelEl?.hidden !== false) controlsToggle?.classList.remove("revealed");
+  }, 2600);
+}
+window.addEventListener("mousemove", revealControls);
+window.addEventListener("keydown", revealControls);
+
+// --- the panel ---------------------------------------------------------------
+let lastFocused: HTMLElement | null = null;
+
+function focusable(): HTMLElement[] {
+  return Array.from(
+    panelEl.querySelectorAll<HTMLElement>("button, select, input, [href], [tabindex]:not([tabindex='-1'])")
+  ).filter((el) => !el.hasAttribute("disabled"));
+}
+
+function openPanel() {
+  if (!panelEl) return;
+  lastFocused = document.activeElement as HTMLElement | null;
+  refreshPanel();
+  panelEl.hidden = false;
+  controlsToggle?.setAttribute("aria-expanded", "true");
+  focusable()[0]?.focus();
+  announce("Session settings opened");
+}
+
+function closePanel() {
+  if (!panelEl || panelEl.hidden) return;
+  panelEl.hidden = true;
+  controlsToggle?.setAttribute("aria-expanded", "false");
+  // Focus must go back where it came from, or a keyboard user is dropped at the
+  // top of the document with no idea where they are.
+  (lastFocused ?? controlsToggle)?.focus();
+}
+
+controlsToggle?.addEventListener("click", () => (panelEl.hidden ? openPanel() : closePanel()));
+panelClose?.addEventListener("click", closePanel);
+panelEl?.addEventListener("mousedown", (event) => {
+  if (event.target === panelEl) closePanel();
+});
+
+// A modal that cannot be escaped, or tabbed out of, is a trap rather than a dialog.
+panelEl?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closePanel();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const items = focusable();
+  if (items.length === 0) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+
+/// Fills the connection facts. Read from the same values the HUD uses, so the
+/// two can never disagree.
+function refreshPanel() {
+  if (!connFacts) return;
+  const senderName = localStorage.getItem("ds.senderName") ?? addressInput.value ?? "—";
+  const facts: Array<[string, string]> = [
+    ["Connected to", senderName],
+    ["Link", activeLink
+      ? `${activeLink.name}${activeLink.direct ? " · direct" : ""}`
+      : "—"],
+    ["Delay", `${queueingMs.toFixed(0)} ms`],
+    ["Frame rate", `${fps.toFixed(0)} fps`],
+    ["Bitrate", `${mbps.toFixed(1)} Mbps`],
+    ["Resolution", `${panel.width} × ${panel.height}`],
+  ];
+  connFacts.replaceChildren(
+    ...facts.flatMap(([term, value]) => {
+      const dt = document.createElement("dt");
+      dt.textContent = term;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      return [dt, dd];
+    })
+  );
+
+  // The cable guidance belongs here, where the user is already looking at the
+  // link — not only in a README they will never open.
+  if (activeLink && !activeLink.wired && peakQueueingMs >= 40) {
+    connAdvice.hidden = false;
+    connAdvice.textContent =
+      `${activeLink.name} is adding about ${peakQueueingMs.toFixed(0)} ms of delay. ` +
+      "A cable between the two machines removes it: Ethernet at both ends, or " +
+      "Thunderbolt if both support it. A plain USB-C cable carries no network.";
+  } else {
+    connAdvice.hidden = true;
+  }
+
+  optHud.checked = hudWanted;
+  optInput.checked = input.isEnabled;
+  accelSelect.value = acceleration;
+}
+
+// --- controls that actually do something -------------------------------------
+resSelect?.addEventListener("change", () => {
+  const value = resSelect.value;
+  const [width, height] =
+    value === "match" ? [panel.width, panel.height] : value.split("x").map(Number);
+  void sendControl({ type: "resize", width, height });
+  announce(`Requested ${width} by ${height}`);
+});
+
+accelSelect?.addEventListener("change", () => {
+  acceleration = accelSelect.value as Acceleration;
+  localStorage.setItem("ds.acceleration", acceleration);
+  // The decoder is rebuilt on the next keyframe, so ask for one rather than
+  // leaving the change to take effect at some unpredictable later moment.
+  closeDecoder();
+  void sendControl({ type: "request_keyframe" });
+  announce(`Decoder set to ${accelSelect.selectedOptions[0].text}`);
+});
+
+optHud?.addEventListener("change", () => {
+  hudWanted = optHud.checked;
+  localStorage.setItem("ds.hud", hudWanted ? "1" : "0");
+  hud.classList.toggle("hidden", !hudWanted);
+});
+
+optInput?.addEventListener("change", () => {
+  input.setEnabled(optInput.checked);
+  announce(optInput.checked ? "Sending input to the Mac" : "Input forwarding stopped");
+});
+
+disconnectButton?.addEventListener("click", () => {
+  closePanel();
+  announce("Disconnecting");
+  void invoke("disconnect").catch(() => {});
+});
