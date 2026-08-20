@@ -72,6 +72,7 @@
 		F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */; };
 		F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */; };
 		F7DD5E0BFFA814811DAC0215 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */; };
+		FBF7656E1BE8BE8FB2E57A56 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -161,6 +162,7 @@
 		5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjector.swift; sourceTree = "<group>"; };
 		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
 		672104AC92714855136033C4 /* AutoUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpdater.swift; sourceTree = "<group>"; };
+		6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EACE94F33978FE052C43A13 /* ViewerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerClient.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
@@ -312,16 +314,10 @@
 			path = dsprobe;
 			sourceTree = "<group>";
 		};
-		72DC0F3675ECF4A8329202AA /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
 		75FE5B4461AB463DBA43D0D6 /* DisplayShare */ = {
 			isa = PBXGroup;
 			children = (
+				6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */,
 				8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */,
 				A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */,
 				D00D23447A81B9127D65D8BC /* Info.plist */,
@@ -329,7 +325,6 @@
 				26D363C6A13549A482F8052A /* RunningView.swift */,
 				9873E5F7AB47697B26472A6C /* ViewerInput.swift */,
 				D8E1E2CEA8E42F8F6236E480 /* ViewerWindow.swift */,
-				72DC0F3675ECF4A8329202AA /* Resources */,
 			);
 			path = DisplayShare;
 			sourceTree = "<group>";
@@ -483,6 +478,7 @@
 			buildConfigurationList = D89B53CCA549C72DE2F73C62 /* Build configuration list for PBXNativeTarget "DisplayShare" */;
 			buildPhases = (
 				1CEB6F999326E8B3F878A7BD /* Sources */,
+				CA2A2C3A9B6A7264EB541B1C /* Resources */,
 				E43265F5B1B4BAC7FE144D24 /* Frameworks */,
 				5F321B7505A8817435FF4CBD /* Embed Frameworks */,
 				ED46D3E4BA9C2D1EE288A830 /* Embed Dependencies */,
@@ -555,6 +551,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CA2A2C3A9B6A7264EB541B1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FBF7656E1BE8BE8FB2E57A56 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		1CEB6F999326E8B3F878A7BD /* Sources */ = {
