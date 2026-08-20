@@ -197,7 +197,23 @@ jobs:
           EXE=$(find nsis -name '*-setup.exe' | head -1)
           SIG="${EXE}.sig"
           if [ -f "$SIG" ]; then
-            VER="${TAG#v}"
+            # The version MUST come from the artifact, never from the tag.
+            # Deriving it from the tag published latest.json saying 0.10.0 while
+            # the installer inside was 0.9.4, so every app updated, came back
+            # reporting the older version, and updated again on the next launch —
+            # an infinite loop that only stops when someone notices.
+            EXE_NAME=$(basename "$EXE")
+            VER=$(echo "$EXE_NAME" | sed -E 's/.*_([0-9]+\.[0-9]+\.[0-9]+)_.*/\1/')
+            if [ -z "$VER" ] || [ "$VER" = "$EXE_NAME" ]; then
+              echo "::error::could not read a version out of $EXE_NAME"
+              exit 1
+            fi
+            # A tag that disagrees with what was built means someone's installed
+            # app will loop. Fail the release rather than publish it.
+            if [ "$VER" != "${TAG#v}" ]; then
+              echo "::error::tag $TAG does not match the built version $VER — refusing to publish an updater manifest that would loop"
+              exit 1
+            fi
             # Ask GitHub what it CALLED the asset rather than deriving the name
             # locally. Upload rewrites spaces to dots, so a URL built from
             # "Display Share Receiver_x64-setup.exe" — percent-encoded or not —
