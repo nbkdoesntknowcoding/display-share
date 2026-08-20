@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.8.0...v0.9.0) (2026-08-20)
+
+
+### Features
+
+* add the settings, connection and accessibility the app never had ([#22](https://github.com/nbkdoesntknowcoding/display-share/issues/22)) ([efae4b4](https://github.com/nbkdoesntknowcoding/display-share/commit/efae4b4342d857674a9650d40246e2ea7718fcc5))
+
 ## [0.8.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.7.4...v0.8.0) (2026-08-20)
 
 
