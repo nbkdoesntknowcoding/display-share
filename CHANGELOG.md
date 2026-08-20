@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.2...v0.9.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* **windows:** make the update path survive a broken release ([#28](https://github.com/nbkdoesntknowcoding/display-share/issues/28)) ([88d1512](https://github.com/nbkdoesntknowcoding/display-share/commit/88d1512538e7e8eb4f7fdbd46d8506d8a21aca3d))
+
 ## [0.9.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.1...v0.9.2) (2026-08-20)
 
 
