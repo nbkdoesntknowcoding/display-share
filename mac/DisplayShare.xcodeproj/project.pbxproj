@@ -54,6 +54,7 @@
 		B7F5DCF499E438194AE48234 /* AnnexBTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D632BA7BC66B02140363780 /* AnnexBTests.swift */; };
 		BCB701C6DA093F72AC568923 /* RunningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26D363C6A13549A482F8052A /* RunningView.swift */; };
 		C0DFBAE215C36C3B6887B58C /* DisplayShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; };
+		C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D93ED257B4998C87306BDF /* DesignTokens.swift */; };
 		C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */; };
 		CAF66FCCE6BC065D2CE09C3E /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55BD527AC059AAE5E481689F /* CoreMedia.framework */; };
 		CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B700690CE5606F8012DD22 /* MJPEGServer.swift */; };
@@ -71,6 +72,7 @@
 		F58C439493D5ED9A2B0771B3 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */; };
 		F5E55BA170C9E187C6300174 /* DisplayShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */; };
 		F7DD5E0BFFA814811DAC0215 /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D3007FC6F7B9B124A3FC3DE0 /* ScreenCaptureKit.framework */; };
+		FBF7656E1BE8BE8FB2E57A56 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -160,6 +162,7 @@
 		5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjector.swift; sourceTree = "<group>"; };
 		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
 		672104AC92714855136033C4 /* AutoUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpdater.swift; sourceTree = "<group>"; };
+		6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EACE94F33978FE052C43A13 /* ViewerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerClient.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
@@ -198,6 +201,7 @@
 		E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		E3F83080C1F57F9924D89B3C /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		E73BA65C147F0759185CF603 /* InputEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputEvents.swift; sourceTree = "<group>"; };
+		E7D93ED257B4998C87306BDF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStoreTests.swift; sourceTree = "<group>"; };
 		EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
@@ -310,16 +314,10 @@
 			path = dsprobe;
 			sourceTree = "<group>";
 		};
-		72DC0F3675ECF4A8329202AA /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
 		75FE5B4461AB463DBA43D0D6 /* DisplayShare */ = {
 			isa = PBXGroup;
 			children = (
+				6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */,
 				8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */,
 				A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */,
 				D00D23447A81B9127D65D8BC /* Info.plist */,
@@ -327,7 +325,6 @@
 				26D363C6A13549A482F8052A /* RunningView.swift */,
 				9873E5F7AB47697B26472A6C /* ViewerInput.swift */,
 				D8E1E2CEA8E42F8F6236E480 /* ViewerWindow.swift */,
-				72DC0F3675ECF4A8329202AA /* Resources */,
 			);
 			path = DisplayShare;
 			sourceTree = "<group>";
@@ -371,6 +368,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		D203A0374F20F70943CE541C /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				E7D93ED257B4998C87306BDF /* DesignTokens.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
 		EDFBFA965D56567285E3F765 /* include */ = {
 			isa = PBXGroup;
 			children = (
@@ -404,6 +409,7 @@
 				6EACE94F33978FE052C43A13 /* ViewerClient.swift */,
 				247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */,
 				8B126213B277A3A9D373A955 /* WebSocketServer.swift */,
+				D203A0374F20F70943CE541C /* Design */,
 			);
 			path = DisplayShareCore;
 			sourceTree = "<group>";
@@ -472,6 +478,7 @@
 			buildConfigurationList = D89B53CCA549C72DE2F73C62 /* Build configuration list for PBXNativeTarget "DisplayShare" */;
 			buildPhases = (
 				1CEB6F999326E8B3F878A7BD /* Sources */,
+				CA2A2C3A9B6A7264EB541B1C /* Resources */,
 				E43265F5B1B4BAC7FE144D24 /* Frameworks */,
 				5F321B7505A8817435FF4CBD /* Embed Frameworks */,
 				ED46D3E4BA9C2D1EE288A830 /* Embed Dependencies */,
@@ -545,6 +552,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		CA2A2C3A9B6A7264EB541B1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FBF7656E1BE8BE8FB2E57A56 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		1CEB6F999326E8B3F878A7BD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -566,6 +584,7 @@
 				588B577F609B5FADE5D8AAD2 /* AnnexB.swift in Sources */,
 				026601E965F6C2B8CDE99700 /* AutoUpdater.swift in Sources */,
 				800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */,
+				C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */,
 				A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */,
 				EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */,
 				5DC2EAF03A230AB3D347B690 /* H264Encoder.swift in Sources */,
@@ -820,7 +839,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.9.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -936,7 +955,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.9.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;

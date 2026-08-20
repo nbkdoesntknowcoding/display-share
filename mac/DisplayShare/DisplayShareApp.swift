@@ -22,14 +22,21 @@ struct DisplayShareApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra(
-            "Display Share",
-            systemImage: appDelegate.controller.state.isActive ? "display.2" : "display"
-        ) {
+        // The product's own mark, as a template image: macOS tints template
+        // images for light and dark menu bars itself, which is why it must be
+        // monochrome. Falls back to an SF Symbol if the asset is ever missing,
+        // rather than showing an empty menu bar item.
+        MenuBarExtra {
             ControlPanel(
                 controller: appDelegate.controller,
                 openViewer: appDelegate.showViewerWindow
             )
+        } label: {
+            if let mark = NSImage(named: "MenuBarIcon") {
+                Image(nsImage: mark)
+            } else {
+                Image(systemName: appDelegate.controller.state.isActive ? "display.2" : "display")
+            }
         }
         .menuBarExtraStyle(.window)
     }

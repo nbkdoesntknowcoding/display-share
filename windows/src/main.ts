@@ -13,6 +13,7 @@ import {
   type ReceiverPanel,
 } from "./protocol";
 import { InputCapture } from "./input";
+import { backoffFor, humanise } from "./errors";
 
 /**
  * Display Share receiver frontend.
@@ -252,6 +253,9 @@ async function sendControl(message: Record<string, unknown>) {
   }
 }
 
+/// Attempts since the last success, driving the backoff.
+let attempt = 0;
+const RETRY_LIMIT = 4;
 
 /// Chooses a connectable address from what mDNS advertised and formats it for a
 /// URL.
@@ -294,6 +298,7 @@ export function manualUrl(input: string): string {
 
 async function connect(url: string) {
   closeDecoder();
+  clearFailure();
   setStatus(`Connecting to ${url}…`);
 
   panel = await invoke<ReceiverPanel>("detect_panel");
@@ -307,14 +312,25 @@ async function connect(url: string) {
   try {
     await invoke("connect", { url, panel, identity, onFrame: channel });
     if (awaitingPin) return;
+    attempt = 0;
     setStatus("Disconnected. Reconnecting…");
     setTimeout(() => connect(url), 1500);
   } catch (e) {
     // Reconnecting cannot fix a missing PIN, and retrying hides the prompt that
     // can. Leave the pairing UI up and wait for the user.
     if (awaitingPin) return;
-    setStatus(`${e}\n\nRetrying…`);
-    setTimeout(() => connect(url), 2500);
+    attempt += 1;
+    const wait = backoffFor(attempt);
+    if (wait === null) {
+      // Retrying for ever is how a fixable problem stays hidden. Stop, and show
+      // something with a next step in it.
+      setStatus("");
+      showFailure(String(e), true);
+      return;
+    }
+    setStatus(`Attempt ${attempt + 1} of ${RETRY_LIMIT}…`);
+    showFailure(String(e), false);
+    setTimeout(() => connect(url), wait);
   }
 }
 
@@ -622,9 +638,25 @@ async function scanForSenders() {
     button.className = "sender";
     // Staggered by position: a list that lands together reads as a flash.
     button.style.animationDelay = `${senderList.childElementCount * 40}ms`;
-    button.textContent = `${sender.name} — ${target}:${sender.port}`;
-    button.addEventListener("click", () => void connect(`ws://${target}:${sender.port}`));
+    const url = `ws://${target}:${sender.port}`;
+    const name = document.createElement("span");
+    name.className = "sender-name";
+    name.textContent = sender.name;
+    const address = document.createElement("span");
+    address.className = "sender-address";
+    address.textContent = target;
+    const wrap = document.createElement("span");
+    wrap.append(name, address);
+    button.replaceChildren(wrap);
+    button.setAttribute("role", "listitem");
+    // The whole row selects; connecting is the hero button below, so the choice
+    // and the action are separate and both obvious.
+    button.addEventListener("click", () => selectSender(url, button));
+    button.addEventListener("dblclick", () => void connect(url));
     senderList.appendChild(button);
+    // Exactly one Mac is the overwhelmingly common case: pre-select it so the
+    // user has one thing to press.
+    if (senders.length === 1) selectSender(url, button);
   }
 }
 
@@ -967,3 +999,81 @@ disconnectButton?.addEventListener("click", () => {
   announce("Disconnecting");
   void invoke("disconnect").catch(() => {});
 });
+
+// ================================================= Commands 3 and 4 of the audit
+// The discovered Mac becomes the primary action, and transport failures become
+// something a person can act on.
+
+const heroButton = document.getElementById("connect-hero") as HTMLButtonElement | null;
+const manualToggle = document.getElementById("manual-toggle") as HTMLButtonElement | null;
+const rescanLink = document.getElementById("rescan-link") as HTMLButtonElement | null;
+const failureEl = document.getElementById("failure") as HTMLDivElement | null;
+const failureHeadline = document.getElementById("failure-headline") as HTMLDivElement | null;
+const failureGuidance = document.getElementById("failure-guidance") as HTMLDivElement | null;
+const failureRaw = document.getElementById("failure-raw") as HTMLPreElement | null;
+const failureCopy = document.getElementById("failure-copy") as HTMLButtonElement | null;
+
+/// The device the hero button will connect to, chosen by discovery.
+let selectedUrl: string | null = null;
+
+export function selectSender(url: string, row?: HTMLElement) {
+  selectedUrl = url;
+  for (const el of document.querySelectorAll(".sender")) el.classList.remove("selected");
+  row?.classList.add("selected");
+  if (heroButton) {
+    heroButton.hidden = false;
+    heroButton.disabled = false;
+  }
+}
+
+heroButton?.addEventListener("click", () => {
+  if (selectedUrl) void connect(selectedUrl);
+});
+
+// Enter connects, so the common case needs no mouse at all.
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  if (overlay.style.display === "none") return;
+  const target = event.target as HTMLElement | null;
+  // Let the PIN and address fields keep their own Enter behaviour.
+  if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+  if (selectedUrl && heroButton && !heroButton.hidden) {
+    event.preventDefault();
+    void connect(selectedUrl);
+  }
+});
+
+manualToggle?.addEventListener("click", () => {
+  const bar = document.getElementById("bar");
+  if (!bar) return;
+  const showing = !bar.hidden;
+  bar.hidden = showing;
+  manualToggle.setAttribute("aria-expanded", String(!showing));
+  if (!showing) (document.getElementById("address") as HTMLInputElement | null)?.focus();
+});
+
+rescanLink?.addEventListener("click", () => void scanForSenders());
+
+failureCopy?.addEventListener("click", () => {
+  void navigator.clipboard?.writeText(failureRaw?.textContent ?? "");
+  failureCopy.textContent = "Copied";
+  setTimeout(() => (failureCopy.textContent = "Copy"), 1500);
+});
+
+/// Shows a failure the user can act on, keeping the raw text behind a
+/// disclosure because bug reports still need it.
+export function showFailure(raw: string, terminal: boolean) {
+  const friendly = humanise(raw);
+  if (!failureEl || !failureHeadline || !failureGuidance || !failureRaw) return;
+  failureHeadline.textContent = friendly.headline;
+  failureGuidance.textContent = friendly.guidance;
+  failureRaw.textContent = friendly.detail;
+  failureEl.classList.toggle("terminal", terminal || friendly.terminal);
+  failureEl.hidden = false;
+  // Announced as well as shown, or a screen reader user learns nothing.
+  announce(`${friendly.headline}. ${friendly.guidance}`);
+}
+
+export function clearFailure() {
+  if (failureEl) failureEl.hidden = true;
+}

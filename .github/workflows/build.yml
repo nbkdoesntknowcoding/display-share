@@ -35,6 +35,17 @@ jobs:
       # Run the binary directly rather than via a third-party action: the
       # reviewdog wrapper needs checks:write, which this workflow deliberately
       # does not grant.
+      # Command 1 of the UI/UX audit: tokens.json is the single source both apps
+      # consume. Generated files are committed so builds need no extra step, and
+      # this fails the moment they drift from the source that defines them.
+      - name: Design tokens must match their source
+        run: |
+          node design/generate-css.mjs
+          node design/generate-swift.mjs
+          git diff --exit-code -- windows/src/styles/tokens.css \
+            mac/DisplayShareCore/Design/DesignTokens.swift \
+            || { echo "::error::generated tokens are stale — run the generators and commit"; exit 1; }
+
       - name: Key maps must agree across the two languages
         run: python3 scripts/check-keymap-parity.py
 
