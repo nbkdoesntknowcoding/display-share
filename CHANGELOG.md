@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.3...v0.9.4) (2026-08-20)
+
+
+### Bug Fixes
+
+* **windows:** bracket IPv6 and prefer IPv4, so the URL parses at all ([#30](https://github.com/nbkdoesntknowcoding/display-share/issues/30)) ([1df9636](https://github.com/nbkdoesntknowcoding/display-share/commit/1df9636bee49ccb9f243f53da524bf7c3c0c6588))
+
 ## [0.9.3](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.2...v0.9.3) (2026-08-20)
 
 
