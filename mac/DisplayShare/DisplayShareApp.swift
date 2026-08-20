@@ -539,18 +539,23 @@ private struct ControlPanel: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Display Share").font(.headline)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                // Colour carries the state; the dot makes it legible at a glance
-                // instead of requiring the sentence to be read.
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 7, height: 7)
-                    .offset(y: -1)
-                Text(statusText)
-                    .font(.caption)
-                    .foregroundStyle(statusColor)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            // The positioning line, which was previously buried as body copy on
+            // the receiver and used nowhere else.
+            Text("The second monitor you already own.")
+                .font(.system(size: DSFont.f2))
+                .foregroundStyle(DSColor.textMuted)
+                .padding(.bottom, 2)
+
+            // Command 6. The old line paired a green dot with whatever the
+            // statistics happened to say, so "0.0 Mbps" could sit beside an
+            // indicator meaning live, and it printed the raw CGDirectDisplayID.
+            StatusPill(
+                status: sessionStatus,
+                fps: controller.socketStatistics.sentFPS,
+                megabitsPerSecond: controller.socketStatistics.megabitsPerSecond,
+                latencyMillis: controller.socketStatistics.roundTripMillis,
+                sampleAge: 0
+            )
             if controller.reattached {
                 Text("Re-attached to an existing display — your windows were preserved.")
                     .font(.caption2)
@@ -600,7 +605,7 @@ private struct ControlPanel: View {
                     }
             }
 
-            Text("Matching the receiver's panel automatically arrives with the Windows client (Task 3.3).")
+            Text("Resolution matches your PC's screen automatically once it connects.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -639,24 +644,23 @@ private struct ControlPanel: View {
             set: { controller.setFrameRate($0) })
     }
 
-    private var statusText: String {
-        switch controller.state {
-        case .idle: return "Inactive"
-        case .starting: return "Starting…"
-        case .active(let id):
-            let stats = controller.statistics
-            return String(
-                format: "Display 0x%@ · %.0f fps · %.1f Mbps",
-                String(id, radix: 16), stats.captureFPS, stats.megabitsPerSecond)
-        case .failed(let message): return message
-        }
+    /// Derived rather than asserted: streaming requires a receiver attached AND
+    /// frames actually flowing, which is the distinction the old green dot lost.
+    private var sessionStatus: SessionStatus {
+        let socket = controller.socketStatistics
+        var failure: String?
+        if case .failed(let message) = controller.state { failure = message }
+        var starting = false
+        if case .starting = controller.state { starting = true }
+        return SessionStatus.derive(
+            isActive: controller.state.isActive,
+            isStarting: starting,
+            failure: failure,
+            connected: socket.connected,
+            megabitsPerSecond: socket.megabitsPerSecond,
+            client: controller.pairedClientName,
+            droppedFrames: socket.receiverDroppedFrames
+        )
     }
 
-    private var statusColor: Color {
-        switch controller.state {
-        case .failed: return .red
-        case .active: return .green
-        default: return .secondary
-        }
-    }
 }

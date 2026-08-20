@@ -90,6 +90,19 @@ public final class PairingStore: @unchecked Sendable {
         return difference == 0
     }
 
+    /// The name of the device that connected most recently.
+    ///
+    /// Used for "Sharing to <name>" rather than showing an identifier: the
+    /// audit's complaint about `Display 0xb` applies just as much to a device id.
+    public var mostRecentDeviceName: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return devices.values
+            .sorted { ($0.lastSeen ?? .distantPast) > ($1.lastSeen ?? .distantPast) }
+            .first?
+            .deviceName
+    }
+
     public func isAuthorised(deviceId: String?, token: String?) -> Bool {
         guard let deviceId, let token else { return false }
         lock.lock()
