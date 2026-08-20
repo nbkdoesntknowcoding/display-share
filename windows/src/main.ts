@@ -81,6 +81,13 @@ interface LinkInfo {
 /// what you are on now.
 let activeLink: LinkInfo | null = null;
 let linkAdvised = false;
+/// True between the Mac asking for a PIN and the user answering.
+///
+/// Without this the reconnect loop fights the prompt: the socket ends, the
+/// handler writes "Reconnecting…" over the PIN row, reconnects with the same
+/// rejected token, is asked to pair again, and the receiver shows nothing but
+/// "Retrying…" for ever while the Mac patiently waits for a PIN.
+let awaitingPin = false;
 /// Whether the user wants the HUD when a stream is running. Persisted so the
 /// preference survives a reconnect and a restart.
 let hudWanted = localStorage.getItem("ds.hud") !== "0";
@@ -252,9 +259,13 @@ async function connect(url: string) {
 
   try {
     await invoke("connect", { url, panel, identity, onFrame: channel });
+    if (awaitingPin) return;
     setStatus("Disconnected. Reconnecting…");
     setTimeout(() => connect(url), 1500);
   } catch (e) {
+    // Reconnecting cannot fix a missing PIN, and retrying hides the prompt that
+    // can. Leave the pairing UI up and wait for the user.
+    if (awaitingPin) return;
     setStatus(`${e}\n\nRetrying…`);
     setTimeout(() => connect(url), 2500);
   }
@@ -495,6 +506,11 @@ const pinSubmit = document.getElementById("pin-submit") as HTMLButtonElement;
 const pinMessage = document.getElementById("pin-message") as HTMLDivElement;
 
 function showPinPrompt(message: string, isError = false) {
+  awaitingPin = true;
+  // The stored token has just been refused, so it is worthless. Keeping it would
+  // make the next launch auto-connect straight back into this loop.
+  if (identity?.token) identity.token = undefined;
+  localStorage.removeItem("ds.token");
   pinRow.style.display = "flex";
   pinMessage.style.display = "block";
   pinMessage.textContent = message;
@@ -509,6 +525,7 @@ function showPinPrompt(message: string, isError = false) {
 }
 
 function hidePinPrompt() {
+  awaitingPin = false;
   pinRow.style.display = "none";
   pinMessage.style.display = "none";
   card?.classList.remove("pairing");
