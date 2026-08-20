@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.1...v0.9.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* check for updates while running, not only at launch ([#26](https://github.com/nbkdoesntknowcoding/display-share/issues/26)) ([b9f676f](https://github.com/nbkdoesntknowcoding/display-share/commit/b9f676fe1d22f04b7773dae2f0d2d8cb0d79fe3c))
+
 ## [0.9.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.0...v0.9.1) (2026-08-20)
 
 
