@@ -326,9 +326,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Checked at launch AND on a timer. Launch alone is not enough: this is a
+        // menu bar app that people leave running for days, so an install that
+        // started before a release existed would never see it. Three releases
+        // shipped past a copy that had been up for four hours, which is how
+        // "updates apply themselves" turned out to be false in the one case that
+        // matters.
+        runUpdateCheck(bundle: bundle)
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) {
+            [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in self.runUpdateCheck(bundle: bundle) }
+        }
+    }
+
+    private var updateTimer: Timer?
+
+    private func runUpdateCheck(bundle: URL) {
         Task { [weak self] in
             guard let self else { return }
             let updater = AutoUpdater(installedAppURL: bundle)
+            // Streaming is honoured here too: a session in progress defers the
+            // update to the next check rather than being torn down mid-use.
             let outcome = await updater.applyIfAvailable(isStreaming: controller.state.isActive)
             switch outcome {
             case .applied(let version, let permissionsReset):
