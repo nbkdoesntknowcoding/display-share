@@ -1,3 +1,8 @@
+// FIRST, and deliberately so. This module performs the update check at import
+// time, before any code below has a chance to fail. v0.9.0 threw during this
+// module's initialisation and its update check — further down this same file —
+// never ran, stranding every installation that took it. See selfheal.ts.
+import { selfHealStarted } from "./selfheal";
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
@@ -8,7 +13,6 @@ import {
   type ReceiverPanel,
 } from "./protocol";
 import { InputCapture } from "./input";
-import { applyUpdate, checkForUpdate } from "./updater";
 
 /**
  * Display Share receiver frontend.
@@ -597,86 +601,27 @@ if (identity) {
 setStatus("Looking for senders…");
 void scanForSenders();
 
-// --- Updates (Tasks 7.2 / 9.1) ----------------------------------------------
-// Applied automatically at launch. Chosen deliberately after the risk was
-// raised: every payload is verified against the minisign public key in
-// tauri.conf.json, whose private half lives in GitHub secrets, so the download
-// cannot be tampered with even though the installer itself carries no code
-// signing certificate. Unsigned is not the same thing as unverified.
-//
-// This runs BEFORE the auto-connect below on purpose. Replacing the binary
-// underneath a live session would drop the stream and read as a crash, and at
-// launch there is no session yet — so this is the only safe moment.
-const versionLabel = document.getElementById("version") as HTMLSpanElement | null;
-
 /// Shows which version is running.
 ///
-/// Not decoration. Updates now apply themselves silently at launch, so without
-/// this there is no way to tell what you are on, whether an update landed, or
-/// whether the update path is broken — the three questions that follow removing
-/// a visible "Update" button.
+/// Updates apply silently, so without this there is no way to tell what you are
+/// on, whether one landed, or whether the update path is broken — the three
+/// questions that follow removing a visible Update button.
 async function showVersion(suffix = "") {
-  if (!versionLabel) return;
+  const label = document.getElementById("version");
+  if (!label) return;
   try {
-    versionLabel.textContent = `v${await getVersion()}${suffix}`;
+    label.textContent = `v${await getVersion()}${suffix}`;
   } catch {
-    versionLabel.textContent = suffix.trim();
+    label.textContent = suffix.trim();
   }
 }
 
 void showVersion();
 
-async function applyUpdateOnLaunch(): Promise<boolean> {
-  let status;
-  try {
-    status = await checkForUpdate();
-  } catch (error) {
-    // A failed check must never stop the app being used offline — but it must
-    // not be invisible either, or a broken update path looks identical to
-    // being up to date.
-    versionLabel?.classList.add("warn");
-    void showVersion(" · update check failed");
-    console.warn("update check failed", error);
-    return false;
-  }
-  if (!status.available || !status.version) return false;
-
-  const bar = document.createElement("div");
-  bar.id = "update-bar";
-  const label = document.createElement("span");
-  label.textContent = `Updating to ${status.version}…`;
-  bar.appendChild(label);
-  document.body.appendChild(bar);
-
-  try {
-    await applyUpdate((pct) => {
-      label.textContent =
-        pct < 100 ? `Updating to ${status.version}… ${pct}%` : "Restarting…";
-    });
-    return true;
-  } catch (error) {
-    // Say so and carry on with the version already installed, rather than
-    // leaving the user staring at a stalled progress line.
-    label.textContent = `Update failed, continuing on this version: ${error}`;
-    return false;
-  }
-}
-
-// Launch alone is not enough. The receiver is left open for hours, so an
-// install that started before a release existed would never see it — the same
-// gap that left the Mac three releases behind while it sat running. Re-checked
-// on a timer, and never while a session is live: replacing the binary mid-stream
-// would drop the display and read as a crash.
-window.setInterval(
-  () => {
-    if (overlay.style.display === "none") return; // streaming — leave it alone
-    void applyUpdateOnLaunch();
-  },
-  6 * 60 * 60 * 1000
-);
-
 void (async () => {
-  const restarting = await applyUpdateOnLaunch();
+  // The check itself already started at import time; this only waits to learn
+  // whether the app is about to restart.
+  const restarting = await selfHealStarted;
   if (restarting) return;
 
   // Auto-connect when a host is remembered AND we hold a token, so a paired
