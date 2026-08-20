@@ -5,132 +5,236 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Display Share — Receiver</title>
 <style>
-  /* Task 9.2. Two rules here are not taste, they are defects already hit:
-     - Receiving and sharing must stay visually distinct. A prominent second
-       action is how the "which app am I in?" confusion started.
-     - Status has its own element (#message). Writing status into the container
-       destroyed the sender list, the PIN row and the address field in one line,
-       because setting textContent replaces every child. */
+  /* Task 10.3 — macOS-minimal. Restraint rather than decoration: one obvious
+     primary action, muted secondaries, generous whitespace, depth from
+     translucency instead of borders, and motion short enough to be felt but not
+     watched.
+
+     Two rules here are defect-driven, not taste:
+     - Receiving and sharing stay visually distinct. A prominent second action is
+       how the two-apps confusion started.
+     - Status writes into #message, never into a container. Replacing a
+       container's contents once deleted the sender list, PIN row and address
+       field in a single line. */
   :root {
     color-scheme: dark;
-    --bg: #08090b;
-    --card: #14161a;
-    --line: rgba(255,255,255,.10);
-    --line-strong: rgba(255,255,255,.18);
-    --text: #f2f3f5;
-    --muted: #9aa1ab;
-    --accent: #3b82f6;
-    --accent-hover: #2f6fdc;
-    --ok: #34d399;
+    --bg: #000;
+    --card: rgba(30, 30, 32, 0.72);
+    --card-solid: #1e1e20;
+    --hairline: rgba(255, 255, 255, 0.09);
+    --hairline-strong: rgba(255, 255, 255, 0.16);
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.52);
+    --faint: rgba(255, 255, 255, 0.34);
+    --accent: #0a84ff;            /* macOS dark-mode system blue */
+    --accent-hover: #3b9bff;
+    --ok: #30d158;
+    --warn: #ffd60a;
+    /* One curve everywhere: macOS motion decelerates hard and settles. */
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --fast: 140ms;
+    --base: 200ms;
   }
-  html, body { margin:0; padding:0; height:100%; background:var(--bg); overflow:hidden;
-               font-family: ui-sans-serif, system-ui, "Segoe UI Variable Text", "Segoe UI", sans-serif;
-               color:var(--text); -webkit-font-smoothing:antialiased; }
-  /* The app is one fullscreen canvas; everything else floats above it. */
-  #screen { width:100vw; height:100vh; object-fit:contain; display:block; background:#000; }
 
-  #hud {
-    position:fixed; top:14px; left:14px; padding:9px 12px;
-    font:11.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace;
-    color:#e8e8e8; background:rgba(8,9,11,.66); border:1px solid var(--line-strong);
-    border-radius:10px; backdrop-filter:blur(10px); pointer-events:none; white-space:pre;
+  html, body {
+    margin: 0; padding: 0; height: 100%; background: var(--bg); overflow: hidden;
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI Variable Text",
+                 "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 13.5px; line-height: 1.5;
   }
-  #hud.hidden { display:none; }
+
+  #screen { width: 100vw; height: 100vh; object-fit: contain; display: block; background: #000; }
+
+  /* ---------------------------------------------------------------- overlay */
+  #overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: 24px; overflow-y: auto;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(10, 132, 255, 0.13), transparent 60%),
+      rgba(0, 0, 0, 0.92);
+    animation: overlay-in var(--base) var(--ease);
+  }
+  @keyframes overlay-in { from { opacity: 0 } to { opacity: 1 } }
+
+  #card {
+    width: 100%; max-width: 384px;
+    background: var(--card);
+    backdrop-filter: blur(30px) saturate(180%);
+    border: 0.5px solid var(--hairline-strong);
+    border-radius: 14px;
+    padding: 22px 20px 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(0, 0, 0, 0.6);
+    animation: card-in var(--base) var(--ease) both;
+  }
+  /* Rises and settles, the way a macOS sheet arrives. */
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.985) }
+    to   { opacity: 1; transform: none }
+  }
+
+  #brand { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  #brand-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  /* Signals "looking", without a spinner demanding attention. */
+  @keyframes breathe {
+    0%, 100% { opacity: 1;   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18) }
+    50%      { opacity: 0.6; box-shadow: 0 0 0 5px rgba(10, 132, 255, 0.07) }
+  }
+  h1 { margin: 0; font-size: 14.5px; font-weight: 590; letter-spacing: -0.012em; }
+  #version { margin-left: auto; font-size: 11px; color: var(--faint);
+             font-variant-numeric: tabular-nums; }
+  #version.warn { color: var(--warn); }
+  #role { margin: 0 0 16px; font-size: 12.5px; color: var(--muted); }
+
+  /* Dedicated status element — never the container. */
+  #message { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; min-height: 1.5em; }
+  #message.changed { animation: status-in var(--fast) var(--ease); }
+  @keyframes status-in { from { opacity: 0; transform: translateY(-2px) } to { opacity: 1 } }
+
+  #senders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  #senders:empty { display: none; }
+  .sender {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    background: rgba(255, 255, 255, 0.06); border: 0.5px solid var(--hairline);
+    color: var(--text); font-size: 13px; padding: 10px 12px; border-radius: 9px;
+    cursor: pointer; transition: background var(--fast) var(--ease),
+                                 transform var(--fast) var(--ease);
+    /* Staggered by index below, so a list arrives rather than appearing. */
+    animation: row-in var(--base) var(--ease) both;
+  }
+  @keyframes row-in { from { opacity: 0; transform: translateY(5px) } to { opacity: 1 } }
+  .sender:hover { background: rgba(255, 255, 255, 0.11); }
+  .sender:active { transform: scale(0.985); }
+
+  .field-row { display: flex; gap: 7px; }
+  input, button, select {
+    font: inherit; font-size: 13px; padding: 8px 11px; border-radius: 9px;
+    border: 0.5px solid var(--hairline-strong);
+    background: rgba(255, 255, 255, 0.07); color: var(--text); outline: none;
+    transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease),
+                transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+  }
+  input { flex: 1; min-width: 0; }
+  input::placeholder { color: var(--faint); }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.28);
+  }
+  button { cursor: pointer; flex: none; font-weight: 510; }
+  button:active { transform: scale(0.96); }
+  button:disabled { opacity: 0.45; cursor: default; transform: none; }
+  /* Exactly one primary action on screen. */
+  #connect, #pin-submit {
+    background: var(--accent); border-color: transparent; color: #fff;
+  }
+  #connect:hover, #pin-submit:hover { background: var(--accent-hover); }
+  button.ghost { background: rgba(255, 255, 255, 0.05); color: var(--muted); }
+  button.ghost:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+
+  #pin-row { display: none; gap: 7px; margin-bottom: 11px; }
+  #pin { flex: none; width: 96px; text-align: center; font-size: 17px;
+         letter-spacing: 6px; font-variant-numeric: tabular-nums; }
+  #pin-message { display: none; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  #pin-message.error { color: #ff453a; }
+  /* One primary action at a time: while pairing, the manual address row folds
+     away rather than sitting beside Pair as a second blue button. */
+  #card.pairing #bar { display: none; }
+
+  /* The reverse direction, quieter than receiving on purpose. */
+  #share-row {
+    margin-top: 18px; padding-top: 15px; border-top: 0.5px solid var(--hairline);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #share-row select { width: 100%; }
+  #share-row button { background: rgba(255, 255, 255, 0.05); color: var(--muted);
+                      font-weight: 400; }
+  #share-row button:hover { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+  #share-status { font-size: 11.5px; color: var(--faint); }
+
+  /* -------------------------------------------------------------------- HUD */
+  #hud {
+    position: fixed; top: 14px; left: 14px; padding: 11px 13px;
+    background: rgba(30, 30, 32, 0.66); backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--hairline-strong); border-radius: 11px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+    pointer-events: none; min-width: 186px;
+    transition: opacity var(--base) var(--ease), transform var(--base) var(--ease);
+  }
+  #hud.hidden { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  .hud-row { display: flex; justify-content: space-between; gap: 16px; font-size: 11.5px; }
+  .hud-label { color: var(--faint); }
+  .hud-value { color: var(--text); font-variant-numeric: tabular-nums; }
+  /* Latency is the number this release is about, so it reads first. */
+  .hud-row.lead .hud-value { font-size: 13px; font-weight: 590; }
+  .hud-row.warn .hud-value { color: var(--warn); }
+  .hud-keys {
+    margin-top: 9px; padding-top: 8px; border-top: 0.5px solid var(--hairline);
+    font-size: 10.5px; color: var(--faint); line-height: 1.7;
+  }
+  kbd {
+    font: inherit; font-size: 10px; padding: 1px 4px; border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1); border: 0.5px solid var(--hairline-strong);
+  }
 
   /* Input forwarding is a strong capability; its state must be unmissable. */
   #input-badge {
-    position:fixed; top:14px; left:50%; transform:translateX(-50%);
-    padding:7px 15px; border-radius:999px; font:11.5px/1 ui-monospace, monospace;
-    letter-spacing:.4px; font-weight:600; color:#062012; background:var(--ok); display:none;
-    box-shadow:0 4px 16px rgba(0,0,0,.45); pointer-events:none;
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    padding: 6px 13px; border-radius: 999px; font-size: 11.5px; font-weight: 590;
+    color: #03210c; background: var(--ok); display: none;
+    box-shadow: 0 4px 18px rgba(48, 209, 88, 0.34);
+    pointer-events: none;
   }
-  #input-badge.active { display:block; }
+  #input-badge.active { display: block; animation: badge-in var(--base) var(--ease); }
+  @keyframes badge-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px) }
+    to   { opacity: 1; transform: translateX(-50%) }
+  }
 
-  #overlay {
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    padding:24px; background:
-      radial-gradient(1100px 520px at 50% -8%, rgba(59,130,246,.16), transparent 62%),
-      rgba(8,9,11,.94);
-    overflow-y:auto;
+  /* Shown once on first connect, then gone: teaches the shortcut without
+     leaving permanent furniture on a screen meant to be a display. */
+  #hint {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 999px; font-size: 12px; color: var(--muted);
+    background: rgba(30, 30, 32, 0.72); backdrop-filter: blur(24px);
+    border: 0.5px solid var(--hairline-strong); pointer-events: none; opacity: 0;
   }
-  #card {
-    width:100%; max-width:430px; background:var(--card);
-    border:1px solid var(--line); border-radius:16px; padding:26px 24px 22px;
-    box-shadow:0 24px 70px rgba(0,0,0,.6);
+  #hint.show { animation: hint 4.2s var(--ease) forwards; }
+  @keyframes hint {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(6px) }
+    12%  { opacity: 1; transform: translateX(-50%) }
+    78%  { opacity: 1 }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-4px) }
   }
-  #brand { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
-  #brand-dot {
-    width:9px; height:9px; border-radius:50%; background:var(--accent); flex:none;
-    box-shadow:0 0 0 4px rgba(59,130,246,.16);
-  }
-  h1 { margin:0; font-size:16px; font-weight:650; letter-spacing:-.01em; }
-  #version { margin-left:auto; font-size:11.5px; color:var(--muted);
-             font-variant-numeric:tabular-nums; }
-  #version.warn { color:#f5b544; }
-  #role { margin:0 0 18px; font-size:12.5px; color:var(--muted); line-height:1.5; }
-
-  /* Dedicated status element — never the container. */
-  #message { font-size:13px; color:var(--muted); line-height:1.55; margin-bottom:14px;
-             white-space:pre-line; }
-
-  #senders { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
-  #senders:empty { display:none; }
-  .sender {
-    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
-    background:#1c1f25; border:1px solid var(--line-strong); color:var(--text);
-    font-size:13.5px; padding:11px 13px; border-radius:10px; cursor:pointer;
-  }
-  .sender:hover { background:#242830; border-color:rgba(255,255,255,.28); }
-
-  .field-row { display:flex; gap:8px; }
-  input, button, select {
-    font:13.5px ui-sans-serif, system-ui; padding:10px 12px; border-radius:10px;
-    border:1px solid var(--line-strong); background:#1c1f25; color:var(--text);
-    outline:none;
-  }
-  input { flex:1; min-width:0; }
-  input::placeholder { color:#6b7280; }
-  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,130,246,.18); }
-  button { background:var(--accent); border-color:var(--accent); cursor:pointer;
-           font-weight:550; flex:none; }
-  button:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
-  button:disabled { opacity:.55; cursor:default; }
-  button.ghost { background:transparent; border-color:var(--line-strong); color:var(--muted); }
-  button.ghost:hover { background:#1c1f25; color:var(--text); }
-
-  #pin-row { display:none; gap:8px; margin-bottom:12px; }
-  #pin { flex:none; width:104px; text-align:center; font:19px ui-monospace, monospace;
-         letter-spacing:5px; }
-  #pin-message { display:none; font-size:12.5px; color:var(--muted); line-height:1.5;
-                 margin-bottom:9px; }
-
-  /* The reverse direction, deliberately quieter than receiving: receiving is
-     what almost everyone installs this for. */
-  #share-row {
-    margin-top:20px; padding-top:17px; border-top:1px solid var(--line);
-    display:flex; flex-direction:column; gap:9px;
-  }
-  #share-row select { width:100%; }
-  #share-row button { background:transparent; border-color:var(--line-strong);
-                      color:var(--muted); font-weight:500; }
-  #share-row button:hover { background:#1c1f25; color:var(--text); }
-  #share-status { font-size:12px; color:var(--muted); line-height:1.5; }
 
   #update-bar {
-    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-    display:flex; align-items:center; gap:10px; padding:11px 15px;
-    background:var(--card); border:1px solid var(--line-strong); border-radius:12px;
-    font:12.5px ui-sans-serif, system-ui; color:var(--text); z-index:10;
-    box-shadow:0 8px 26px rgba(0,0,0,.55);
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; padding: 10px 15px;
+    background: rgba(30, 30, 32, 0.82); backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--hairline-strong); border-radius: 11px;
+    font-size: 12.5px; color: var(--text); z-index: 10;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+    animation: card-in var(--base) var(--ease) both;
   }
-  #update-bar button { font-size:12px; padding:7px 11px; }
-  #update-bar button.ghost { background:transparent; border-color:var(--line-strong); }
+
+  /* Motion is an explanation here, not content: removing it must lose nothing. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
   <canvas id="screen"></canvas>
-  <div id="hud">starting…</div>
+  <div id="hud"></div>
   <div id="input-badge"></div>
+  <div id="hint"></div>
   <div id="overlay">
     <div id="card">
       <!-- Header is static. It is NOT the status element, so status updates can

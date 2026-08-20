@@ -52,4 +52,9 @@ windows = { version = "0.58", features = [
   # coordinates are measured against.
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_UI_WindowsAndMessaging",
+  # Task 10.2: naming the adapter a session is actually running over, so the
+  # app can tell the user whether a cable would help.
+  "Win32_NetworkManagement_IpHelper",
+  "Win32_NetworkManagement_Ndis",
+  "Win32_Networking_WinSock",
 ] }
