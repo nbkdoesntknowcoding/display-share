@@ -361,6 +361,13 @@ struct ViewerView: View {
         ZStack(alignment: .topLeading) {
             VideoSurface(model: model)
                 .frame(minWidth: 640, minHeight: 360)
+                .accessibilityElement()
+                .accessibilityLabel("Windows desktop")
+                .accessibilityValue(
+                    model.status.connected
+                        ? "Connected, \(model.status.decoder.width) by \(model.status.decoder.height)"
+                        : "Not connected"
+                )
 
             if model.showHUD {
                 hud
@@ -380,9 +387,17 @@ struct ViewerView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .accessibilityLabel(
+                        model.inputEnabled
+                            ? "Stop controlling this PC" : "Control this PC"
+                    )
+                    .accessibilityHint(
+                        "Sends this Mac's keyboard and mouse to the Windows machine"
+                    )
 
                     if model.inputEnabled {
                         Text("Your keyboard and mouse are driving Windows")
+                            .accessibilityAddTraits(.updatesFrequently)
                             .font(.system(size: 11, weight: .medium))
                             .padding(.horizontal, 11).padding(.vertical, 5)
                             .background(Color.green, in: Capsule())
@@ -442,6 +457,19 @@ struct ViewerView: View {
         )
         .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
         .transition(.opacity.combined(with: .move(edge: .top)))
+        // One summarised label instead of every row read separately, which is
+        // what VoiceOver does with a grid of numbers that updates each second.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Stream statistics")
+        .accessibilityValue(
+            String(
+                format: "%.0f frames per second, %d by %d, %.1f millisecond decode",
+                model.status.fps,
+                model.status.decoder.width,
+                model.status.decoder.height,
+                model.status.decoder.meanDecodeMs
+            )
+        )
     }
 
     private func hudRow(

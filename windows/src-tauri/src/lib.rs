@@ -226,6 +226,7 @@ pub fn run() {
             set_fullscreen,
             capture_probe,
             link_info,
+            disconnect,
             start_sharing,
             stop_sharing,
             sharing_status,
@@ -597,4 +598,16 @@ fn list_display_outputs() -> Result<Vec<OutputInfo>, String> {
 #[tauri::command]
 fn link_info(state: State<'_, Arc<ConnectionState>>) -> Option<link::LinkInfo> {
     state.link.lock().unwrap().clone()
+}
+
+/// Ends the current session.
+///
+/// Dropping the outbound sender closes the socket, which unblocks the read loop
+/// and lets `connect` return — the same path an ordinary drop takes, so the
+/// frontend needs no special case for a deliberate disconnect.
+#[tauri::command]
+async fn disconnect(state: State<'_, Arc<ConnectionState>>) -> Result<(), String> {
+    state.outbound.lock().await.take();
+    *state.link.lock().unwrap() = None;
+    Ok(())
 }
