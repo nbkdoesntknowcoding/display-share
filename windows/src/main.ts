@@ -805,13 +805,19 @@ const resSelect = document.getElementById("res-select") as HTMLSelectElement;
 const accelSelect = document.getElementById("accel-select") as HTMLSelectElement;
 const optHud = document.getElementById("opt-hud") as HTMLInputElement;
 const optInput = document.getElementById("opt-input") as HTMLInputElement;
-const liveRegion = document.getElementById("live") as HTMLDivElement;
-
 /// Announces a state change to a screen reader.
 ///
 /// Status was written into a plain div, so a blind user was never told that
 /// pairing was required, that the connection dropped, or that it recovered.
+///
+/// The element is looked up on EACH call rather than captured in a module const.
+/// setStatus runs during module initialisation, long before the declarations at
+/// the bottom of this file are evaluated, so closing over one put it in the
+/// temporal dead zone: the first status update threw
+/// "Cannot access 'liveRegion' before initialization", which killed the module
+/// and with it discovery, connection and the entire interface.
 function announce(text: string) {
+  const liveRegion = document.getElementById("live");
   if (!liveRegion || !text) return;
   // Cleared first: an identical string written twice is not re-announced.
   liveRegion.textContent = "";
