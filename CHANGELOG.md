@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.0...v0.9.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **windows:** repair the startup crash that killed the whole receiver ([#24](https://github.com/nbkdoesntknowcoding/display-share/issues/24)) ([4394111](https://github.com/nbkdoesntknowcoding/display-share/commit/4394111d847bb7554217ea32be4f1d2f5595d918))
+
 ## [0.9.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.8.0...v0.9.0) (2026-08-20)
 
 
