@@ -257,6 +257,45 @@ async function sendControl(message: Record<string, unknown>) {
 let attempt = 0;
 const RETRY_LIMIT = 4;
 
+/// Chooses a connectable address from what mDNS advertised and formats it for a
+/// URL.
+///
+/// Taking addresses[0] blindly produced "invalid authority": mDNS returns IPv6
+/// as well as IPv4, and an IPv6 literal is only valid in a URL inside brackets —
+/// `ws://fe80::1:8788` cannot be parsed at all.
+///
+/// IPv4 is preferred where offered. A link-local IPv6 address carries a zone
+/// index (`%en0`) that identifies an interface on the machine that resolved it;
+/// it is meaningless to a URL and to the other end, so those are skipped rather
+/// than dressed up with brackets and hoped for.
+export function wsTarget(addresses: string[], host: string): string {
+  const ipv4 = addresses.find((a) => /^\d{1,3}(\.\d{1,3}){3}$/.test(a));
+  if (ipv4) return ipv4;
+  const ipv6 = addresses.find((a) => a.includes(":") && !a.includes("%"));
+  if (ipv6) return `[${ipv6}]`;
+  return host;
+}
+
+/// Builds a URL from a hand-typed address.
+///
+/// Handles the four things people actually type: a bare address, an address
+/// with a port, a bare IPv6 literal, and a full ws:// URL. One colon means a
+/// port; more than one means IPv6, which needs brackets.
+export function manualUrl(input: string): string {
+  const host = input.trim();
+  if (!host) return "";
+  if (host.startsWith("ws://") || host.startsWith("wss://")) return host;
+  if (host.startsWith("[")) {
+    return host.includes("]:") ? `ws://${host}` : `ws://${host}:8788`;
+  }
+  const colons = (host.match(/:/g) ?? []).length;
+  if (colons > 1) {
+    // A zone index identifies an interface on THIS machine and cannot travel.
+    return `ws://[${host.replace(/%.*$/, "")}]:8788`;
+  }
+  return colons === 1 ? `ws://${host}` : `ws://${host}:8788`;
+}
+
 async function connect(url: string) {
   closeDecoder();
   clearFailure();
@@ -509,7 +548,7 @@ connectButton.addEventListener("click", () => {
   const host = addressInput.value.trim();
   if (!host) return;
   localStorage.setItem("ds.host", host);
-  const url = host.startsWith("ws://") || host.startsWith("wss://") ? host : `ws://${host}:8788`;
+  const url = manualUrl(host);
   void connect(url);
 });
 
@@ -594,7 +633,7 @@ async function scanForSenders() {
   }
   senderList.textContent = "";
   for (const sender of senders) {
-    const target = sender.addresses[0] ?? sender.host;
+    const target = wsTarget(sender.addresses, sender.host);
     const button = document.createElement("button");
     button.className = "sender";
     // Staggered by position: a list that lands together reads as a flash.
