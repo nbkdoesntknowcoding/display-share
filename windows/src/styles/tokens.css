@@ -1,0 +1,38 @@
+/* GENERATED FROM design/tokens.json — DO NOT EDIT.
+ * Run `node design/generate-css.mjs` after changing tokens.json.
+ * CI fails if this file does not match the generator's output. */
+:root {
+  --ds-bg: #0A0A0C;
+  --ds-surface: #141418;
+  --ds-surface-raised: #1D1D23;
+  --ds-border: #2B2B33;
+  --ds-border-strong: #3A3A45;
+  --ds-text: #ECECEF;
+  --ds-text-muted: #9C9CA6;
+  --ds-text-faint: #6E6E7A;
+  --ds-accent: #F0997B;
+  --ds-accent-hover: #F7B097;
+  --ds-accent-press: #E0876A;
+  --ds-accent-ink: #2A1710;
+  --ds-live: #4ADE80;
+  --ds-warn: #FBBF24;
+  --ds-error: #F87171;
+
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 14px;
+
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+  --ds-space-6: 32px;
+
+  --ds-font-1: 11px;
+  --ds-font-2: 12px;
+  --ds-font-3: 13px;
+  --ds-font-4: 15px;
+  --ds-font-5: 17px;
+  --ds-font-6: 20px;
+}
