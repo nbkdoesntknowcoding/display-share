@@ -46,6 +46,12 @@ jobs:
             mac/DisplayShareCore/Design/DesignTokens.swift \
             || { echo "::error::generated tokens are stale — run the generators and commit"; exit 1; }
 
+      # The audit found "(Task 3.3)" and "Display 0xb" shipped to users for
+      # weeks. Neither was catchable by a test — both were valid code — so this
+      # reads the source and fails on the pattern.
+      - name: No internal references in user-facing strings
+        run: python3 scripts/check-user-strings.py
+
       - name: Key maps must agree across the two languages
         run: python3 scripts/check-keymap-parity.py
 

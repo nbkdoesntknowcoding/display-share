@@ -321,6 +321,15 @@ public final class DisplayShareController: ObservableObject {
         client.shutdown()
     }
 
+    /// The receiver's own name, for "Sharing to <name>".
+    ///
+    /// Read from the pairing store rather than tracked separately: a connected
+    /// receiver is by definition one that paired, and the store already knows
+    /// what it called itself.
+    public var pairedClientName: String? {
+        pairing.mostRecentDeviceName
+    }
+
     public var statistics: MJPEGServer.Statistics { pipeline.httpServer.statistics }
     public var socketStatistics: WebSocketServer.Statistics { pipeline.socketServer.statistics }
 
