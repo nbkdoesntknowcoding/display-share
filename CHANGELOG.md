@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.12.0...v0.13.0) (2026-08-21)
+
+
+### Features
+
+* **win:** the receiver becomes a window instead of a card on a void ([#44](https://github.com/nbkdoesntknowcoding/display-share/issues/44)) ([1f48165](https://github.com/nbkdoesntknowcoding/display-share/commit/1f48165cab4d5749de7c6cbde80e5042a0745835))
+
 ## [0.12.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.11.0...v0.12.0) (2026-08-21)
 
 
