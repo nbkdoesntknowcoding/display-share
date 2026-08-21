@@ -203,10 +203,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let steps: [(String, () -> Void)] = [
             ("res 1280x720", { self.controller.setResolution(width: 1280, height: 720) }),
             ("fps 30", { self.controller.setFrameRate(30) }),
-            ("quality 0.3", { self.controller.jpegQuality = 0.3 }),
             ("res 1920x1080", { self.controller.setResolution(width: 1920, height: 1080) }),
             ("fps 60", { self.controller.setFrameRate(60) }),
-            ("quality 0.9", { self.controller.jpegQuality = 0.9 }),
             ("res 2560x1440", { self.controller.setResolution(width: 2560, height: 1440) }),
         ]
         var delay: Double = 4
@@ -437,7 +435,6 @@ private struct ControlPanel: View {
     /// OWN forwarding delegate, so `NSApp.delegate as? AppDelegate` is nil and
     /// the optional-chained call silently did nothing.
     let openViewer: () -> Void
-    @State private var quality: Double = 0.7
 
     private static let resolutions: [(label: String, width: UInt32, height: UInt32)] = [
         ("1280 × 720", 1280, 720),
@@ -445,123 +442,75 @@ private struct ControlPanel: View {
         ("2560 × 1440", 2560, 1440),
     ]
 
+    /// The order, as data (Command 9).
+    ///
+    /// Dividers used to be emitted by whichever block was visible, so an update
+    /// notice followed by the browser fallback produced two in a row and a
+    /// missing one elsewhere. Sections are now listed, then drawn with exactly
+    /// one divider between neighbours — the rhythm cannot depend on which `if`
+    /// happened to succeed.
+    private var sections: [PopoverSection] {
+        PopoverSection.ordered(
+            isPairing: controller.pairingPIN != nil,
+            needsScreenRecording: controller.needsScreenRecordingPermission,
+            needsAccessibility: controller.needsAccessibilityPermission,
+            hasUpdate: controller.availableUpdate != nil,
+            hasBrowserFallback: controller.streamURL != nil
+        )
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
-
-            Divider()
-
-            // A pending PIN is the most important thing on screen when it exists.
-            if let pin = controller.pairingPIN {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Pairing PIN").font(.caption).foregroundStyle(.secondary)
-                    Text(pin)
-                        .font(.system(size: 30, weight: .semibold, design: .monospaced))
-                        .textSelection(.enabled)
-                    Text("Type this on the receiver to pair it.")
-                        .font(.caption2).foregroundStyle(.secondary)
-                }
-                Divider()
-            }
-
-            if controller.needsScreenRecordingPermission {
-                permissionNotice
-                Divider()
-            }
-
-            // Only shown once a receiver has actually tried to send input, so
-            // it is not noise for people who only want a second screen.
-            if controller.needsAccessibilityPermission {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Remote control needs Accessibility permission.")
-                        .font(.caption)
-                        .fixedSize(horizontal: false, vertical: true)
-                    DSButton("Grant Accessibility…", variant: .secondary) {
-                        controller.requestAccessibilityPermission()
-                    }
-                }
-                Divider()
-            }
-
-            controls
-
-            if let update = controller.availableUpdate {
-                DSButton("Update available — \(update.version)", variant: .secondary) {
-                    controller.openUpdatePage()
-                }
-                Divider()
-            }
-
-            if let url = controller.streamURL {
-                Divider()
-                receiverSection(url: url)
-            }
-
-            Divider()
-
-            // The reverse direction, labelled rather than left as a bare button:
-            // "View a Windows PC" sitting next to Start/Stop gave no clue that
-            // the two do opposite things.
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Other direction")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                DSButton("View a Windows PC…", variant: .secondary) { openViewer() }
-                Text("Watch and control a Windows machine from this Mac.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            // Command 7. Stop is an outline in error red, not a filled accent
-            // button — the control that ends the session was the loudest thing
-            // in the popover. It also asks for the default action and is
-            // REFUSED it while active: the same button carried
-            // `.keyboardShortcut(.defaultAction)` through the title change, so
-            // Return with the popover open ended a running session.
-            HStack {
-                DSButton(
-                    controller.state.isActive ? "Stop" : "Start",
-                    variant: .forSession(isActive: controller.state.isActive),
-                    defaultAction: true
-                ) {
-                    controller.state.isActive ? controller.stop() : controller.start()
-                }
-
-                Spacer()
-
-                // Ghost rather than the destructive outline the audit's table
-                // suggests: two red buttons side by side make neither of them
-                // mean anything, and Command 9 settles it as a ghost.
-                DSButton("Quit", variant: .ghost, shortcut: "q") {
-                    controller.shutdownForQuit()
-                    NSApp.terminate(nil)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(sections.enumerated()), id: \.element) { index, section in
+                if index > 0 { DSDivider() }
+                view(for: section)
             }
         }
-        .padding(14)
-        .frame(width: 320)
+        .padding(DSPopoverMetrics.padding)
+        .frame(width: DSPopoverMetrics.width)
         .onAppear {
-            quality = controller.jpegQuality
             // Re-check on open: the user may have granted it in System Settings
             // while this panel was closed.
             controller.refreshAccessibilityState()
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("Display Share").font(.headline)
-            // The positioning line, which was previously buried as body copy on
-            // the receiver and used nowhere else.
-            Text("The second monitor you already own.")
-                .font(.system(size: DSFont.f2))
-                .foregroundStyle(DSColor.textMuted)
-                .padding(.bottom, 2)
+    @ViewBuilder
+    private func view(for section: PopoverSection) -> some View {
+        switch section {
+        case .header: header
+        case .status: statusSection
+        case .pairing: pairingSection
+        case .screenRecordingNotice: permissionNotice
+        case .accessibilityNotice: accessibilityNotice
+        case .display: displaySection
+        case .update: updateSection
+        case .browserFallback: browserFallbackSection
+        case .otherDirection: otherDirectionSection
+        case .actions: actions
+        }
+    }
 
-            // Command 6. The old line paired a green dot with whatever the
-            // statistics happened to say, so "0.0 Mbps" could sit beside an
-            // indicator meaning live, and it printed the raw CGDirectDisplayID.
+    // MARK: - Sections
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DSSpacing.s2) {
+            DSAppMark(size: 17).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Display Share").font(.headline)
+                // The positioning line, which was previously buried as body copy
+                // on the receiver and used nowhere else.
+                Text("The second monitor you already own.")
+                    .font(.system(size: DSFont.f2))
+                    .foregroundStyle(DSColor.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// Command 6, now leading the popover instead of sitting under a slider.
+    private var statusSection: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.s2) {
             StatusPill(
                 status: sessionStatus,
                 fps: controller.socketStatistics.sentFPS,
@@ -578,8 +527,23 @@ private struct ControlPanel: View {
         }
     }
 
+    /// A pending PIN is the most important thing on screen when it exists.
+    @ViewBuilder
+    private var pairingSection: some View {
+        if let pin = controller.pairingPIN {
+            VStack(alignment: .leading, spacing: DSSpacing.s1) {
+                Text("Pairing PIN").font(.caption).foregroundStyle(.secondary)
+                Text(pin)
+                    .font(.system(size: 30, weight: .semibold, design: .monospaced))
+                    .textSelection(.enabled)
+                Text("Type this on the receiver to pair it.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var permissionNotice: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: DSSpacing.s2) {
             Text("Screen Recording permission is required to capture the display.")
                 .font(.caption)
                 .fixedSize(horizontal: false, vertical: true)
@@ -589,36 +553,47 @@ private struct ControlPanel: View {
         }
     }
 
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    /// Only shown once a receiver has actually tried to send input, so it is not
+    /// noise for people who only want a second screen.
+    private var accessibilityNotice: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.s2) {
+            Text("Remote control needs Accessibility permission.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            DSButton("Grant Accessibility…", variant: .secondary) {
+                controller.requestAccessibilityPermission()
+            }
+        }
+    }
+
+    /// Resolution and frame rate — the only two settings that do anything.
+    ///
+    /// A "JPEG quality" slider used to sit here and outweigh the status line.
+    /// It was DELETED rather than collapsed into an Advanced group: the JPEG
+    /// encoder runs only under `codec == .mjpeg`, which is reachable only via a
+    /// developer command-line flag, so in every shipped configuration the
+    /// slider adjusted a number nothing read. The browser fallback is not the
+    /// exception it looks like — that page is the WebCodecs H.264 client, not
+    /// the MJPEG one.
+    private var displaySection: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.s3) {
             // Resolution is applied to the LIVE display, so windows stay put.
             Picker("Resolution", selection: resolutionBinding) {
                 ForEach(Self.resolutions, id: \.label) { option in
                     Text(option.label).tag("\(option.width)x\(option.height)")
                 }
             }
+            .tint(DSColor.accent)
 
             Picker("Frame rate", selection: frameRateBinding) {
                 Text("30 fps").tag(30)
                 Text("60 fps").tag(60)
             }
             .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text("JPEG quality").font(.caption)
-                    Spacer()
-                    Text(String(format: "%.0f%%", quality * 100))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                // Encoder-only setting: no display or stream restart needed,
-                // so it can move under the user's finger.
-                Slider(value: $quality, in: 0.2...1.0, step: 0.05)
-                    .onChange(of: quality) { _, newValue in
-                        controller.jpegQuality = newValue
-                    }
-            }
+            // System blue was the most saturated thing in the popover and the
+            // only colour in it that was not the brand's — the audit's first
+            // cross-cutting issue was that no brand colour existed anywhere.
+            .tint(DSColor.accent)
 
             Text("Resolution matches your PC's screen automatically once it connects.")
                 .font(.caption2)
@@ -627,33 +602,86 @@ private struct ControlPanel: View {
         }
     }
 
+    @ViewBuilder
+    private var updateSection: some View {
+        if let update = controller.availableUpdate {
+            DSButton("Update available — \(update.version)", variant: .secondary) {
+                controller.openUpdatePage()
+            }
+        }
+    }
+
     /// The browser fallback, collapsed (Command 8).
     ///
-    /// This URL was the popover's most prominent instruction, and it points at
-    /// the BROWSER fallback on 8787 while the Windows app connects on 8788 — so
-    /// a user reading the Mac and holding the receiver was being told two
-    /// different things. It is a fallback, so it reads as one.
-    private func receiverSection(url: String) -> some View {
-        DisclosureGroup("Connect without the app") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Open this address in a browser on the other machine. The app is the better path — this exists for machines you cannot install on.")
+    /// This URL was once the popover's most prominent instruction while
+    /// pointing at a different port from the one the receiver dials, so a user
+    /// reading the Mac and holding the app was told two different things.
+    @ViewBuilder
+    private var browserFallbackSection: some View {
+        if let url = controller.streamURL {
+            DisclosureGroup("Connect without the app") {
+                VStack(alignment: .leading, spacing: DSSpacing.s2) {
+                    Text("Open this address in a browser on the other machine. The app is the better path — this exists for machines you cannot install on.")
+                        .font(.system(size: DSFont.f2))
+                        .foregroundStyle(DSColor.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Text(url).font(.system(size: DSFont.f2, design: .monospaced))
+                            .textSelection(.enabled)
+                        Spacer()
+                        DSButton("Copy", variant: .secondary) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(url, forType: .string)
+                        }
+                    }
+                }
+                .padding(.top, DSSpacing.s1)
+            }
+            .font(.system(size: DSFont.f2))
+            .foregroundStyle(DSColor.textMuted)
+        }
+    }
+
+    /// The reverse direction, collapsed like the fallback rather than left as a
+    /// bare button: "View a Windows PC" sitting next to Start/Stop gave no clue
+    /// that the two do opposite things.
+    private var otherDirectionSection: some View {
+        DisclosureGroup("View a Windows PC") {
+            VStack(alignment: .leading, spacing: DSSpacing.s2) {
+                Text("Watch and control a Windows machine from this Mac — the opposite of what Start does.")
                     .font(.system(size: DSFont.f2))
                     .foregroundStyle(DSColor.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    Text(url).font(.system(size: DSFont.f2, design: .monospaced))
-                        .textSelection(.enabled)
-                    Spacer()
-                    DSButton("Copy", variant: .secondary) {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(url, forType: .string)
-                    }
-                }
+                DSButton("Open the viewer…", variant: .secondary) { openViewer() }
             }
-            .padding(.top, 4)
+            .padding(.top, DSSpacing.s1)
         }
         .font(.system(size: DSFont.f2))
         .foregroundStyle(DSColor.textMuted)
+    }
+
+    /// Command 7. Stop is an outline in error red, not a filled accent button —
+    /// the control that ends the session was the loudest thing in the popover.
+    /// It asks for the default action and is REFUSED it while active: the same
+    /// button carried `.keyboardShortcut(.defaultAction)` through the title
+    /// change, so Return with the popover open ended a running session.
+    private var actions: some View {
+        HStack {
+            DSButton(
+                controller.state.isActive ? "Stop" : "Start",
+                variant: .forSession(isActive: controller.state.isActive),
+                defaultAction: true
+            ) {
+                controller.state.isActive ? controller.stop() : controller.start()
+            }
+
+            Spacer()
+
+            DSButton("Quit", variant: .ghost, shortcut: "q") {
+                controller.shutdownForQuit()
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     // MARK: - Bindings

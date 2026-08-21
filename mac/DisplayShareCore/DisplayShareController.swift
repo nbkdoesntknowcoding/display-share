@@ -306,13 +306,6 @@ public final class DisplayShareController: ObservableObject {
         update(configuration: next)
     }
 
-    /// JPEG quality is a pure encoder setting — it needs no display or stream
-    /// restart, so it can move under the user's finger.
-    public var jpegQuality: Double {
-        get { pipeline.quality }
-        set { pipeline.quality = newValue; objectWillChange.send() }
-    }
-
     /// Called from applicationWillTerminate so a clean quit never leaves a display.
     public func shutdownForQuit() {
         supervisor.stop()

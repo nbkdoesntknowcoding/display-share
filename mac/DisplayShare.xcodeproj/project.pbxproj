@@ -22,6 +22,7 @@
 		25F94343E08722F233CC3FDC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBFA61E802ABC429B866EB8 /* main.swift */; };
 		2BEF576F23A7B1C93C74832A /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F836639C7515333BE03906 /* VideoDecoder.swift */; };
 		319CB72032344F40A050098B /* InputEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FC9353BC5C70318B47606A /* InputEvent.swift */; };
+		31D189D5285C637B2F5D383A /* PopoverLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C718ABA4E30D329E16196E /* PopoverLayoutTests.swift */; };
 		33E922A97A9BF88B4CAE79BC /* DSTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521882332FB3BA4AEEF53AC8 /* DSTextField.swift */; };
 		342105D72755EF7378622B66 /* RelativePointerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9763DE1482C60A08A53E95 /* RelativePointerTests.swift */; };
 		353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */; };
@@ -44,6 +45,7 @@
 		7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */; };
 		800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */; };
 		815F1C5BBB65A0FE36CEFCAE /* AnimatedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */; };
+		88C1C073FA7D6A0FA2F98F69 /* PopoverLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97BB2649C47E12F8306439C6 /* PopoverLayout.swift */; };
 		8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
 		941013BA6101FDE4B6506AEF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C13B96E4B22FF0CF33F72A36 /* CoreVideo.framework */; };
 		95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */; };
@@ -151,6 +153,7 @@
 		01FC9353BC5C70318B47606A /* InputEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputEvent.swift; sourceTree = "<group>"; };
 		0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveBitrateTests.swift; sourceTree = "<group>"; };
 		0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264Encoder.swift; sourceTree = "<group>"; };
+		15C718ABA4E30D329E16196E /* PopoverLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverLayoutTests.swift; sourceTree = "<group>"; };
 		1BBFA61E802ABC429B866EB8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		1C694E3373103F733BE3CB8C /* JPEGEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGEncoder.swift; sourceTree = "<group>"; };
 		247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerPages.swift; sourceTree = "<group>"; };
@@ -184,6 +187,7 @@
 		913024711DF4B033F3E182DC /* SessionSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupervisor.swift; sourceTree = "<group>"; };
 		92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionMonitor.swift; sourceTree = "<group>"; };
 		9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStatusTests.swift; sourceTree = "<group>"; };
+		97BB2649C47E12F8306439C6 /* PopoverLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverLayout.swift; sourceTree = "<group>"; };
 		9873E5F7AB47697B26472A6C /* ViewerInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerInput.swift; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
 		A25B2DC02E3ABDE8E68F4688 /* DSButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSButton.swift; sourceTree = "<group>"; };
@@ -297,6 +301,7 @@
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
 				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
+				15C718ABA4E30D329E16196E /* PopoverLayoutTests.swift */,
 				BE9763DE1482C60A08A53E95 /* RelativePointerTests.swift */,
 				9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */,
 				5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */,
@@ -384,6 +389,7 @@
 			isa = PBXGroup;
 			children = (
 				E7D93ED257B4998C87306BDF /* DesignTokens.swift */,
+				97BB2649C47E12F8306439C6 /* PopoverLayout.swift */,
 				758D5AB0EBC19B5937CCB67B /* StatusPill.swift */,
 				ECD320486E3F796E3CF3E74B /* Components */,
 			);
@@ -624,6 +630,7 @@
 				CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */,
 				B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */,
 				58225362C3D56AD46027DBB6 /* PermissionMonitor.swift in Sources */,
+				88C1C073FA7D6A0FA2F98F69 /* PopoverLayout.swift in Sources */,
 				F1CA765F00D2BAF74D87543F /* SessionSupervisor.swift in Sources */,
 				0F668ECEDB55AEED27641A48 /* StatusPill.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
@@ -672,6 +679,7 @@
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
 				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
+				31D189D5285C637B2F5D383A /* PopoverLayoutTests.swift in Sources */,
 				342105D72755EF7378622B66 /* RelativePointerTests.swift in Sources */,
 				A147D3458C51806F45609856 /* SessionStatusTests.swift in Sources */,
 				7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */,
