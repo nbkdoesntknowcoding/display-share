@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.10.0...v0.11.0) (2026-08-21)
+
+
+### Features
+
+* **mac:** a status line that tells the truth about the session ([#36](https://github.com/nbkdoesntknowcoding/display-share/issues/36)) ([4a774cd](https://github.com/nbkdoesntknowcoding/display-share/commit/4a774cd357920192b13394beb7d0fb527888debe))
+* one button, one input, in both apps ([#40](https://github.com/nbkdoesntknowcoding/display-share/issues/40)) ([9a5e657](https://github.com/nbkdoesntknowcoding/display-share/commit/9a5e657a4700b1f3f885070880b702f973578fa0))
+* the states that are not the happy path ([#38](https://github.com/nbkdoesntknowcoding/display-share/issues/38)) ([8aa01a2](https://github.com/nbkdoesntknowcoding/display-share/commit/8aa01a2b0f79b1dcf8ea91036055395db44cd61e))
+
+
+### Bug Fixes
+
+* **release:** never publish an updater manifest that loops ([#34](https://github.com/nbkdoesntknowcoding/display-share/issues/34)) ([5bebd59](https://github.com/nbkdoesntknowcoding/display-share/commit/5bebd59d0f2246af752e77ee5da56f845b48e01f))
+
 ## [0.10.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.9.0...v0.10.0) (2026-08-20)
 
 
