@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.0...v0.14.1) (2026-08-21)
+
+
+### Chores
+
+* release 0.14.1 ([2ce0cf0](https://github.com/nbkdoesntknowcoding/display-share/commit/2ce0cf02fc6850f3e1e8a90f9c68e41016d81b05))
+
 ## [0.14.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.13.0...v0.14.0) (2026-08-21)
 
 
