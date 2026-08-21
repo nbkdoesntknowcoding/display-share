@@ -94,6 +94,53 @@ for binary in "$APP/Contents/MacOS/$APP_NAME" "$APP/Contents/MacOS/vd_helper"; d
 done
 ok "arm64 + x86_64 present in app and helper"
 
+# ------------------------------------------------------------- app icon
+# actool writes an AppIcon.icns containing only FOUR representations — 16, 32,
+# 128 and 256 — out of an asset catalogue that carries all ten. Wherever macOS
+# wants a size that is not in the file it falls back to a generic icon, which is
+# Get Info, Launchpad, and Finder at anything above a small icon size. Every
+# release so far has shipped looking like it had no icon.
+#
+# iconutil builds the full set from the same PNGs. This must run BEFORE signing:
+# changing a resource afterwards invalidates the signature.
+step "Building a complete app icon"
+ICONSET="$BUILD_DIR/AppIcon.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+cp "$MAC_DIR/DisplayShare/Assets.xcassets/AppIcon.appiconset"/icon_*.png "$ICONSET/"
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+
+# Read the file back rather than trusting the tool. The shipped icon was
+# missing its large sizes for every release up to 0.14.1 and nothing noticed,
+# because an .icns with four entries is a perfectly valid .icns.
+python3 - "$APP/Contents/Resources/AppIcon.icns" <<'PYEOF'
+import struct, sys
+
+REQUIRED = {
+    b"ic07": "128", b"ic13": "256 (128@2x)", b"ic08": "256",
+    b"ic14": "512 (256@2x)", b"ic09": "512", b"ic10": "1024 (512@2x)",
+}
+
+data = open(sys.argv[1], "rb").read()
+if data[:4] != b"icns":
+    sys.exit("not an icns file")
+
+present, offset = set(), 8
+while offset + 8 <= len(data):
+    kind = data[offset:offset + 4]
+    length = struct.unpack(">I", data[offset + 4:offset + 8])[0]
+    if length < 8:
+        break
+    present.add(kind)
+    offset += length
+
+missing = [f"{k.decode()} ({v})" for k, v in REQUIRED.items() if k not in present]
+if missing:
+    sys.exit("app icon is missing representations: " + ", ".join(missing))
+print(f"    {len(present)} representations, {len(data):,} bytes")
+PYEOF
+ok "app icon carries every size macOS asks for"
+
 # ---------------------------------------------------------------- sign
 # Signing order matters: nested code FIRST, outermost LAST, or the outer
 # signature is invalidated by later changes inside the bundle.
