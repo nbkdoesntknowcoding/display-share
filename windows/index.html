@@ -53,27 +53,49 @@
     font-size: 13.5px; line-height: 1.5;
   }
 
-  #screen { width: 100vw; height: 100vh; object-fit: contain; display: block; background: #000; }
+  /* The canvas fades in on the first frame and DIMS rather than disappearing
+     when a live session drops, so the error card lands over the desktop that
+     was there a moment ago instead of over a blank window (Command 10). */
+  #screen {
+    width: 100vw; height: 100vh; object-fit: contain; display: block;
+    background: var(--ds-bg);
+    opacity: 0;
+    transition: opacity var(--base) var(--ease);
+  }
+  #screen.live { opacity: 1; }
+  #screen.dimmed { opacity: 0.4; }
 
   /* ---------------------------------------------------------------- overlay */
+  /* Command 10. Two backgrounds, because the overlay means two different
+     things: at startup there is nothing behind it, so it IS the window; after a
+     session drops there is a dimmed desktop behind it that must stay visible.
+     Visibility is a fade, not `display: none` — a display switch cannot
+     transition, which is why connecting used to be a hard cut to black. */
   #overlay {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     padding: 24px; overflow-y: auto;
     background:
-      radial-gradient(1200px 600px at 50% -10%, rgba(240, 153, 123, 0.10), transparent 60%),
-      rgba(0, 0, 0, 0.92);
-    animation: overlay-in var(--base) var(--ease);
+      radial-gradient(1200px 600px at 50% -10%, rgba(var(--ds-accent-rgb), 0.10), transparent 60%),
+      var(--ds-bg);
+    transition: opacity var(--base) var(--ease), background var(--base) var(--ease);
   }
-  @keyframes overlay-in { from { opacity: 0 } to { opacity: 1 } }
+  /* Over a live-but-dimmed canvas. NO scrim: the canvas is already at 40% and a
+     translucent background on top of that multiplies, landing nearer 18% —
+     dark enough that the desktop behind is barely there, which defeats the
+     point of keeping it. The blur alone separates the card from the picture. */
+  #overlay.over-session {
+    background: transparent;
+    backdrop-filter: blur(7px);
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
 
   #card {
-    width: 100%; max-width: 384px;
-    background: var(--card);
-    backdrop-filter: blur(30px) saturate(180%);
-    border: 0.5px solid var(--hairline-strong);
-    border-radius: 14px;
-    padding: 22px 20px 18px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(0, 0, 0, 0.6);
+    width: 100%; max-width: 420px;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
     animation: card-in var(--base) var(--ease) both;
   }
   /* Rises and settles, the way a macOS sheet arrives. */
@@ -82,18 +104,26 @@
     to   { opacity: 1; transform: none }
   }
 
-  #brand { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-  #brand-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none;
-    box-shadow: 0 0 0 3px rgba(240, 153, 123, 0.18);
-    animation: breathe 2.6s ease-in-out infinite;
+  /* Command 10: the app identifies itself in the window, outside the card, so
+     the receiver reads as an application rather than a dialog on a void. Quiet
+     — --ds-text-muted — because it is a signature, not a heading. */
+  #app-mark {
+    position: fixed; top: 20px; left: 22px; z-index: 5;
+    display: flex; align-items: center; gap: 8px;
+    font-size: var(--ds-font-3); font-weight: 590; letter-spacing: -0.01em;
+    color: var(--ds-text-muted);
+    transition: opacity var(--base) var(--ease);
+    pointer-events: none; user-select: none;
   }
-  /* Signals "looking", without a spinner demanding attention. */
-  @keyframes breathe {
-    0%, 100% { opacity: 1;   box-shadow: 0 0 0 3px rgba(240, 153, 123, 0.18) }
-    50%      { opacity: 0.6; box-shadow: 0 0 0 5px rgba(240, 153, 123, 0.07) }
-  }
-  h1 { margin: 0; font-size: 14.5px; font-weight: 590; letter-spacing: -0.012em; }
+  /* Zero chrome while streaming. */
+  #app-mark.hidden { opacity: 0; }
+
+  /* The card no longer repeats the app's name — the window says it, outside,
+     top-left. This header says what the card is FOR. The pulsing "looking" dot
+     went with it: Command 8 added a real spinner for that state, and two
+     indicators for one thing is worse than either. */
+  #brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  h1 { margin: 0; font-size: var(--ds-font-4); font-weight: 590; letter-spacing: -0.012em; }
   #version { margin-left: auto; font-size: 11px; color: var(--faint);
              font-variant-numeric: tabular-nums; }
   #version.warn { color: var(--warn); }
@@ -332,6 +362,19 @@
 </head>
 <body>
   <canvas id="screen"></canvas>
+
+  <!-- The app mark, drawn from the same geometry as design/make-icon.swift and
+       the Mac popover's DSAppMark: two displays overlapping, one screen
+       becoming two. The 23-unit padding is half the back rectangle's stroke,
+       which is centred on the path and would otherwise be clipped. -->
+  <div id="app-mark" aria-hidden="true">
+    <svg width="19" height="15" viewBox="0 0 650 506" fill="none">
+      <rect x="23" y="23" width="430" height="330" rx="54"
+            stroke="var(--ds-accent)" stroke-opacity="0.55" stroke-width="46"/>
+      <rect x="197" y="153" width="430" height="330" rx="54" fill="var(--ds-accent)"/>
+    </svg>
+    <span>Display Share</span>
+  </div>
   <div id="hud" aria-hidden="true"></div>
   <div id="input-badge"></div>
   <div id="hint"></div>
@@ -400,8 +443,7 @@
       <!-- Header is static. It is NOT the status element, so status updates can
            never blank out the app's identity. -->
       <div id="brand">
-        <span id="brand-dot"></span>
-        <h1 id="panel-brand-title">Display Share</h1>
+        <h1 id="panel-brand-title">Connect to your Mac</h1>
         <!-- Updates apply silently at launch now, so the version is the only
              way to tell what you are running or whether one landed. -->
         <span id="version"></span>
