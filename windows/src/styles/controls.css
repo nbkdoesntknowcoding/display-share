@@ -1,0 +1,190 @@
+/* The button and input system (Command 7 of the UI/UX audit).
+ *
+ * The audit counted THREE unrelated button treatments across two screens, and
+ * a fourth had crept in since (an underlined text link). Every one of them was
+ * defined by an id selector, so a new button inherited nothing and the next one
+ * was styled from scratch again.
+ *
+ * There is now one class. `.btn` sets the geometry; exactly one `--variant`
+ * modifier sets the meaning. scripts/check-controls.py reads THIS file for the
+ * list of variants and then fails the build on any <button> in index.html that
+ * carries none of them, or more than one — because "three unrelated treatments"
+ * is a state that arrives one reasonable-looking exception at a time.
+ *
+ * Two rules here are defect-driven rather than aesthetic:
+ *
+ * 1. Destructive is an OUTLINE, never a fill. The popover's most prominent
+ *    control was a filled accent button whose label became "Stop" once sharing
+ *    started, so the loudest thing on screen ended the session.
+ * 2. Disabled buttons keep `aria-disabled` instead of the `disabled` attribute.
+ *    A natively disabled control is skipped by the keyboard and shows no
+ *    tooltip in Chromium, so the explanation for why it cannot be pressed is
+ *    unreachable by exactly the people most likely to need it.
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: var(--ds-font-3);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background: none;
+  color: var(--ds-text);
+  transition:
+    background var(--ds-fast) var(--ds-ease),
+    border-color var(--ds-fast) var(--ds-ease),
+    color var(--ds-fast) var(--ds-ease),
+    transform var(--ds-fast) var(--ds-ease),
+    opacity var(--ds-fast) var(--ds-ease);
+}
+
+/* Pressing moves the control one pixel down, rather than scaling it. Scale
+   resamples the label; a 1px translate reads as a press and stays crisp. */
+.btn:active:not([aria-disabled="true"]) {
+  transform: translateY(1px);
+}
+
+/* The one hero action on a screen. Full width and the tallest thing there,
+   because Command 4 made the discovered device the primary path. */
+.btn--hero {
+  width: 100%;
+  height: 44px;
+}
+
+/* -------------------------------------------------------------- variants */
+
+.btn--primary {
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  border-color: transparent;
+}
+.btn--primary:hover:not([aria-disabled="true"]) {
+  background: var(--ds-accent-hover);
+}
+.btn--primary:active:not([aria-disabled="true"]) {
+  background: var(--ds-accent-press);
+}
+
+.btn--secondary {
+  background: var(--ds-surface-raised);
+  color: var(--ds-text);
+  border-color: var(--ds-border-strong);
+}
+.btn--secondary:hover:not([aria-disabled="true"]) {
+  border-color: var(--ds-text-faint);
+  background: rgba(var(--ds-text-rgb), 0.08);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ds-text-muted);
+  border-color: transparent;
+}
+.btn--ghost:hover:not([aria-disabled="true"]) {
+  background: rgba(var(--ds-text-rgb), 0.07);
+  color: var(--ds-text);
+}
+
+/* Outline, never a fill: this variant exists so that ending something can be
+   found without being the loudest control on the screen. */
+.btn--destructive {
+  background: transparent;
+  color: var(--ds-error);
+  border-color: rgba(var(--ds-error-rgb), 0.4);
+}
+.btn--destructive:hover:not([aria-disabled="true"]) {
+  background: rgba(var(--ds-error-rgb), 0.1);
+  border-color: rgba(var(--ds-error-rgb), 0.7);
+}
+
+/* A discovered device. Full width and two lines tall, so it is a row rather
+   than a control — but still in the system, because it IS a button and the
+   moment it is styled outside the system it becomes the fourth treatment. */
+.btn--row {
+  width: 100%;
+  height: auto;
+  min-height: 44px;
+  padding: 9px 12px;
+  justify-content: flex-start;
+  text-align: left;
+  font-weight: 400;
+  background: var(--ds-surface-raised);
+  border-color: var(--ds-border);
+}
+.btn--row:hover:not([aria-disabled="true"]) {
+  border-color: var(--ds-border-strong);
+}
+/* Selection is read from the ARIA state, not a parallel class, so what a
+   screen reader announces and what the eye sees cannot drift apart. */
+.btn--row[aria-selected="true"] {
+  border-color: var(--ds-accent);
+  background: rgba(var(--ds-accent-rgb), 0.08);
+}
+
+/* --------------------------------------------------------------- states */
+
+/* `hidden` is a UA-stylesheet `display: none`, and ANY author `display` beats
+   it — so giving .btn a display silently un-hid every hidden button in the app.
+   Caught by looking at the running page: "Stop sharing" was sitting in the
+   connect card before a session existed. Stated once here rather than as an id
+   rule per button, which is how it would come back. */
+.btn[hidden] {
+  display: none;
+}
+
+/* `aria-disabled`, not `disabled` — see the note at the top. Pointer events
+   stay on so the title tooltip explaining WHY can actually appear. */
+.btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- inputs */
+
+.ds-input {
+  height: 36px;
+  padding: 0 11px;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface-raised);
+  color: var(--ds-text);
+  font: inherit;
+  font-size: var(--ds-font-3);
+  /* Suppressed only because :focus-visible below replaces it. Removing that
+     rule without replacing this one leaves the app unusable by keyboard. */
+  outline: none;
+  transition:
+    border-color var(--ds-fast) var(--ds-ease),
+    box-shadow var(--ds-fast) var(--ds-ease);
+}
+.ds-input::placeholder {
+  color: var(--ds-text-faint);
+}
+.ds-input:hover {
+  border-color: var(--ds-text-faint);
+}
+select.ds-input {
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ focus ring */
+
+/* One ring, everywhere, on the keyboard path only. The audit found no visible
+   focus indicator anywhere in either app: the interface was operable by
+   keyboard but gave no sign of where the keyboard was. */
+.btn:focus-visible,
+.ds-input:focus-visible,
+.ds-input:focus {
+  outline: 2px solid rgba(var(--ds-accent-rgb), 0.6);
+  outline-offset: 2px;
+}

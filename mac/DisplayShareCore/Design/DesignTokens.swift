@@ -62,3 +62,18 @@ public enum DSFont {
     public static let f5: CGFloat = 17
     public static let f6: CGFloat = 20
 }
+
+/// Durations in SECONDS, and the one curve both apps decelerate on.
+///
+/// Shared so a control does not settle in 140ms on one platform and 200ms with
+/// a different curve on the other; the receiver and the popover are meant to
+/// read as one product.
+public enum DSMotion {
+    public static let fast: Double = 0.14
+    public static let base: Double = 0.2
+
+    /// cubic-bezier(0.32, 0.72, 0, 1)
+    public static func ease(_ duration: Double = fast) -> Animation {
+        .timingCurve(0.32, 0.72, 0, 1, duration: duration)
+    }
+}

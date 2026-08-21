@@ -476,7 +476,9 @@ private struct ControlPanel: View {
                     Text("Remote control needs Accessibility permission.")
                         .font(.caption)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Grant Accessibility…") { controller.requestAccessibilityPermission() }
+                    DSButton("Grant Accessibility…", variant: .secondary) {
+                        controller.requestAccessibilityPermission()
+                    }
                 }
                 Divider()
             }
@@ -484,7 +486,7 @@ private struct ControlPanel: View {
             controls
 
             if let update = controller.availableUpdate {
-                Button("Update available — \(update.version)") {
+                DSButton("Update available — \(update.version)", variant: .secondary) {
                     controller.openUpdatePage()
                 }
                 Divider()
@@ -504,26 +506,37 @@ private struct ControlPanel: View {
                 Text("Other direction")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                Button("View a Windows PC…") { openViewer() }
+                DSButton("View a Windows PC…", variant: .secondary) { openViewer() }
                 Text("Watch and control a Windows machine from this Mac.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            // Command 7. Stop is an outline in error red, not a filled accent
+            // button — the control that ends the session was the loudest thing
+            // in the popover. It also asks for the default action and is
+            // REFUSED it while active: the same button carried
+            // `.keyboardShortcut(.defaultAction)` through the title change, so
+            // Return with the popover open ended a running session.
             HStack {
-                Button(controller.state.isActive ? "Stop" : "Start") {
+                DSButton(
+                    controller.state.isActive ? "Stop" : "Start",
+                    variant: .forSession(isActive: controller.state.isActive),
+                    defaultAction: true
+                ) {
                     controller.state.isActive ? controller.stop() : controller.start()
                 }
-                .keyboardShortcut(.defaultAction)
 
                 Spacer()
 
-                Button("Quit") {
+                // Ghost rather than the destructive outline the audit's table
+                // suggests: two red buttons side by side make neither of them
+                // mean anything, and Command 9 settles it as a ghost.
+                DSButton("Quit", variant: .ghost, shortcut: "q") {
                     controller.shutdownForQuit()
                     NSApp.terminate(nil)
                 }
-                .keyboardShortcut("q")
             }
         }
         .padding(14)
@@ -570,7 +583,9 @@ private struct ControlPanel: View {
             Text("Screen Recording permission is required to capture the display.")
                 .font(.caption)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Open Privacy Settings…") { controller.openScreenRecordingSettings() }
+            DSButton("Open Privacy Settings…", variant: .secondary) {
+                controller.openScreenRecordingSettings()
+            }
         }
     }
 
@@ -629,7 +644,7 @@ private struct ControlPanel: View {
                     Text(url).font(.system(size: DSFont.f2, design: .monospaced))
                         .textSelection(.enabled)
                     Spacer()
-                    Button("Copy") {
+                    DSButton("Copy", variant: .secondary) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(url, forType: .string)
                     }

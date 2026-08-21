@@ -18,6 +18,23 @@
   --ds-warn: #FBBF24;
   --ds-error: #F87171;
 
+  /* Components, for rgba() when a token is needed at an opacity. */
+  --ds-bg-rgb: 10, 10, 12;
+  --ds-surface-rgb: 20, 20, 24;
+  --ds-surface-raised-rgb: 29, 29, 35;
+  --ds-border-rgb: 43, 43, 51;
+  --ds-border-strong-rgb: 58, 58, 69;
+  --ds-text-rgb: 236, 236, 239;
+  --ds-text-muted-rgb: 156, 156, 166;
+  --ds-text-faint-rgb: 110, 110, 122;
+  --ds-accent-rgb: 240, 153, 123;
+  --ds-accent-hover-rgb: 247, 176, 151;
+  --ds-accent-press-rgb: 224, 135, 106;
+  --ds-accent-ink-rgb: 42, 23, 16;
+  --ds-live-rgb: 74, 222, 128;
+  --ds-warn-rgb: 251, 191, 36;
+  --ds-error-rgb: 248, 113, 113;
+
   --ds-radius-sm: 6px;
   --ds-radius-md: 10px;
   --ds-radius-lg: 14px;
@@ -35,4 +52,8 @@
   --ds-font-4: 15px;
   --ds-font-5: 17px;
   --ds-font-6: 20px;
+
+  --ds-fast: 140ms;
+  --ds-base: 200ms;
+  --ds-ease: cubic-bezier(0.32, 0.72, 0, 1);
 }

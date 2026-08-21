@@ -16,11 +16,13 @@
 		148A1C76D1F9F611D85F2A31 /* WireProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C82D097F651E2CD092D4B9 /* WireProtocol.swift */; };
 		191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */; };
 		1A1CC8C401DE10F1567903EC /* ViewerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36BF1183BD22B87CCC8CC97B /* ViewerClientTests.swift */; };
+		1BA013F9BF4776D89CB6B589 /* DSButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25B2DC02E3ABDE8E68F4688 /* DSButton.swift */; };
 		22224DD5384AEE68C9802010 /* InputInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */; };
 		22F6944D68034FD8606F7F07 /* AutoUpdaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */; };
 		25F94343E08722F233CC3FDC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBFA61E802ABC429B866EB8 /* main.swift */; };
 		2BEF576F23A7B1C93C74832A /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F836639C7515333BE03906 /* VideoDecoder.swift */; };
 		319CB72032344F40A050098B /* InputEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FC9353BC5C70318B47606A /* InputEvent.swift */; };
+		33E922A97A9BF88B4CAE79BC /* DSTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521882332FB3BA4AEEF53AC8 /* DSTextField.swift */; };
 		342105D72755EF7378622B66 /* RelativePointerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9763DE1482C60A08A53E95 /* RelativePointerTests.swift */; };
 		353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */; };
 		388F3E8FBDBAE9642D6C81DE /* ViewerWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1E2CEA8E42F8F6236E480 /* ViewerWindow.swift */; };
@@ -59,6 +61,7 @@
 		C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D93ED257B4998C87306BDF /* DesignTokens.swift */; };
 		C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */; };
 		CAF66FCCE6BC065D2CE09C3E /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55BD527AC059AAE5E481689F /* CoreMedia.framework */; };
+		CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */; };
 		CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B700690CE5606F8012DD22 /* MJPEGServer.swift */; };
 		D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */; };
 		DD962C55C3C38AC2A9AF55A1 /* H264Dump.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF94B2E6662744A3FC80AFC4 /* H264Dump.swift */; };
@@ -158,6 +161,7 @@
 		4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
 		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
+		521882332FB3BA4AEEF53AC8 /* DSTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSTextField.swift; sourceTree = "<group>"; };
 		5482A31B7F336ACB4187A27F /* VideoDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoderTests.swift; sourceTree = "<group>"; };
 		55BD527AC059AAE5E481689F /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckerTests.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 		9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStatusTests.swift; sourceTree = "<group>"; };
 		9873E5F7AB47697B26472A6C /* ViewerInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerInput.swift; sourceTree = "<group>"; };
 		993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareController.swift; sourceTree = "<group>"; };
+		A25B2DC02E3ABDE8E68F4688 /* DSButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSButton.swift; sourceTree = "<group>"; };
 		A580E564AF44EAC7E2582D12 /* DisplayShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayShareApp.swift; sourceTree = "<group>"; };
 		AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		AC488CEB9617F6DD850B63E1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -208,6 +213,7 @@
 		E7D93ED257B4998C87306BDF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStoreTests.swift; sourceTree = "<group>"; };
 		EEA480BEBCC3EB1D9C70FDB1 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSButtonTests.swift; sourceTree = "<group>"; };
 		F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpdaterTests.swift; sourceTree = "<group>"; };
 		FA1B0B69621DBEF69E22243A /* DisplayShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -287,6 +293,7 @@
 				0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */,
 				2D632BA7BC66B02140363780 /* AnnexBTests.swift */,
 				F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */,
+				EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
 				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
@@ -378,8 +385,18 @@
 			children = (
 				E7D93ED257B4998C87306BDF /* DesignTokens.swift */,
 				758D5AB0EBC19B5937CCB67B /* StatusPill.swift */,
+				ECD320486E3F796E3CF3E74B /* Components */,
 			);
 			path = Design;
+			sourceTree = "<group>";
+		};
+		ECD320486E3F796E3CF3E74B /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A25B2DC02E3ABDE8E68F4688 /* DSButton.swift */,
+				521882332FB3BA4AEEF53AC8 /* DSTextField.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 		EDFBFA965D56567285E3F765 /* include */ = {
@@ -590,6 +607,8 @@
 				588B577F609B5FADE5D8AAD2 /* AnnexB.swift in Sources */,
 				026601E965F6C2B8CDE99700 /* AutoUpdater.swift in Sources */,
 				800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */,
+				1BA013F9BF4776D89CB6B589 /* DSButton.swift in Sources */,
+				33E922A97A9BF88B4CAE79BC /* DSTextField.swift in Sources */,
 				C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */,
 				A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */,
 				EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */,
@@ -649,6 +668,7 @@
 				43CB1BEE6705C4EE3E07615C /* AdaptiveBitrateTests.swift in Sources */,
 				B7F5DCF499E438194AE48234 /* AnnexBTests.swift in Sources */,
 				22F6944D68034FD8606F7F07 /* AutoUpdaterTests.swift in Sources */,
+				CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
 				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
@@ -847,7 +867,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.9.4;
+				MARKETING_VERSION = 0.10.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -963,7 +983,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.9.4;
+				MARKETING_VERSION = 0.10.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;

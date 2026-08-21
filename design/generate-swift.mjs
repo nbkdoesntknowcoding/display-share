@@ -52,6 +52,21 @@ ${tokens.spacing.map((v, i) => `    public static let s${i + 1}: CGFloat = ${v}`
 public enum DSFont {
 ${tokens.fontSizes.map((v, i) => `    public static let f${i + 1}: CGFloat = ${v}`).join("\n")}
 }
+
+/// Durations in SECONDS, and the one curve both apps decelerate on.
+///
+/// Shared so a control does not settle in 140ms on one platform and 200ms with
+/// a different curve on the other; the receiver and the popover are meant to
+/// read as one product.
+public enum DSMotion {
+    public static let fast: Double = ${tokens.motion.fast / 1000}
+    public static let base: Double = ${tokens.motion.base / 1000}
+
+    /// cubic-bezier(${tokens.motion.easeControlPoints.join(", ")})
+    public static func ease(_ duration: Double = fast) -> Animation {
+        .timingCurve(${tokens.motion.easeControlPoints.join(", ")}, duration: duration)
+    }
+}
 `;
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, swift);

@@ -86,17 +86,20 @@ struct OnboardingView: View {
             // User-initiated on purpose: doing this on a timer spawns a process
             // each time and previously produced a storm of system prompts.
             if !monitor.screenRecordingGranted {
-                Button("I've granted it") { monitor.recheckAfterGranting() }
-                    .buttonStyle(.bordered)
+                DSButton("I've granted it", variant: .secondary) {
+                    monitor.recheckAfterGranting()
+                }
             }
 
-            Button(monitor.screenRecordingGranted ? "Start Display Share" : "Skip for now") {
-                onFinish()
-            }
-            .keyboardShortcut(.defaultAction)
             // Never trap the user: skipping is allowed, the menu bar explains
             // what is missing.
-            .buttonStyle(.borderedProminent)
+            DSButton(
+                monitor.screenRecordingGranted ? "Start Display Share" : "Skip for now",
+                variant: .primary,
+                defaultAction: true
+            ) {
+                onFinish()
+            }
         }
         .padding(18)
     }
@@ -144,12 +147,12 @@ private struct PermissionRow: View {
                         .font(.caption)
                         .fixedSize(horizontal: false, vertical: true)
                         if let relaunch {
-                            Button("Restart Display Share", action: relaunch)
+                            DSButton("Restart Display Share", variant: .secondary, action: relaunch)
                         }
                     }
                 case .denied, .unknown:
                     HStack(spacing: 10) {
-                        Button(actionTitle, action: action)
+                        DSButton(actionTitle, variant: .secondary, action: action)
                         Text("Then switch back — this updates on its own.")
                             .font(.caption).foregroundStyle(.tertiary)
                     }
