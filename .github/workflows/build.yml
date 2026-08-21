@@ -62,6 +62,12 @@ jobs:
       - name: Controls must come from the shared system
         run: python3 scripts/check-controls.py
 
+      # The release checker's rules, replayed against the update failures this
+      # project has actually shipped. No network: this is the part that must be
+      # known-good BEFORE a release, not discovered during one.
+      - name: Release checks catch the failures they claim to
+        run: python3 scripts/verify-release.py --self-test
+
       - name: actionlint
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
@@ -196,6 +202,16 @@ jobs:
       - name: Compile the Rust backend
         working-directory: windows/src-tauri
         run: cargo check --all-targets --locked
+
+      # The receiver's connect path, driven against a stub sender that speaks
+      # the real wire format. This is the code that failed in front of a user
+      # twice — "retrying, retrying" and "invalid authority" — and nothing could
+      # exercise it without a Mac at the other end, so every regression in it
+      # reached a release. Runs here rather than on macOS because the Windows
+      # job already has the toolchain warm and the frontend built.
+      - name: Receiver session against a stub sender
+        working-directory: windows/src-tauri
+        run: cargo test --test receiver_session --locked
 
       # Task 8.1 acceptance: the encoder must produce a stream that decodes and
       # carries no B-frames, because WebCodecs in low-latency mode cannot

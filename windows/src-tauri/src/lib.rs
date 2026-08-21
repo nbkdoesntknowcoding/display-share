@@ -57,6 +57,26 @@ pub struct ConnectionState {
     link: std::sync::Mutex<Option<link::LinkInfo>>,
 }
 
+impl ConnectionState {
+    /// Whether a session is live enough to carry a control message.
+    pub async fn is_connected(&self) -> bool {
+        self.outbound.lock().await.is_some()
+    }
+
+    /// Sends a control message to the sender, or says why it could not.
+    ///
+    /// A method rather than a field read at the call site, so the "is anything
+    /// actually connected" question has one answer. A stale channel left behind
+    /// by a finished session would otherwise accept messages and report success
+    /// while writing into a socket that is gone.
+    pub async fn send_control(&self, message: String) -> Result<(), String> {
+        match self.outbound.lock().await.as_ref() {
+            Some(tx) => tx.send(message).map_err(|e| e.to_string()),
+            None => Err("not connected".into()),
+        }
+    }
+}
+
 /// Reads the ACTUAL panel geometry from the monitor the window is on.
 ///
 /// Task 3.3: the Vivobook's panel must not be assumed to be 1920x1080.
@@ -88,29 +108,60 @@ fn detect_panel(app: AppHandle) -> Panel {
     }
 }
 
-/// Connects to the sender and streams frames into `on_frame`.
+/// What a session reports while it runs.
+#[derive(Debug)]
+pub enum SessionEvent<'a> {
+    Connected(&'a str),
+    /// A JSON control message from the sender — pairing prompts arrive here.
+    Control(&'a str),
+    Disconnected,
+}
+
+/// Builds the `hello` a receiver opens with (protocol/SPEC.md §4.1, §4.9).
 ///
-/// Video is forwarded as RAW bytes — the complete wire message, header and all,
+/// Separate from the session so it can be asserted without a socket. A paired
+/// receiver going straight through depends entirely on `token` surviving into
+/// this object, and nothing about a dropped field looks wrong at the call site:
+/// the connection simply asks for a PIN again.
+pub fn hello_message(panel: &Panel, identity: Option<&serde_json::Value>) -> serde_json::Value {
+    let mut hello = serde_json::json!({
+        "type": "hello",
+        "protocolVersion": 1,
+        "client": concat!("display-share-receiver/", env!("CARGO_PKG_VERSION")),
+        "receiver": panel,
+    });
+    if let (Some(identity), Some(map)) = (identity, hello.as_object_mut()) {
+        for key in ["deviceId", "deviceName", "token"] {
+            if let Some(value) = identity.get(key) {
+                if !value.is_null() {
+                    map.insert(key.to_string(), value.clone());
+                }
+            }
+        }
+    }
+    hello
+}
+
+/// Connects to a sender and pumps the session until it ends.
+///
+/// Split out of the Tauri command so it can be run against a stub sender in
+/// tests/receiver_session.rs. This is the path that has broken twice in front
+/// of users — "retrying, retrying" and "invalid authority" — and until now
+/// nothing could exercise it without a Mac at the other end.
+///
+/// Video is forwarded as RAW bytes: the complete wire message, header and all,
 /// exactly as it came off the socket. That keeps the frontend parsing the
 /// documented format (so it can be tested against protocol/vectors/) and avoids
-/// the cost of JSON-encoding megabytes of video through the IPC bridge.
-#[tauri::command]
-async fn connect(
-    app: AppHandle,
-    state: State<'_, Arc<ConnectionState>>,
-    sharing: State<'_, SharingState>,
-    url: String,
-    panel: Panel,
+/// JSON-encoding megabytes of video through the IPC bridge.
+pub async fn run_session(
+    url: &str,
+    panel: &Panel,
     identity: Option<serde_json::Value>,
-    on_frame: Channel<InvokeResponseBody>,
+    state: Arc<ConnectionState>,
+    mut on_binary: impl FnMut(Vec<u8>) -> bool + Send,
+    on_event: impl Fn(SessionEvent<'_>) + Send,
 ) -> Result<(), String> {
-    // The other half of the mutual exclusion in start_sharing. Guarding only
-    // one direction would still let the loop form, just by starting the two in
-    // the opposite order.
-    if sharing.inner.lock().unwrap().is_some() {
-        return Err("This PC is currently sharing its screen. Stop sharing first.".into());
-    }
-    let (stream, _) = tokio_tungstenite::connect_async(&url)
+    let (stream, _) = tokio_tungstenite::connect_async(url)
         .await
         .map_err(|e| format!("connect to {url} failed: {e}"))?;
 
@@ -124,26 +175,8 @@ async fn connect(
 
     let (mut write, mut read) = stream.split();
 
-    let mut hello = serde_json::json!({
-        "type": "hello",
-        "protocolVersion": 1,
-        "client": concat!("display-share-receiver/", env!("CARGO_PKG_VERSION")),
-        "receiver": panel,
-    });
-    // Identity + token, so a paired receiver goes straight through (SPEC §4.9).
-    if let Some(identity) = identity {
-        if let Some(map) = hello.as_object_mut() {
-            for key in ["deviceId", "deviceName", "token"] {
-                if let Some(value) = identity.get(key) {
-                    if !value.is_null() {
-                        map.insert(key.to_string(), value.clone());
-                    }
-                }
-            }
-        }
-    }
     write
-        .send(Message::Text(hello.to_string()))
+        .send(Message::Text(hello_message(panel, identity.as_ref()).to_string()))
         .await
         .map_err(|e| format!("hello failed: {e}"))?;
 
@@ -160,19 +193,17 @@ async fn connect(
         let _ = write.close().await;
     });
 
-    let _ = app.emit("ds://connected", &url);
+    on_event(SessionEvent::Connected(url));
 
     while let Some(message) = read.next().await {
         match message {
             Ok(Message::Binary(bytes)) => {
                 // Raw passthrough; the frontend parses SPEC §3.
-                if on_frame.send(InvokeResponseBody::Raw(bytes)).is_err() {
+                if !on_binary(bytes) {
                     break;
                 }
             }
-            Ok(Message::Text(text)) => {
-                let _ = app.emit("ds://control", text);
-            }
+            Ok(Message::Text(text)) => on_event(SessionEvent::Control(&text)),
             Ok(Message::Close(_)) | Err(_) => break,
             _ => {}
         }
@@ -180,18 +211,54 @@ async fn connect(
 
     *state.outbound.lock().await = None;
     writer.abort();
-    let _ = app.emit("ds://disconnected", ());
+    on_event(SessionEvent::Disconnected);
     Ok(())
+}
+
+/// Connects to the sender and streams frames into `on_frame`.
+#[tauri::command]
+async fn connect(
+    app: AppHandle,
+    state: State<'_, Arc<ConnectionState>>,
+    sharing: State<'_, SharingState>,
+    url: String,
+    panel: Panel,
+    identity: Option<serde_json::Value>,
+    on_frame: Channel<InvokeResponseBody>,
+) -> Result<(), String> {
+    // The other half of the mutual exclusion in start_sharing. Guarding only
+    // one direction would still let the loop form, just by starting the two in
+    // the opposite order.
+    if sharing.inner.lock().unwrap().is_some() {
+        return Err("This PC is currently sharing its screen. Stop sharing first.".into());
+    }
+
+    let handle = app.clone();
+    run_session(
+        &url,
+        &panel,
+        identity,
+        state.inner().clone(),
+        |bytes| on_frame.send(InvokeResponseBody::Raw(bytes)).is_ok(),
+        move |event| match event {
+            SessionEvent::Connected(url) => {
+                let _ = handle.emit("ds://connected", url);
+            }
+            SessionEvent::Control(text) => {
+                let _ = handle.emit("ds://control", text);
+            }
+            SessionEvent::Disconnected => {
+                let _ = handle.emit("ds://disconnected", ());
+            }
+        },
+    )
+    .await
 }
 
 /// Sends a JSON control message to the sender (request_keyframe, resize, stats).
 #[tauri::command]
 async fn send_control(state: State<'_, Arc<ConnectionState>>, message: String) -> Result<(), String> {
-    let guard = state.outbound.lock().await;
-    match guard.as_ref() {
-        Some(tx) => tx.send(message).map_err(|e| e.to_string()),
-        None => Err("not connected".into()),
-    }
+    state.send_control(message).await
 }
 
 /// Optional preset host (DS_HOST), so the receiver can be launched
