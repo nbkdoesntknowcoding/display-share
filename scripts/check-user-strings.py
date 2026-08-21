@@ -27,8 +27,35 @@ TARGETS = [
 # Matches the literal text inside Text("…") / textContent = "…" / plain HTML.
 FORBIDDEN = [
     (re.compile(r"(Task|Phase)\s+\d"), "internal build-plan reference"),
-    (re.compile(r"0x%[@xX]|Display 0x"), "raw display identifier"),
+    (re.compile(r"0x%[@xX]|Display 0x|radix: 16"), "raw display identifier"),
+    # A caught error interpolated straight into a sentence. Command 3 replaced
+    # every raw transport error with human copy and this still reached users on
+    # the discovery path, because the string was a TEMPLATE LITERAL and nothing
+    # here read backticks. That blind spot is the reason this rule exists.
+    (
+        re.compile(r"\$\{\s*(e|err|error|ex)\s*\}|\\\((error|err|e)\)"),
+        "raw error text shown to a user",
+    ),
+    # Role names from our own architecture. A person holding the Windows app
+    # has no idea they are holding "the receiver".
+    (re.compile(r"\b(receivers?|senders?)\b", re.I), "internal role name"),
 ]
+
+# Identifier-ish text: CSS class lists, element ids, event names. Never prose.
+IDENTIFIERS = re.compile(r"^[a-z][a-z0-9-]*$")
+
+
+def looks_like_prose(text: str) -> bool:
+    """True for something a person would read, false for a class list.
+
+    `btn btn--row sender` and `Type this on the receiver to pair it.` both
+    contain the word "sender"/"receiver"; only one of them is copy.
+    """
+    tokens = text.split()
+    if len(tokens) < 2:
+        return False
+    return not all(IDENTIFIERS.match(token) for token in tokens)
+
 
 def user_facing_strings(path: Path) -> list[tuple[int, str]]:
     found = []
@@ -39,6 +66,10 @@ def user_facing_strings(path: Path) -> list[tuple[int, str]]:
             continue
         for quoted in re.findall(r'"([^"]{4,})"', line):
             found.append((number, quoted))
+        # Template literals. Omitting these is how a raw JavaScript error
+        # shipped as body copy for weeks after the command that removed them.
+        for template in re.findall(r"`([^`]{4,})`", line):
+            found.append((number, template))
         # HTML body text between tags.
         for text in re.findall(r">([^<>{}]{6,})<", line):
             found.append((number, text))
@@ -51,6 +82,8 @@ def main() -> int:
             continue
         for number, text in user_facing_strings(path):
             for pattern, why in FORBIDDEN:
+                if why == "internal role name" and not looks_like_prose(text):
+                    continue
                 if pattern.search(text):
                     rel = path.relative_to(ROOT)
                     problems.append(f"{rel}:{number}  {why}: {text.strip()[:70]}")

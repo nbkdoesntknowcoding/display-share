@@ -25,17 +25,9 @@ struct RunningView: View {
             Divider()
 
             switch controller.state {
-            case .active(let id):
-                Label(
-                    "Second display is live (0x\(String(id, radix: 16))).",
-                    systemImage: "checkmark.circle.fill"
-                )
-                .foregroundStyle(.green)
-                if let url = controller.streamURL {
-                    Text("Receiver address: \(url)")
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                }
+            case .active:
+                Label("Second display is live.", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(DSColor.live)
             case .failed(let message):
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)

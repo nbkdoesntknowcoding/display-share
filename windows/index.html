@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Display Share — Receiver</title>
+<title>Display Share</title>
 <link rel="stylesheet" href="/src/styles/tokens.css">
 <link rel="stylesheet" href="/src/styles/controls.css">
 <style>
@@ -449,11 +449,12 @@
         <span id="version"></span>
       </div>
       <p id="role">
-        This PC becomes a second display for your Mac. The Mac runs the sender,
-        which lives in its menu bar.
+        This PC becomes a second display for your Mac. Display Share has to be
+        running on the Mac too — look for it in the menu bar, at the top of the
+        screen.
       </p>
 
-      <div id="message">Looking for senders…</div>
+      <div id="message">Looking for your Mac…</div>
 
       <!-- Command 8. States scored 0/6 in the audit: every path that is not the
            happy path was unhandled, and the connect screen is mostly not the
@@ -505,9 +506,9 @@
       </div>
 
       <div id="bar" class="field-row" hidden>
-        <input id="address" class="ds-input" aria-label="Mac address" placeholder="Mac address, e.g. 192.168.1.42" autocomplete="off" spellcheck="false">
+        <input id="address" class="ds-input" aria-label="Your Mac's IP address"
+               placeholder="192.168.1.42" autocomplete="off" spellcheck="false">
         <button id="connect" type="button" class="btn btn--primary">Connect</button>
-        <button id="rescan" type="button" class="btn btn--secondary">Rescan</button>
       </div>
 
       <!-- The reverse direction (Tasks 8.2 / 8.4). Below the receiving controls

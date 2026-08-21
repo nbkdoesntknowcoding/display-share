@@ -207,13 +207,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("fps 60", { self.controller.setFrameRate(60) }),
             ("res 2560x1440", { self.controller.setResolution(width: 2560, height: 1440) }),
         ]
+        // The property this hook exists to check is that reconfiguration keeps
+        // the SAME display, so the user's window arrangement survives. Reported
+        // as that property rather than as a hex id to diff by eye — which also
+        // keeps a CGDirectDisplayID out of every string in this app.
+        var firstDisplayID: CGDirectDisplayID?
         var delay: Double = 4
         for (label, action) in steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 action()
                 let state: String
                 switch self.controller.state {
-                case .active(let id): state = "active 0x\(String(id, radix: 16))"
+                case .active(let id):
+                    if firstDisplayID == nil { firstDisplayID = id }
+                    state = id == firstDisplayID ? "active (same display)" : "active (NEW display)"
                 case .failed(let m): state = "FAILED \(m)"
                 case .idle: state = "idle"
                 case .starting: state = "starting"
@@ -536,7 +543,7 @@ private struct ControlPanel: View {
                 Text(pin)
                     .font(.system(size: 30, weight: .semibold, design: .monospaced))
                     .textSelection(.enabled)
-                Text("Type this on the receiver to pair it.")
+                Text("Type this on your PC to pair it.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -648,7 +655,7 @@ private struct ControlPanel: View {
     private var otherDirectionSection: some View {
         DisclosureGroup("View a Windows PC") {
             VStack(alignment: .leading, spacing: DSSpacing.s2) {
-                Text("Watch and control a Windows machine from this Mac — the opposite of what Start does.")
+                Text("Use this Mac to see and control a Windows PC — the opposite of what Start does.")
                     .font(.system(size: DSFont.f2))
                     .foregroundStyle(DSColor.textMuted)
                     .fixedSize(horizontal: false, vertical: true)

@@ -606,7 +606,10 @@ addressInput.addEventListener("keydown", (e) => {
 // --- Discovery + pairing UI -------------------------------------------------
 
 const senderList = document.getElementById("senders") as HTMLDivElement;
-const rescanButton = document.getElementById("rescan") as HTMLButtonElement;
+/// Optional: the manual-entry row's duplicate Rescan is gone, and a missing
+/// element must never throw during module evaluation — that is how a startup
+/// crash takes the whole connect screen with it.
+const rescanButton = document.getElementById("rescan") as HTMLButtonElement | null;
 const pinRow = document.getElementById("pin-row") as HTMLDivElement;
 const pinInput = document.getElementById("pin") as HTMLInputElement;
 const pinSubmit = document.getElementById("pin-submit") as HTMLButtonElement;
@@ -662,12 +665,20 @@ interface DiscoveredSender {
 }
 
 async function scanForSenders() {
-  senderList.textContent = "Looking for Macs on this network…";
+  // Status goes to the message element, never into the list container: writing
+  // into #senders is what deleted the whole UI once before.
+  senderList.replaceChildren();
+  setStatus("Looking for your Mac…");
   let senders: DiscoveredSender[] = [];
   try {
     senders = await invoke<DiscoveredSender[]>("discover_senders", { timeoutMs: 2500 });
   } catch (e) {
-    senderList.textContent = `Discovery unavailable (${e}). Enter an address below.`;
+    // The raw text goes to the console, not to the person. This used to render
+    // as "Discovery unavailable (TypeError: Cannot read properties of
+    // undefined…)" — a JavaScript error as body copy.
+    console.warn("discovery failed", e);
+    setStatus("Couldn't search this network. Enter your Mac's address instead.");
+    showManualEntry(true);
     return;
   }
   if (senders.length === 0) {
@@ -710,7 +721,7 @@ async function scanForSenders() {
   }
 }
 
-rescanButton.addEventListener("click", () => void scanForSenders());
+rescanButton?.addEventListener("click", () => void scanForSenders());
 
 // Identity is needed before any connection attempt, since a stored token is
 // what makes reconnecting one click.
@@ -720,7 +731,7 @@ if (identity) {
   if (stored) identity.token = stored;
 }
 
-setStatus("Looking for senders…");
+setStatus("Looking for your Mac…");
 void scanForSenders();
 
 /// Shows which version is running.
@@ -808,15 +819,15 @@ shareButton?.addEventListener("click", async () => {
       host: string;
     };
     if (shareStatus) {
-      // Show the port as well as the name: Bonjour fails often enough on
-      // locked-down networks that the manual fallback needs to be visible
-      // rather than something to go hunting for.
-      shareStatus.textContent = `Sharing as “${info.host}” — on the Mac, choose View a Windows PC (port ${info.port})`;
+      shareStatus.textContent = `Sharing as “${info.host}” — on your Mac, open Display Share and choose View a Windows PC.`;
     }
     if (stopShareButton) stopShareButton.hidden = false;
     setEnabled(shareButton, false, "This PC is already sharing its screen.");
   } catch (error) {
-    if (shareStatus) shareStatus.textContent = `Could not start: ${error}`;
+    console.error("start_sharing failed", error);
+    if (shareStatus) {
+      shareStatus.textContent = "Couldn't start sharing this screen. Try again.";
+    }
     setEnabled(shareButton, true);
   }
 });
@@ -828,7 +839,8 @@ stopShareButton?.addEventListener("click", async () => {
     setEnabled(shareButton, true);
     stopShareButton.hidden = true;
   } catch (error) {
-    if (shareStatus) shareStatus.textContent = `Could not stop: ${error}`;
+    console.error("stop_sharing failed", error);
+    if (shareStatus) shareStatus.textContent = "Couldn't stop sharing. Try again.";
   }
 });
 
@@ -1097,10 +1109,16 @@ heroButton?.addEventListener("click", () => {
  * discovered, manual entry IS the path and takes it back.
  */
 function refreshPrimaryAction() {
+  // Same reason as showManualEntry: reachable from the discovery-failure path
+  // during module evaluation, so it must not touch a const declared below it.
   const manualBar = document.getElementById("bar");
-  const heroShowing = heroButton !== null && !heroButton.hidden;
+  const hero = document.getElementById("connect-hero");
+  const heroShowing = hero !== null && !(hero as HTMLElement & { hidden: boolean }).hidden;
   const manualShowing = manualBar !== null && !manualBar.hidden;
-  setVariant(connectButton, heroShowing && manualShowing ? "secondary" : "primary");
+  setVariant(
+    document.getElementById("connect"),
+    heroShowing && manualShowing ? "secondary" : "primary"
+  );
 }
 
 refreshPrimaryAction();
@@ -1118,14 +1136,32 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+/**
+ * Reveals or hides manual address entry.
+ *
+ * Shared with the discovery-failure path: when the network cannot be searched,
+ * the only way forward is to type an address, and leaving it folded away behind
+ * a disclosure makes a dead end out of a recoverable state.
+ */
+export function showManualEntry(show: boolean, focus = true) {
+  // Elements are resolved HERE rather than closed over from module-level
+  // consts. Discovery can fail during module evaluation, before those consts
+  // are initialised, and reading one in its temporal dead zone throws a
+  // ReferenceError — which is exactly how v0.9.0 bricked itself.
+  const bar = document.getElementById("bar");
+  const toggle = document.getElementById("manual-toggle");
+  if (!bar || !toggle) return;
+  bar.hidden = !show;
+  toggle.setAttribute("aria-expanded", String(show));
+  refreshPrimaryAction();
+  if (show && focus) {
+    (document.getElementById("address") as HTMLInputElement | null)?.focus();
+  }
+}
+
 manualToggle?.addEventListener("click", () => {
   const bar = document.getElementById("bar");
-  if (!bar) return;
-  const showing = !bar.hidden;
-  bar.hidden = showing;
-  manualToggle.setAttribute("aria-expanded", String(!showing));
-  refreshPrimaryAction();
-  if (!showing) (document.getElementById("address") as HTMLInputElement | null)?.focus();
+  showManualEntry(bar?.hidden ?? true);
 });
 
 rescanLink?.addEventListener("click", () => void scanForSenders());
