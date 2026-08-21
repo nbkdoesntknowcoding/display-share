@@ -260,6 +260,27 @@ jobs:
             find nsis -type f | head -20
           fi
 
+  # ------------------------------------------------------------ verify
+  # Everything above checks files it just wrote to disk. The apps do not read
+  # those — they read a public URL, through a CDN, after the release is
+  # finalised. Both update failures this project shipped were invisible until
+  # that point: a manifest whose version disagreed with the installer inside it,
+  # and a manifest pointing at an asset name GitHub had rewritten.
+  #
+  # Runs after `notes` so the release is in its final published state, exactly
+  # as an app will find it.
+  verify:
+    name: Verify the published release
+    needs: [release-please, macos, windows, notes]
+    if: always() && needs.notes.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the release the way the apps do
+        env:
+          TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name || github.ref_name }}
+        run: python3 scripts/verify-release.py --tag "$TAG"
+
   # ------------------------------------------------------------- publish
   notes:
     name: Release notes
