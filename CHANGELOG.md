@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.11.0...v0.12.0) (2026-08-21)
+
+
+### Features
+
+* **mac:** the popover leads with what is happening ([#42](https://github.com/nbkdoesntknowcoding/display-share/issues/42)) ([61e1f46](https://github.com/nbkdoesntknowcoding/display-share/commit/61e1f46e69084d5945543c9585550202dc7ab5b2))
+
 ## [0.11.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.10.0...v0.11.0) (2026-08-21)
 
 
