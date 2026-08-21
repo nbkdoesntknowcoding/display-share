@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.1...v0.14.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* **mac:** a copy that updated itself never looked again ([#50](https://github.com/nbkdoesntknowcoding/display-share/issues/50)) ([e0fb28a](https://github.com/nbkdoesntknowcoding/display-share/commit/e0fb28a6ce3658b134fa0ddc4783c9470052cc88))
+
 ## [0.14.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.0...v0.14.1) (2026-08-21)
 
 
