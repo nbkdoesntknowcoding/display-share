@@ -325,28 +325,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// update if the designated requirement would change. An update that cost
     /// the user their Screen Recording grant would be worse than no update.
     private func applyUpdateIfAvailable() {
-        // Relaunched by the updater: checking again would loop.
-        if CommandLine.arguments.contains("--updated") {
-            log("update: running the freshly installed version")
-            return
-        }
-        // Only ever replace a real installation. A build running out of a
-        // developer's build directory must not be overwritten by a release.
         let bundle = Bundle.main.bundleURL
-        guard bundle.path.hasPrefix("/Applications/") else {
+        let plan = UpdateScheduling.plan(
+            bundlePath: bundle.path, arguments: CommandLine.arguments)
+
+        if plan.notifyOnly {
             Task { await controller.checkForUpdate() }
             return
         }
 
-        // Checked at launch AND on a timer. Launch alone is not enough: this is a
-        // menu bar app that people leave running for days, so an install that
-        // started before a release existed would never see it. Three releases
-        // shipped past a copy that had been up for four hours, which is how
-        // "updates apply themselves" turned out to be false in the one case that
-        // matters.
-        runUpdateCheck(bundle: bundle)
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) {
-            [weak self] _ in
+        if plan.checkNow {
+            runUpdateCheck(bundle: bundle)
+        } else {
+            log("update: running the freshly installed version")
+        }
+
+        // Scheduled even for a copy the updater just relaunched. Skipping this
+        // along with the immediate check is what left an updated app never
+        // looking again for the rest of its life — see UpdateScheduling.
+        guard plan.scheduleRepeatingCheck else { return }
+        updateTimer = Timer.scheduledTimer(
+            withTimeInterval: UpdateScheduling.interval, repeats: true
+        ) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in self.runUpdateCheck(bundle: bundle) }
         }

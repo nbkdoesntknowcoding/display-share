@@ -27,6 +27,7 @@
 		342105D72755EF7378622B66 /* RelativePointerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9763DE1482C60A08A53E95 /* RelativePointerTests.swift */; };
 		353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */; };
 		388F3E8FBDBAE9642D6C81DE /* ViewerWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1E2CEA8E42F8F6236E480 /* ViewerWindow.swift */; };
+		4140EF0D3706D911F0353C86 /* UpdateScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B556E442E9C818B446F0332 /* UpdateScheduling.swift */; };
 		43CB1BEE6705C4EE3E07615C /* AdaptiveBitrateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */; };
 		4452539B527C7C5CF2BD3B4F /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		538D6BCFCF9A2FCD29027A70 /* KeyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFCD764FE6F912C36764995 /* KeyMap.swift */; };
@@ -54,6 +55,7 @@
 		A147D3458C51806F45609856 /* SessionStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */; };
 		A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */; };
 		A63B4456A924AE3FD0FFD8FD /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
+		B28FAF14325E6FEC6E0B5C0A /* UpdateSchedulingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C724B415248BEE8D5D748CA /* UpdateSchedulingTests.swift */; };
 		B572CE2EEDF309AE3ED91702 /* PairingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6012B810C82DD746CEF5E434 /* PairingStore.swift */; };
 		B5F2551D189BDDBF0450FFD6 /* VideoDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5482A31B7F336ACB4187A27F /* VideoDecoderTests.swift */; };
 		B7C74BED60A4DA94CAE03606 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
@@ -171,6 +173,8 @@
 		5482A31B7F336ACB4187A27F /* VideoDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoderTests.swift; sourceTree = "<group>"; };
 		55BD527AC059AAE5E481689F /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		586F7E246721E54F5D593501 /* ViewerAddressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerAddressTests.swift; sourceTree = "<group>"; };
+		5B556E442E9C818B446F0332 /* UpdateScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateScheduling.swift; sourceTree = "<group>"; };
+		5C724B415248BEE8D5D748CA /* UpdateSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSchedulingTests.swift; sourceTree = "<group>"; };
 		5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckerTests.swift; sourceTree = "<group>"; };
 		5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputInjector.swift; sourceTree = "<group>"; };
 		6012B810C82DD746CEF5E434 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
@@ -309,6 +313,7 @@
 				BE9763DE1482C60A08A53E95 /* RelativePointerTests.swift */,
 				9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */,
 				5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */,
+				5C724B415248BEE8D5D748CA /* UpdateSchedulingTests.swift */,
 				5482A31B7F336ACB4187A27F /* VideoDecoderTests.swift */,
 				586F7E246721E54F5D593501 /* ViewerAddressTests.swift */,
 				36BF1183BD22B87CCC8CC97B /* ViewerClientTests.swift */,
@@ -439,6 +444,7 @@
 				913024711DF4B033F3E182DC /* SessionSupervisor.swift */,
 				82A22D3E32B880B7AF932726 /* StreamPipeline.swift */,
 				F22DC2A60EA7211AAD8FC586 /* UpdateChecker.swift */,
+				5B556E442E9C818B446F0332 /* UpdateScheduling.swift */,
 				85F836639C7515333BE03906 /* VideoDecoder.swift */,
 				523160037DEAC9C905127909 /* ViewerAddress.swift */,
 				6EACE94F33978FE052C43A13 /* ViewerClient.swift */,
@@ -641,6 +647,7 @@
 				0F668ECEDB55AEED27641A48 /* StatusPill.swift in Sources */,
 				55FA87C1D1ADD287BFDCA655 /* StreamPipeline.swift in Sources */,
 				F4793C68F0B993918D1D9F34 /* UpdateChecker.swift in Sources */,
+				4140EF0D3706D911F0353C86 /* UpdateScheduling.swift in Sources */,
 				2BEF576F23A7B1C93C74832A /* VideoDecoder.swift in Sources */,
 				E782A1DCE68BC61ED2E5205B /* ViewerAddress.swift in Sources */,
 				F13BE709EB23EDC5370326A2 /* ViewerClient.swift in Sources */,
@@ -690,6 +697,7 @@
 				342105D72755EF7378622B66 /* RelativePointerTests.swift in Sources */,
 				A147D3458C51806F45609856 /* SessionStatusTests.swift in Sources */,
 				7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */,
+				B28FAF14325E6FEC6E0B5C0A /* UpdateSchedulingTests.swift in Sources */,
 				B5F2551D189BDDBF0450FFD6 /* VideoDecoderTests.swift in Sources */,
 				EEC5117113E1290EDD7D9BC9 /* ViewerAddressTests.swift in Sources */,
 				1A1CC8C401DE10F1567903EC /* ViewerClientTests.swift in Sources */,
@@ -883,7 +891,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.12.0;
+				MARKETING_VERSION = 0.14.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -999,7 +1007,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.12.0;
+				MARKETING_VERSION = 0.14.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
