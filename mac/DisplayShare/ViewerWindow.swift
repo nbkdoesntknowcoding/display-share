@@ -233,8 +233,13 @@ struct VideoSurface: NSViewRepresentable {
 final class ViewerModel: ObservableObject {
     @Published var status = ViewerClient.Status()
     @Published var discovered: [DiscoveredSender] = []
+    /// One field, holding either `192.168.1.42` or `192.168.1.42:7879`.
+    ///
+    /// A separate port box was the last place either app put a port number in
+    /// front of a user — the audit flagged the two exposed ports as one of the
+    /// two things that might be bugs rather than design. The default is right
+    /// for every machine running Display Share, and discovery fills this in.
     @Published var host = ""
-    @Published var port = String(ViewerModel.defaultPort)
     @Published var showHUD = true
 
     /// The reverse direction's default port. Separate from the Mac sender's
@@ -277,16 +282,16 @@ final class ViewerModel: ObservableObject {
     }
 
     func connect() {
-        guard let portNumber = Int(port), (1...65535).contains(portNumber) else {
-            status.message = "Port must be between 1 and 65535"
+        let typed = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else {
+            status.message = "Enter the Windows PC's address"
             return
         }
-        let target = host.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !target.isEmpty else {
-            status.message = "Enter the Windows machine's address"
+        guard let target = ViewerAddress.parse(typed, defaultPort: Self.defaultPort) else {
+            status.message = "That address doesn't look right"
             return
         }
-        client.connect(host: target, port: portNumber)
+        client.connect(host: target.host, port: target.port)
     }
 
     func connect(to sender: DiscoveredSender) {
@@ -303,8 +308,11 @@ final class ViewerModel: ObservableObject {
             if let percent = text.firstIndex(of: "%") { text = String(text[..<percent]) }
             connection.cancel()
             Task { @MainActor in
-                self?.host = text
-                self?.port = String(resolvedPort.rawValue)
+                // Bracketed when it is IPv6, so the field round-trips through
+                // parseTarget if the user edits and reconnects.
+                self?.host =
+                    text.contains(":") ? "[\(text)]:\(resolvedPort.rawValue)"
+                    : "\(text):\(resolvedPort.rawValue)"
                 self?.client.connect(host: text, port: Int(resolvedPort.rawValue))
             }
         }
@@ -520,7 +528,7 @@ struct ViewerView: View {
         VStack(spacing: 14) {
             Text("View a Windows PC")
                 .font(.title2.bold())
-            Text("Run Display Share on the Windows machine and choose “Share this PC’s screen”.")
+            Text("Run Display Share on the Windows PC and choose “Share this PC’s screen instead”.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -541,10 +549,8 @@ struct ViewerView: View {
             }
 
             HStack {
-                DSTextField("Windows address", text: $model.host) { model.connect() }
-                    .frame(width: 200)
-                DSTextField("Port", text: $model.port) { model.connect() }
-                    .frame(width: 70)
+                DSTextField("Windows PC address", text: $model.host) { model.connect() }
+                    .frame(width: 280)
                 DSButton("Connect", variant: .primary, defaultAction: true) {
                     model.connect()
                 }

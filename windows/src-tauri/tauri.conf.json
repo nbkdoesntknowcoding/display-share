@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Display Share Receiver",
+        "title": "Display Share",
         "width": 1280,
         "height": 720,
         "resizable": true,
