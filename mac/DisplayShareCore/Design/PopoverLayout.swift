@@ -80,10 +80,14 @@ public struct DSDivider: View {
 public struct DSAppMark: View {
     private let size: CGFloat
 
-    // The icon's own coordinates, in its 1024 canvas, reduced to the box the
-    // two rectangles actually occupy.
-    private static let designWidth: CGFloat = 604
-    private static let designHeight: CGFloat = 460
+    // The icon's own coordinates, reduced to the box the two rectangles occupy
+    // PLUS half the stroke width on every side. Without that margin the back
+    // display's 46-unit stroke is centred on the path and half of it falls
+    // outside the canvas, where it is clipped — the icon script has room to
+    // spare in its 1024 square and never showed the problem.
+    private static let inset: CGFloat = 23
+    private static let designWidth: CGFloat = 604 + 46
+    private static let designHeight: CGFloat = 460 + 46
 
     public init(size: CGFloat = 18) {
         self.size = size
@@ -94,15 +98,18 @@ public struct DSAppMark: View {
             let scale = canvas.width / Self.designWidth
             let radius = 54 * scale
 
+            let inset = Self.inset * scale
             let back = Path(
-                roundedRect: CGRect(x: 0, y: 0, width: 430 * scale, height: 330 * scale),
+                roundedRect: CGRect(
+                    x: inset, y: inset, width: 430 * scale, height: 330 * scale),
                 cornerRadius: radius)
             context.stroke(
                 back, with: .color(DSColor.accent.opacity(0.55)), lineWidth: 46 * scale)
 
             let front = Path(
                 roundedRect: CGRect(
-                    x: 174 * scale, y: 130 * scale, width: 430 * scale, height: 330 * scale),
+                    x: 174 * scale + inset, y: 130 * scale + inset,
+                    width: 430 * scale, height: 330 * scale),
                 cornerRadius: radius)
             context.fill(front, with: .color(DSColor.accent))
         }

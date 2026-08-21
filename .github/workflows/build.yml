@@ -92,6 +92,13 @@ jobs:
           npm ci
           node scripts/verify-vectors.mjs
 
+      # Command 10. Nothing in CI has ever run the receiver's frontend, which is
+      # why every defect that reached a user passed a green build. These states
+      # need a live socket, a paired Mac and a decoded frame to reach by hand.
+      - name: Verify the receiver window's states
+        working-directory: windows
+        run: node --experimental-strip-types scripts/verify-window-states.mjs
+
       # Signing only when the secrets exist. A fork PR has none, and must still
       # get a green build rather than a confusing failure.
       - name: Import Developer ID certificate
@@ -179,6 +186,7 @@ jobs:
         run: |
           npm run build
           node scripts/verify-vectors.mjs
+          node --experimental-strip-types scripts/verify-window-states.mjs
 
       # Ahead of the bundle step on purpose. The Rust backend uses Windows-only
       # APIs (DXGI Desktop Duplication, Task 8.1) that cannot be compiled on a

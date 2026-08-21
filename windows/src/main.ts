@@ -15,6 +15,7 @@ import {
 import { InputCapture } from "./input";
 import { backoffFor, humanise } from "./errors";
 import { installDisabledGuard, setEnabled, setVariant } from "./components/controls";
+import { applyWindowClasses } from "./components/window";
 
 /**
  * Display Share receiver frontend.
@@ -98,7 +99,49 @@ let linkAdvised = false;
 let awaitingPin = false;
 /// Whether the user wants the HUD when a stream is running. Persisted so the
 /// preference survives a reconnect and a restart.
-let hudWanted = localStorage.getItem("ds.hud") !== "0";
+/// Off unless asked for (Command 10: "while streaming: zero chrome").
+///
+/// It used to default ON, so a permanent statistics panel sat over a screen
+/// whose entire purpose is to be a screen. The first-run hint teaches H at the
+/// exact moment the canvas first appears, and anyone who has turned it on keeps
+/// it on across restarts.
+let hudWanted = localStorage.getItem("ds.hud") === "1";
+
+const appMark = document.getElementById("app-mark");
+
+/// True once a frame has been painted. It is what separates "has not connected
+/// yet" from "was connected and lost it", which look identical to the code that
+/// raises the overlay but must not look identical to the user.
+let hasLiveFrame = false;
+
+/// Whether the connect card is up. Read from here rather than from
+/// `overlay.style.display`, which is no longer what hides it — visibility is a
+/// fade now, and two places were still comparing against "none".
+let overlayShown = true;
+
+export function isOverlayVisible(): boolean {
+  return overlayShown;
+}
+
+/**
+ * Raises or lowers the connect card (Command 10).
+ *
+ * The audit's complaint was that the transition from card to canvas was
+ * undefined: `display: none` cannot animate, so connecting was a hard cut to
+ * black and losing a session replaced the picture with an empty window.
+ *
+ * Now the card fades, and when it returns over a session that was live the
+ * canvas dims to 40% and stays behind it — the last thing the user saw is
+ * still there, which is the difference between "this dropped" and "this is
+ * broken".
+ */
+function setOverlayVisible(visible: boolean) {
+  overlayShown = visible;
+  applyWindowClasses(
+    { overlay, canvas, mark: appMark, hud },
+    { overlayVisible: visible, hasLiveFrame, hudWanted }
+  );
+}
 
 function setStatus(text: string, visible = true) {
   // Write to the MESSAGE element, never to #overlay. Setting overlay.textContent
@@ -117,14 +160,7 @@ function setStatus(text: string, visible = true) {
   // Announced as well as shown: a plain div changing its text tells a screen
   // reader user nothing, so pairing prompts and drops went unnoticed entirely.
   if (text) announce(text);
-  overlay.style.display = visible ? "flex" : "none";
-  // The HUD reports a live stream's statistics. While the overlay is up there is
-  // no live stream, so leaving it on shows stale numbers bleeding through.
-  // The HUD describes a live stream, so it goes away while the overlay is up —
-  // and MUST come back when the stream returns. Hiding it here without
-  // restoring it left the HUD gone for the whole session after connecting,
-  // needing two presses of H to recover.
-  hud.classList.toggle("hidden", visible || !hudWanted);
+  setOverlayVisible(visible);
 }
 
 // --- Latency measurement (Task 10.1) ----------------------------------------
@@ -174,6 +210,9 @@ function setupDecoder(codec: string) {
       paintedInWindow++;
       frame.close();
       hideConnecting();
+      // Recorded BEFORE the overlay drops, so the canvas is already marked live
+      // and fades in as the card fades out rather than appearing behind it.
+      hasLiveFrame = true;
       setStatus("", false);
       // The first frame is the moment the shortcut is worth knowing, and the
       // only moment the overlay is not covering the screen to say it.
@@ -587,7 +626,7 @@ function showPinPrompt(message: string, isError = false) {
   // stood down so there is one primary action rather than two blue buttons
   // competing for the same decision.
   card?.classList.add("pairing");
-  overlay.style.display = "flex";
+  setOverlayVisible(true);
   pinInput.value = "";
   pinInput.focus();
 }
@@ -869,7 +908,7 @@ function announce(text: string) {
 // --- revealing the control ---------------------------------------------------
 let revealTimer: number | undefined;
 function revealControls() {
-  if (overlay.style.display !== "none") return; // the overlay has its own controls
+  if (isOverlayVisible()) return; // the connect card has its own controls
   controlsToggle?.classList.add("revealed");
   window.clearTimeout(revealTimer);
   revealTimer = window.setTimeout(() => {
@@ -1069,7 +1108,7 @@ refreshPrimaryAction();
 // Enter connects, so the common case needs no mouse at all.
 window.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
-  if (overlay.style.display === "none") return;
+  if (!isOverlayVisible()) return;
   const target = event.target as HTMLElement | null;
   // Let the PIN and address fields keep their own Enter behaviour.
   if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
