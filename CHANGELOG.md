@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.13.0...v0.14.0) (2026-08-21)
+
+
+### Features
+
+* say it in words a user can act on ([#46](https://github.com/nbkdoesntknowcoding/display-share/issues/46)) ([e71bfac](https://github.com/nbkdoesntknowcoding/display-share/commit/e71bfac4993f296881ba8f148489f8b9e1137a29))
+
 ## [0.13.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.12.0...v0.13.0) (2026-08-21)
 
 
