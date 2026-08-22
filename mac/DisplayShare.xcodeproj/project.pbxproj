@@ -77,6 +77,7 @@
 		E01AE605E5EFA57FF0029F2A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */; };
 		E782A1DCE68BC61ED2E5205B /* ViewerAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523160037DEAC9C905127909 /* ViewerAddress.swift */; };
 		E88DB9F175455A43FCCBE0E7 /* DisplayShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		E9AE99F78920EA7CE20A4BF1 /* H264EncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927652D6CA7E852FCCCEA3CD /* H264EncoderTests.swift */; };
 		EDAC79FEC1964E3EE9D71C30 /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */; };
 		EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */; };
 		EEC5117113E1290EDD7D9BC9 /* ViewerAddressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586F7E246721E54F5D593501 /* ViewerAddressTests.swift */; };
@@ -200,6 +201,7 @@
 		8CD353C47D811B1D13A77AD0 /* DisplayShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DisplayShare.entitlements; sourceTree = "<group>"; };
 		8F208D6A8D52D56D3387A878 /* AnnexB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnexB.swift; sourceTree = "<group>"; };
 		913024711DF4B033F3E182DC /* SessionSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupervisor.swift; sourceTree = "<group>"; };
+		927652D6CA7E852FCCCEA3CD /* H264EncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264EncoderTests.swift; sourceTree = "<group>"; };
 		92D3A3A9C57BF0D344ABB90E /* PermissionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionMonitor.swift; sourceTree = "<group>"; };
 		9623ADF1D2207D8D3E382B2F /* SessionStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStatusTests.swift; sourceTree = "<group>"; };
 		97BB2649C47E12F8306439C6 /* PopoverLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverLayout.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 				7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */,
 				EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
+				927652D6CA7E852FCCCEA3CD /* H264EncoderTests.swift */,
 				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
 				EB3A01A0709A50A2B3716B43 /* PairingStoreTests.swift */,
 				15C718ABA4E30D329E16196E /* PopoverLayoutTests.swift */,
@@ -705,6 +708,7 @@
 				D74824A3B0782D62B839B6BD /* CaptureSessionTests.swift in Sources */,
 				CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
+				E9AE99F78920EA7CE20A4BF1 /* H264EncoderTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
 				C886076BB57BF783619BB16E /* PairingStoreTests.swift in Sources */,
 				31D189D5285C637B2F5D383A /* PopoverLayoutTests.swift in Sources */,
@@ -907,7 +911,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.14.2;
+				MARKETING_VERSION = 0.14.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1023,7 +1027,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.14.2;
+				MARKETING_VERSION = 0.14.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
