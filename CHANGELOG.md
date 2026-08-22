@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.5](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.4...v0.14.5) (2026-08-22)
+
+
+### Performance
+
+* **mac:** the low-latency encoder was never asked for ([#56](https://github.com/nbkdoesntknowcoding/display-share/issues/56)) ([0dbc79b](https://github.com/nbkdoesntknowcoding/display-share/commit/0dbc79b79f9174e1c143191a718d6427062aeec8))
+
 ## [0.14.4](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.3...v0.14.4) (2026-08-22)
 
 
