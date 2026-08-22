@@ -68,6 +68,32 @@ public final class H264Encoder: @unchecked Sendable {
 
     public private(set) var bitrate: Int
 
+    /// Whether the low-latency encoder was actually granted for this session.
+    ///
+    /// Reported rather than assumed: the specification selects an encoder, and
+    /// if none is available the session is created without it. A build quietly
+    /// running the ordinary encoder would otherwise be indistinguishable from
+    /// one running the low-latency path.
+    public private(set) var lowLatencyRateControl = false
+
+    /// Which VideoToolbox encoder was actually instantiated, read back from
+    /// the session rather than inferred.
+    ///
+    /// Worth having in a bug report on its own: the low-latency and ordinary
+    /// encoders are different implementations with different property sets
+    /// (`ConstantBitRate` and `EnableTransform8x8`, for instance, exist only on
+    /// the ordinary one), so "which encoder" explains behaviour that otherwise
+    /// looks like a machine-specific mystery.
+    public private(set) var encoderID: String?
+
+    /// The encoder specification that selects the low-latency H.264 encoder.
+    ///
+    /// Built here so it can be asserted without creating a session.
+    static var lowLatencySpecification: CFDictionary {
+        [kVTVideoEncoderSpecification_EnableLowLatencyRateControl: kCFBooleanTrue!]
+            as CFDictionary
+    }
+
     public init(bitrate: Int = 12_000_000) {
         self.bitrate = bitrate
     }
@@ -86,20 +112,66 @@ public final class H264Encoder: @unchecked Sendable {
         self.width = width
         self.height = height
 
+        // Low-latency mode is chosen HERE, at session creation, and nowhere
+        // else: `EnableLowLatencyRateControl` is an encoder *specification*, so
+        // it selects which encoder is instantiated. No amount of
+        // VTSessionSetProperty afterwards is equivalent, which is why this was
+        // missed for so long — every other knob on this encoder is a property.
+        //
+        // What it buys: a strict one-in/one-out pattern instead of an internal
+        // pipeline, and a rate controller that adapts faster to a changing
+        // link. Apple quotes up to 100ms for 720p30, though part of that comes
+        // from eliminating frame reordering, which `AllowFrameReordering =
+        // false` below already gives us — so expect less than the headline and
+        // measure rather than quoting it.
+        //
+        // H.264 only, and mutually exclusive with ConstantBitRate. We use
+        // AverageBitRate plus DataRateLimits, so there is no conflict.
         var newSession: VTCompressionSession?
-        let status = VTCompressionSessionCreate(
+        var status = VTCompressionSessionCreate(
             allocator: kCFAllocatorDefault,
             width: width,
             height: height,
             codecType: kCMVideoCodecType_H264,
-            encoderSpecification: nil,
+            encoderSpecification: Self.lowLatencySpecification,
             imageBufferAttributes: nil,
             compressedDataAllocator: nil,
             outputCallback: nil,
             refcon: nil,
             compressionSessionOut: &newSession)
+        lowLatencyRateControl = status == noErr && newSession != nil
+
+        // Fall back rather than refuse to start. A machine with no low-latency
+        // encoder should still share its screen — worse latency is a bad
+        // session, no session is a broken app.
+        if !lowLatencyRateControl {
+            status = VTCompressionSessionCreate(
+                allocator: kCFAllocatorDefault,
+                width: width,
+                height: height,
+                codecType: kCMVideoCodecType_H264,
+                encoderSpecification: nil,
+                imageBufferAttributes: nil,
+                compressedDataAllocator: nil,
+                outputCallback: nil,
+                refcon: nil,
+                compressionSessionOut: &newSession)
+        }
+
         guard status == noErr, let created = newSession else {
             throw EncoderError.sessionCreationFailed(status)
+        }
+
+        // Read back which encoder we got. `lowLatencyRateControl` above is an
+        // inference — creation with the specification succeeded — and an
+        // inference cannot notice if the specification stops being passed.
+        // This can: the two encoders report different identifiers.
+        var identifier: CFTypeRef?
+        if VTSessionCopyProperty(
+            created, key: kVTCompressionPropertyKey_EncoderID, allocator: nil,
+            valueOut: &identifier) == noErr
+        {
+            encoderID = identifier as? String
         }
 
         func set(_ key: CFString, _ value: CFTypeRef, _ label: String) throws {

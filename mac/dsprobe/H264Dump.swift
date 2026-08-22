@@ -36,6 +36,12 @@ func runH264Dump(displayID: UInt32, seconds: Double, fps: Int, bitrate: Int, pat
         return
     }
 
+    // Which encoder we actually got. The low-latency one is selected by an
+    // encoder specification, so it can be refused silently — and a build
+    // running the ordinary encoder looks identical from the outside.
+    print("low latency    : \(encoder.lowLatencyRateControl ? "yes" : "no (ordinary encoder)")")
+    print("encoder        : \(encoder.encoderID ?? "unreported")")
+
     // First frame must be an IDR so the file is decodable from byte zero.
     encoder.requestKeyframe()
 
