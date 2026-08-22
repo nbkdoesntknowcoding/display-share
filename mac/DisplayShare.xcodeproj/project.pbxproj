@@ -68,6 +68,7 @@
 		CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */; };
 		CDACB64B7233D6266B4B951E /* MJPEGServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81B700690CE5606F8012DD22 /* MJPEGServer.swift */; };
 		D6BDCE176CAE22CDD7D51CF2 /* VirtualDisplayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E92B970215E62CE3040820 /* VirtualDisplayHost.swift */; };
+		D74824A3B0782D62B839B6BD /* CaptureSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */; };
 		DD962C55C3C38AC2A9AF55A1 /* H264Dump.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF94B2E6662744A3FC80AFC4 /* H264Dump.swift */; };
 		DF0C3D4E25ABBD661C7130B5 /* CGVirtualDisplayPrivate.m in Sources */ = {isa = PBXBuildFile; fileRef = 82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */; };
 		E01AE605E5EFA57FF0029F2A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB42E005288A909A6EEFD2C9 /* OnboardingView.swift */; };
@@ -183,6 +184,7 @@
 		6EACE94F33978FE052C43A13 /* ViewerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerClient.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		758D5AB0EBC19B5937CCB67B /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
+		7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionTests.swift; sourceTree = "<group>"; };
 		81B700690CE5606F8012DD22 /* MJPEGServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGServer.swift; sourceTree = "<group>"; };
 		82A22D3E32B880B7AF932726 /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
 		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 				0B52366BFE730B3C343AC8B0 /* AdaptiveBitrateTests.swift */,
 				2D632BA7BC66B02140363780 /* AnnexBTests.swift */,
 				F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */,
+				7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */,
 				EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */,
@@ -689,6 +692,7 @@
 				43CB1BEE6705C4EE3E07615C /* AdaptiveBitrateTests.swift in Sources */,
 				B7F5DCF499E438194AE48234 /* AnnexBTests.swift in Sources */,
 				22F6944D68034FD8606F7F07 /* AutoUpdaterTests.swift in Sources */,
+				D74824A3B0782D62B839B6BD /* CaptureSessionTests.swift in Sources */,
 				CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
