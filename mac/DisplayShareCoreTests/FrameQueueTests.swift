@@ -105,4 +105,79 @@ final class FrameQueueTests: XCTestCase {
         // Nothing is invented or lost: every frame was delivered, dropped, or is still queued.
         XCTAssertEqual(stats.delivered + stats.droppedOldest + stats.currentDepth, stats.enqueued)
     }
+
+    // MARK: - Residency (Phase 3)
+
+    /// The number this exists to produce.
+    ///
+    /// `currentDepth` cannot distinguish one frame waiting at 120fps from one
+    /// waiting at 30 — the same depth, four times the delay. This measures the
+    /// wait itself, which is the latency the queue's own documentation warns
+    /// about and which nothing until now could see.
+    func testAFrameReportsHowLongItWaited() {
+        let queue = FrameQueue(capacity: 4)
+        queue.enqueue(makePixelBuffer())
+        Thread.sleep(forTimeInterval: 0.05)
+        XCTAssertNotNil(queue.dequeue(timeout: 1))
+
+        let waited = queue.statistics.lastWaitMillis
+        // Generous on the upper side deliberately: this asserts that a real
+        // duration is being measured, not that this machine is fast. A loaded
+        // CI runner may take far longer than 50ms to be scheduled, and that is
+        // not a defect in the queue.
+        XCTAssertGreaterThanOrEqual(
+            waited, 40, "a frame that waited 50ms reported \(waited)ms")
+    }
+
+    /// A frame handed straight to a waiting consumer waited for nothing, and
+    /// must not be reported as though it had.
+    func testAFrameTakenImmediatelyReportsAShortWait() {
+        let queue = FrameQueue(capacity: 4)
+        queue.enqueue(makePixelBuffer())
+        XCTAssertNotNil(queue.dequeue(timeout: 1))
+        XCTAssertLessThan(
+            queue.statistics.lastWaitMillis, 20,
+            "an immediate hand-off must not look like a stall")
+    }
+
+    /// The peak is what someone hunting a stutter is looking for, so a single
+    /// bad wait must survive the good frames that follow it.
+    func testTheWorstWaitIsRemembered() {
+        let queue = FrameQueue(capacity: 4)
+        queue.enqueue(makePixelBuffer())
+        Thread.sleep(forTimeInterval: 0.05)
+        _ = queue.dequeue(timeout: 1)
+        let peak = queue.statistics.peakWaitMillis
+
+        for _ in 0..<5 {
+            queue.enqueue(makePixelBuffer())
+            _ = queue.dequeue(timeout: 1)
+        }
+
+        XCTAssertEqual(
+            queue.statistics.peakWaitMillis, peak,
+            "fast frames must not erase the stall that was worth noticing")
+        XCTAssertLessThan(
+            queue.statistics.lastWaitMillis, peak,
+            "while the last wait follows the frames actually being delivered")
+    }
+
+    /// Dropping under pressure must not corrupt the pairing. If the timestamps
+    /// were kept in a second container, this is the test that would fail —
+    /// after a drop, every frame would report the wait belonging to another.
+    func testResidencySurvivesDroppingUnderPressure() {
+        let queue = FrameQueue(capacity: 2)
+        for _ in 0..<10 { queue.enqueue(makePixelBuffer()) }
+        Thread.sleep(forTimeInterval: 0.03)
+
+        // The two survivors are the NEWEST frames, so they waited only the
+        // 30ms above — not since the first enqueue.
+        XCTAssertNotNil(queue.dequeue(timeout: 1))
+        let waited = queue.statistics.lastWaitMillis
+        XCTAssertGreaterThanOrEqual(waited, 20, "measured a real wait: \(waited)ms")
+        XCTAssertLessThan(
+            waited, 1_000,
+            "a wait this large means the surviving frame is carrying a dropped "
+                + "frame's timestamp: \(waited)ms")
+    }
 }

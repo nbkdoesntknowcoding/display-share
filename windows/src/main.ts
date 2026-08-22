@@ -16,6 +16,7 @@ import { InputCapture } from "./input";
 import { backoffFor, humanise } from "./errors";
 import { installDisabledGuard, setEnabled, setVariant } from "./components/controls";
 import { applyWindowClasses } from "./components/window";
+import { HandoffMeter, StageMeter, stageRow, type HandoffSample } from "./timing";
 
 /**
  * Display Share receiver frontend.
@@ -178,8 +179,27 @@ let peakQueueingMs = 0;
 let lastArrival = 0;
 let worstGapMs = 0;
 
+// --- Per-stage timing (Phase 3) ---------------------------------------------
+// `queueingMs` above says whether delay is climbing. It cannot say what any
+// stage costs, because it is measured against the best this session has managed
+// rather than against zero. These do: each is a duration between two stamps on
+// one clock, so nothing depends on the two machines agreeing about the time.
+const handoffMeter = new HandoffMeter();
+/**
+ * Arrival in this window to the frame being on the canvas — decode plus draw.
+ *
+ * Reuses `decodeStarts`, which already records arrival: a second map keyed the
+ * same way would have to be trimmed on the same paths, and one of them would
+ * eventually be missed.
+ */
+const paintMeter = new StageMeter();
+
 function noteArrival(senderTimestampMicros: number) {
   const now = performance.now();
+  // timeOrigin included deliberately: the Rust side stamps the wall clock,
+  // and performance.now() alone counts from page load, which would make every
+  // hand-off look like however long this window has been open.
+  handoffMeter.noteArrival(senderTimestampMicros, performance.timeOrigin + now);
   const offset = now - senderTimestampMicros / 1000;
   if (offset < bestOffsetMs) bestOffsetMs = offset;
   queueingMs = offset - bestOffsetMs;
@@ -207,6 +227,11 @@ function setupDecoder(codec: string) {
         canvas.height = frame.displayHeight;
       }
       ctx.drawImage(frame, 0, 0);
+      // Closed out AFTER the draw, so this covers decode and paint together —
+      // the whole of what this window costs a frame. `drawImage` returning is
+      // not the same as the pixels being on screen, so this is a floor, not
+      // the full story; the compositor's share is not visible from here.
+      if (started !== undefined) paintMeter.note(performance.now() - started);
       paintedInWindow++;
       frame.close();
       hideConnecting();
@@ -453,7 +478,20 @@ listen<string>("ds://control", (event) => {
   }
 });
 
-listen("ds://disconnected", () => setStatus("Disconnected. Reconnecting…"));
+// The other half of the hand-off measurement: the Rust side reports when it
+// read a sampled frame off the socket, and this window already knows when it
+// received the same frame. The two are paired on the sender's timestamp.
+listen<HandoffSample>("ds://handoff", (event) => {
+  handoffMeter.noteSample(event.payload);
+});
+
+listen("ds://disconnected", () => {
+  setStatus("Disconnected. Reconnecting…");
+  // A new session starts a new sampler on the Rust side, and its stamps must
+  // not be paired against this session's arrivals.
+  handoffMeter.reset();
+  paintMeter.reset();
+});
 
 // --- Input forwarding (SPEC §4.10) ------------------------------------------
 
@@ -496,6 +534,8 @@ setInterval(() => {
     ["delay", `${queueingMs.toFixed(0)} ms`, queueingMs > 60 ? "lead warn" : "lead"],
     ["painted", `${fps.toFixed(0)} fps`],
     ["decode", `${lastDecodeMs.toFixed(1)} ms`],
+    ...stageRow("handoff", handoffMeter.summary(), 12),
+    ...stageRow("to paint", paintMeter.summary(), 25),
     ["peak / gap", `${peakQueueingMs.toFixed(0)} / ${worstGapMs.toFixed(0)} ms`,
       worstGapMs > 120 ? "warn" : undefined],
     ["bandwidth", `${mbps.toFixed(1)} Mbps`],

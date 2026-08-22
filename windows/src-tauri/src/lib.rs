@@ -20,6 +20,7 @@ pub mod link;
 pub mod capture;
 pub mod convert;
 pub mod encode;
+pub mod handoff;
 pub mod input;
 pub mod sender;
 pub mod wire;
@@ -114,6 +115,9 @@ pub enum SessionEvent<'a> {
     Connected(&'a str),
     /// A JSON control message from the sender — pairing prompts arrive here.
     Control(&'a str),
+    /// One sampled frame's socket-read time, for measuring the gap between
+    /// here and the WebView (see `handoff`).
+    Handoff(handoff::Handoff),
     Disconnected,
 }
 
@@ -204,9 +208,16 @@ pub async fn run_session(
 
     on_event(SessionEvent::Connected(url));
 
+    let mut sampler = handoff::HandoffSampler::new();
+
     while let Some(message) = read.next().await {
         match message {
             Ok(Message::Binary(bytes)) => {
+                // Stamped before the hand-off, not after: the whole point is
+                // to time what happens between this line and the frontend.
+                if let Some(sample) = sampler.note(&bytes, handoff::epoch_micros()) {
+                    on_event(SessionEvent::Handoff(sample));
+                }
                 // Raw passthrough; the frontend parses SPEC §3.
                 if !on_binary(bytes) {
                     break;
@@ -255,6 +266,9 @@ async fn connect(
             }
             SessionEvent::Control(text) => {
                 let _ = handle.emit("ds://control", text);
+            }
+            SessionEvent::Handoff(sample) => {
+                let _ = handle.emit("ds://handoff", handoff::payload(&sample));
             }
             SessionEvent::Disconnected => {
                 let _ = handle.emit("ds://disconnected", ());
