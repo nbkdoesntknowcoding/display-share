@@ -50,7 +50,9 @@
 		815F1C5BBB65A0FE36CEFCAE /* AnimatedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF41A3F2EB5FE22E41BCF294 /* AnimatedContent.swift */; };
 		840E61CEE6348702C08F726F /* SendGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5C85AE22762A8E9E9FA954 /* SendGate.swift */; };
 		88C1C073FA7D6A0FA2F98F69 /* PopoverLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97BB2649C47E12F8306439C6 /* PopoverLayout.swift */; };
+		8C6C6364F6BBF51894DC28D8 /* CongestionSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F579333895925E8ABEAD0DE /* CongestionSignalTests.swift */; };
 		8D7CA8D233CA38DDEA5EFCC2 /* LineSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD219E38307861BED3C1FA9 /* LineSocket.swift */; };
+		9313AD54E382F7C2EB7B9A0C /* CongestionSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87809306C9A6439265F67D2A /* CongestionSignal.swift */; };
 		941013BA6101FDE4B6506AEF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C13B96E4B22FF0CF33F72A36 /* CoreVideo.framework */; };
 		95185D1328225EF9757D7BE7 /* ViewerPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247CC15C9EC9CE071ACC6D50 /* ViewerPages.swift */; };
 		98FB5B2C8C2D6B48C8040358 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */; };
@@ -188,6 +190,7 @@
 		672104AC92714855136033C4 /* AutoUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpdater.swift; sourceTree = "<group>"; };
 		6E37E7C7EB09BD0C42720A62 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EACE94F33978FE052C43A13 /* ViewerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerClient.swift; sourceTree = "<group>"; };
+		6F579333895925E8ABEAD0DE /* CongestionSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CongestionSignalTests.swift; sourceTree = "<group>"; };
 		7385E0FD36B36F44BC1850D8 /* CGVirtualDisplayPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGVirtualDisplayPrivate.h; sourceTree = "<group>"; };
 		758D5AB0EBC19B5937CCB67B /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
 		7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSessionTests.swift; sourceTree = "<group>"; };
@@ -195,6 +198,7 @@
 		82A22D3E32B880B7AF932726 /* StreamPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamPipeline.swift; sourceTree = "<group>"; };
 		82E2BAD6CF8267A0DD0F0F67 /* CGVirtualDisplayPrivate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGVirtualDisplayPrivate.m; sourceTree = "<group>"; };
 		85F836639C7515333BE03906 /* VideoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoder.swift; sourceTree = "<group>"; };
+		87809306C9A6439265F67D2A /* CongestionSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CongestionSignal.swift; sourceTree = "<group>"; };
 		8A807FA4085741AD0E902444 /* AdaptiveBitrate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveBitrate.swift; sourceTree = "<group>"; };
 		8B126213B277A3A9D373A955 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
 		8CBAE10615034BAE9FA53ED7 /* KeyMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyMapTests.swift; sourceTree = "<group>"; };
@@ -316,6 +320,7 @@
 				2D632BA7BC66B02140363780 /* AnnexBTests.swift */,
 				F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */,
 				7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */,
+				6F579333895925E8ABEAD0DE /* CongestionSignalTests.swift */,
 				EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				927652D6CA7E852FCCCEA3CD /* H264EncoderTests.swift */,
@@ -444,6 +449,7 @@
 				8A807FA4085741AD0E902444 /* AdaptiveBitrate.swift */,
 				672104AC92714855136033C4 /* AutoUpdater.swift */,
 				AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */,
+				87809306C9A6439265F67D2A /* CongestionSignal.swift */,
 				993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */,
 				4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */,
 				0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */,
@@ -640,6 +646,7 @@
 				588B577F609B5FADE5D8AAD2 /* AnnexB.swift in Sources */,
 				026601E965F6C2B8CDE99700 /* AutoUpdater.swift in Sources */,
 				800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */,
+				9313AD54E382F7C2EB7B9A0C /* CongestionSignal.swift in Sources */,
 				1BA013F9BF4776D89CB6B589 /* DSButton.swift in Sources */,
 				33E922A97A9BF88B4CAE79BC /* DSTextField.swift in Sources */,
 				C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */,
@@ -706,6 +713,7 @@
 				B7F5DCF499E438194AE48234 /* AnnexBTests.swift in Sources */,
 				22F6944D68034FD8606F7F07 /* AutoUpdaterTests.swift in Sources */,
 				D74824A3B0782D62B839B6BD /* CaptureSessionTests.swift in Sources */,
+				8C6C6364F6BBF51894DC28D8 /* CongestionSignalTests.swift in Sources */,
 				CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				E9AE99F78920EA7CE20A4BF1 /* H264EncoderTests.swift in Sources */,
@@ -911,7 +919,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.14.3;
+				MARKETING_VERSION = 0.14.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1027,7 +1035,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.14.3;
+				MARKETING_VERSION = 0.14.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;

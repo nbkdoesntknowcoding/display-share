@@ -114,10 +114,14 @@ public final class DisplayShareController: ObservableObject {
             self?.pipeline.socketServer.send(control: ControlMessage(type: "pointer_release"))
         }
         // A receiver going away must not leave a button or modifier stuck down,
-        // and the next receiver's timestamp origin is its own.
+        // and the next receiver's timestamp origin is its own. The same is true
+        // of everything the bitrate controller had concluded: a new receiver is
+        // a new path, and its first report must not be judged against the trend
+        // of a link it was never on.
         pipeline.socketServer.onClientDisconnected = { [weak self] in
             self?.injector.releaseAll()
             self?.inputSink.resetOrdering()
+            self?.pipeline.resetLinkEstimate()
         }
 
         // Task 4.2: keep the session alive across sleep/wake, Wi-Fi drops and

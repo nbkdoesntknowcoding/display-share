@@ -34,6 +34,15 @@ public final class WebSocketServer: @unchecked Sendable {
         /// which is the definition of the receiver falling behind. The send gate
         /// already acts on this delay; until now nothing reported it, so the one
         /// number that says whether the link is the bottleneck was invisible.
+        /// Milliseconds of video the receiver has not caught up with.
+        ///
+        /// What the bitrate controller steers on. Distinct from
+        /// `roundTripMillis` above, which is how *old* the receiver's newest
+        /// frame is — a true statement that includes time nobody was touching
+        /// the machine, and therefore useless as evidence about the link.
+        public var backlogMillis: Double = 0
+        /// Fraction of frames the send gate shed in the last report interval.
+        public var shedRate: Double = 0
         public var lastSendMillis: Double = 0
         /// Worst send this session. Lifetime, like the queue's high-water mark:
         /// a single long stall is what someone reading these numbers is after.
@@ -54,6 +63,17 @@ public final class WebSocketServer: @unchecked Sendable {
     /// socket; see SendGate for the policy and why it exists.
     private var gate = SendGate()
     private var stats = Statistics()
+    /// Timestamp of the newest video message actually written to the socket.
+    ///
+    /// The other end of the backlog measurement. Set on the send path only —
+    /// a frame the gate shed never reached the receiver, so it cannot be
+    /// something the receiver is behind on.
+    private var newestSentTimestamp: UInt64 = 0
+    /// Counters at the previous report, so shed rate is per interval. A
+    /// cumulative rate can only ratchet: a link that stumbled once would report
+    /// congestion forever and the bitrate could never climb back.
+    private var previousFramesSent = 0
+    private var previousFramesDropped = 0
     /// Previous cumulative counters, so drop rate is measured per interval.
     private var previousDecodedFrames = 0
     private var previousDroppedFrames = 0
@@ -76,7 +96,7 @@ public final class WebSocketServer: @unchecked Sendable {
     public var onResizeRequested: ((Int, Int) -> Void)?
     public var onClientDisconnected: (() -> Void)?
     /// (roundTripMillis, dropRate) from each receiver `stats` message.
-    public var onReceiverReport: ((Double, Double) -> Void)?
+    public var onReceiverReport: ((CongestionSignal) -> Void)?
     /// A batch of forwarded input events from an authorised receiver.
     public var onInput: (([ForwardedInputEvent]) -> Void)?
     /// Fired on a completed handshake so per-session input state can be reset.
@@ -348,8 +368,12 @@ public final class WebSocketServer: @unchecked Sendable {
             lock.lock()
             stats.receiverDecodeMillis = message.decodeMillis ?? stats.receiverDecodeMillis
             stats.receiverDroppedFrames = message.droppedFrames ?? stats.receiverDroppedFrames
-            // The receiver echoes back a timestamp we minted, so this is a true
-            // round trip measured entirely against our own clock.
+            // How stale the receiver's newest frame is. A true statement, and
+            // the one the popover shows — but NOT evidence about the link: an
+            // idle desktop sends nothing, so this climbs by a second for every
+            // second nobody touches the machine. It used to drive the bitrate
+            // controller, which is why a machine left alone came back blurry.
+            // The controller now steers on `backlogMillis` below.
             if let echoed = message.lastTimestamp {
                 let now = UInt64(CFAbsoluteTimeGetCurrent() * 1_000_000)
                 if now > echoed {
@@ -364,7 +388,34 @@ public final class WebSocketServer: @unchecked Sendable {
                     stats.roundTripMillis = 0
                 }
             }
-            let rtt = stats.roundTripMillis
+            // Backlog: both ends of this subtraction are timestamps WE minted,
+            // so it is measured inside one clock. Nothing was sent while idle,
+            // so there is nothing to be behind on, and the signal is zero.
+            //
+            // A missing or zero echo means the receiver has acknowledged
+            // nothing yet — unmeasured, not "infinitely behind", which is what
+            // subtracting from zero would produce.
+            let echoed = message.lastTimestamp ?? 0
+            let backlog =
+                echoed > 0
+                ? CongestionSignal.backlogMillis(
+                    newestSent: newestSentTimestamp, echoed: echoed)
+                : 0
+            stats.backlogMillis = backlog
+
+            // Shed rate over the interval, not the session. The send gate sheds
+            // when the socket will not take bytes, which is measured here and
+            // owes nothing to what the receiver claims — so it stays true in
+            // the case backlog cannot see: video backing up while the small
+            // control messages still get through.
+            let deltaSent = max(0, stats.framesSent - previousFramesSent)
+            let deltaShed = max(0, stats.framesDropped - previousFramesDropped)
+            previousFramesSent = stats.framesSent
+            previousFramesDropped = stats.framesDropped
+            let offered = deltaSent + deltaShed
+            let shedRate = offered > 0 ? Double(deltaShed) / Double(offered) : 0
+            stats.shedRate = shedRate
+
             let decoded = message.decodedFrames ?? 0
             let dropped = message.droppedFrames ?? 0
             lock.unlock()
@@ -382,7 +433,12 @@ public final class WebSocketServer: @unchecked Sendable {
 
             let windowTotal = deltaDecoded + deltaDropped
             let dropRate = windowTotal > 0 ? Double(deltaDropped) / Double(windowTotal) : 0
-            onReceiverReport?(rtt, dropRate)
+            onReceiverReport?(
+                CongestionSignal(
+                    backlogMillis: backlog,
+                    shedRate: shedRate,
+                    decodeQueueDepth: message.queuedFrames ?? 0,
+                    receiverDropRate: dropRate))
 
         default:
             // SPEC §4: unknown types are ignored so either side can add
@@ -454,6 +510,7 @@ public final class WebSocketServer: @unchecked Sendable {
 
         lock.lock()
         stats.framesSent += 1
+        newestSentTimestamp = max(newestSentTimestamp, message.timestampMicros)
         if message.isKeyframe { stats.keyframesSent += 1 }
         stats.bytesSent += framed.count
         windowFrames += 1
