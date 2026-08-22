@@ -395,4 +395,41 @@ final class SendBackPressureTests: XCTestCase {
         // ~2s of recovery at SPEC §4.5's one-per-250ms ceiling.
         XCTAssertLessThanOrEqual(observed, 15, "keyframe storm: \(observed) IDRs requested")
     }
+
+    /// The send duration must actually be recorded.
+    ///
+    /// Deliberately not an assertion about speed. The three CI rounds this file
+    /// cost were all tests that measured the runner rather than the code, and
+    /// "a loopback send completes within N milliseconds" is exactly that shape.
+    /// What is hardware-independent — and what silently breaks — is whether the
+    /// number is populated at all: a completion handler that stops recording
+    /// leaves a plausible-looking zero, and zero is what a perfect link would
+    /// report too.
+    func testTheTimeASendTookIsRecorded() throws {
+        let (server, client) = try startServerWithAuthorisedClient()
+        defer { server.stop() }
+
+        let draining = Thread { client.drain(for: 2.0) }
+        draining.start()
+
+        for _ in 0..<10 {
+            server.send(video: makeFrame(bytes: 8 * 1024))
+            usleep(20_000)
+        }
+        Thread.sleep(forTimeInterval: 0.5)
+
+        let stats = server.statistics
+        print(
+            "[send timing] last \(stats.lastSendMillis)ms peak \(stats.peakSendMillis)ms"
+                + " over \(stats.framesSent) sends")
+
+        XCTAssertGreaterThan(stats.framesSent, 0, "nothing was sent, so nothing could be timed")
+        XCTAssertGreaterThan(
+            stats.lastSendMillis, 0,
+            "sends completed but none was timed — the completion handler is no "
+                + "longer recording, and a stalled link would report zero too")
+        XCTAssertGreaterThanOrEqual(
+            stats.peakSendMillis, stats.lastSendMillis,
+            "the peak must cover every send, including the last")
+    }
 }

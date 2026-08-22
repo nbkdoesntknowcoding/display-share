@@ -25,6 +25,19 @@ public final class WebSocketServer: @unchecked Sendable {
         public var roundTripMillis: Double = 0
         public var receiverDecodeMillis: Double = 0
         public var receiverDroppedFrames: Int = 0
+
+        /// How long the last frame took to be consumed by the network stack.
+        ///
+        /// This is the back-pressure signal itself, in milliseconds. `send` with
+        /// `.contentProcessed` completes when the stack has taken the bytes, so
+        /// a completion that takes a long time means the send buffer was full —
+        /// which is the definition of the receiver falling behind. The send gate
+        /// already acts on this delay; until now nothing reported it, so the one
+        /// number that says whether the link is the bottleneck was invisible.
+        public var lastSendMillis: Double = 0
+        /// Worst send this session. Lifetime, like the queue's high-water mark:
+        /// a single long stall is what someone reading these numbers is after.
+        public var peakSendMillis: Double = 0
     }
 
     private let port: NWEndpoint.Port
@@ -429,13 +442,14 @@ public final class WebSocketServer: @unchecked Sendable {
         let framed = WireProtocol.encode(message)
         let metadata = NWProtocolWebSocket.Metadata(opcode: .binary)
         let context = NWConnection.ContentContext(identifier: "video", metadata: [metadata])
+        let sendStarted = CFAbsoluteTimeGetCurrent()
         current.send(
             content: framed, contentContext: context, isComplete: true,
             completion: .contentProcessed { [weak self] _ in
                 // An error here is not handled: the connection's state handler
                 // already tears the client down, and reopening the gate is
                 // correct either way — the send is no longer outstanding.
-                self?.finishVideoSend(on: current)
+                self?.finishVideoSend(on: current, started: sendStarted)
             })
 
         lock.lock()
@@ -483,7 +497,7 @@ public final class WebSocketServer: @unchecked Sendable {
     /// transmitted. The distinction matters less than the timing: while the
     /// send buffer is full this callback is delayed, and that delay is what
     /// closes the gate and makes the next frame a drop instead of a queue entry.
-    private func finishVideoSend(on connection: NWConnection) {
+    private func finishVideoSend(on connection: NWConnection, started: CFAbsoluteTime) {
         lock.lock()
         // A completion arriving from a socket we have since replaced must not
         // reopen the gate for its successor.
@@ -491,6 +505,10 @@ public final class WebSocketServer: @unchecked Sendable {
             lock.unlock()
             return
         }
+        // Recorded inside the identity check on purpose: a completion from a
+        // replaced socket says nothing about the link now carrying video.
+        stats.lastSendMillis = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        stats.peakSendMillis = max(stats.peakSendMillis, stats.lastSendMillis)
         let needsKeyframe = gate.completed(at: Date())
         lock.unlock()
         // Fired outside the lock: the handler reaches into the encoder.

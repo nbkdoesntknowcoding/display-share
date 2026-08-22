@@ -53,6 +53,10 @@ func measure(fps: Int, consumerDelayMs: Int, seconds: Double, displayID: CGDirec
                  stats.enqueued, stats.delivered, stats.droppedOldest, stats.dropRate * 100))
     print(String(format: "    consumer saw %.1f fps, capture enqueued %.1f fps, idle frames %d",
                  achieved, Double(stats.enqueued) / seconds, session.idleFrames))
+    // Depth in the unit that matters. One frame deep means 8ms at 120fps and
+    // 33ms at 30, and the depth alone cannot tell those apart.
+    print(String(format: "    queue wait %.1f ms last, %.1f ms worst",
+                 stats.lastWaitMillis, stats.peakWaitMillis))
     print("    queue depth never exceeded \(stats.highWaterMark) (capacity 2)")
 }
 

@@ -26,13 +26,31 @@ public final class FrameQueue: @unchecked Sendable {
         public var currentDepth: Int = 0
         public var highWaterMark: Int = 0
 
+        /// How long the frame just handed out had been sitting here.
+        ///
+        /// A depth of one frame means something different at 30fps than at 120,
+        /// and `currentDepth` cannot tell them apart. This is the same fact in
+        /// the unit that matters: milliseconds a frame spent waiting before
+        /// anyone looked at it, which is latency nobody was accounting for.
+        public var lastWaitMillis: Double = 0
+        /// Worst wait this queue has ever handed out.
+        ///
+        /// Lifetime rather than windowed, matching `highWaterMark` — a stall
+        /// that happened once is exactly what someone reading these numbers is
+        /// hunting for.
+        public var peakWaitMillis: Double = 0
+
         public var dropRate: Double {
             enqueued > 0 ? Double(droppedOldest) / Double(enqueued) : 0
         }
     }
 
     private let capacity: Int
-    private var buffer: [CVPixelBuffer] = []
+    /// Frames wait here with the time they arrived, so residency can be
+    /// measured on the way out. Paired in the buffer rather than tracked
+    /// alongside it: two containers that must stay the same length is a bug
+    /// waiting for the first `removeFirst` that only runs on one of them.
+    private var buffer: [(frame: CVPixelBuffer, enqueued: CFAbsoluteTime)] = []
     private let lock = NSCondition()
     private var stats = Statistics()
     private var closed = false
@@ -58,7 +76,7 @@ public final class FrameQueue: @unchecked Sendable {
             stats.droppedOldest += 1
             dropped = true
         }
-        buffer.append(frame)
+        buffer.append((frame, CFAbsoluteTimeGetCurrent()))
         stats.enqueued += 1
         stats.currentDepth = buffer.count
         stats.highWaterMark = max(stats.highWaterMark, buffer.count)
@@ -74,9 +92,11 @@ public final class FrameQueue: @unchecked Sendable {
             if !lock.wait(until: deadline) { return nil }
         }
         guard !buffer.isEmpty else { return nil }
-        let frame = buffer.removeFirst()
+        let (frame, enqueued) = buffer.removeFirst()
         stats.delivered += 1
         stats.currentDepth = buffer.count
+        stats.lastWaitMillis = (CFAbsoluteTimeGetCurrent() - enqueued) * 1000
+        stats.peakWaitMillis = max(stats.peakWaitMillis, stats.lastWaitMillis)
         return frame
     }
 

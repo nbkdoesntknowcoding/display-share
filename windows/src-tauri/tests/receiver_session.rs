@@ -15,7 +15,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
 use display_share_receiver_lib::{
-    hello_message, run_session, wire, ConnectionState, Panel, SessionEvent,
+    handoff, hello_message, run_session, wire, ConnectionState, Panel, SessionEvent,
 };
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpListener;
@@ -111,6 +111,9 @@ async fn drive(
             noted.lock().unwrap().push(match event {
                 SessionEvent::Connected(_) => "connected".to_string(),
                 SessionEvent::Control(text) => format!("control:{text}"),
+                SessionEvent::Handoff(sample) => {
+                    format!("handoff:{}:{}", sample.timestamp_us, sample.forwarded_epoch_us)
+                }
                 SessionEvent::Disconnected => "disconnected".to_string(),
             });
         },
@@ -296,5 +299,44 @@ async fn the_outbound_channel_is_cleared_when_the_session_ends() {
     assert!(
         !state.is_connected().await,
         "a finished session must not leave a live-looking channel behind"
+    );
+}
+
+// ------------------------------------------------------------ the hand-off
+
+/// The IPC gap is measured by pairing this stamp with the frontend's arrival,
+/// keyed on the sender's timestamp. If the stamp never leaves the session, or
+/// carries a timestamp the frontend will not recognise, the measurement reports
+/// nothing at all — and reports it silently, which is the failure worth
+/// catching here rather than in a browser.
+#[tokio::test]
+async fn a_session_reports_when_it_handed_a_frame_to_the_webview() {
+    let frame = wire::frame_message(&[0, 0, 0, 1, 0x65, 0x11], true, 4_242);
+    let (addr, stub) = stub_sender(Script::Send(vec![Message::Binary(frame)])).await;
+
+    let before = handoff::epoch_micros();
+    let session = drive(addr, None, Arc::new(ConnectionState::default())).await;
+    let after = handoff::epoch_micros();
+    let _ = stub.await;
+
+    let sample = session
+        .events
+        .iter()
+        .find_map(|e| e.strip_prefix("handoff:"))
+        .expect("no hand-off was reported for a frame that was forwarded");
+
+    let (timestamp, forwarded) = sample.split_once(':').expect("malformed sample");
+    assert_eq!(
+        timestamp, "4242",
+        "the sample must carry the SENDER's timestamp — it is the only key the          frontend can match its own arrival against"
+    );
+
+    // Stamped when the frame was read, so it belongs inside the window this
+    // test ran in. A stamp from a different clock or a different unit lands
+    // wildly outside it.
+    let forwarded: u64 = forwarded.parse().expect("epoch is a number");
+    assert!(
+        (before..=after).contains(&forwarded),
+        "hand-off stamped at {forwarded}, outside the {before}..={after} window this test ran in"
     );
 }
