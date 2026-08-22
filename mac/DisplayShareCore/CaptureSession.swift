@@ -20,6 +20,9 @@ public final class CaptureSession: NSObject, @unchecked Sendable {
         /// feed VideoToolbox without a conversion.
         public var pixelFormat: OSType
         public var showsCursor: Bool
+        /// Capacity of OUR `FrameQueue`. Not ScreenCaptureKit's buffer pool —
+        /// that is `streamQueueDepth`, and the two are deliberately different
+        /// numbers for different reasons.
         public var queueDepth: Int
 
         public init(
@@ -112,18 +115,8 @@ public final class CaptureSession: NSObject, @unchecked Sendable {
             throw CaptureError.displayNotFound(configuration.displayID)
         }
 
-        let streamConfig = SCStreamConfiguration()
-        streamConfig.width = display.width
-        streamConfig.height = display.height
-        streamConfig.pixelFormat = configuration.pixelFormat
-        streamConfig.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(configuration.fps))
-        streamConfig.showsCursor = configuration.showsCursor
-        // SCK's own buffer pool. The comment below used to say "kept small" while
-        // setting 6, which at 60fps is up to 100ms of frames waiting their turn.
-        // Depth only helps a consumer that stalls and then catches up; ours is a
-        // bounded queue of 2 that drops the oldest, so anything SCK holds back is
-        // staleness we can never use. 3 is the documented practical floor.
-        streamConfig.queueDepth = 3
+        let streamConfig = makeStreamConfiguration(
+            width: display.width, height: display.height, fps: configuration.fps)
         pixelSize = CGSize(width: display.width, height: display.height)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
@@ -167,15 +160,47 @@ public final class CaptureSession: NSObject, @unchecked Sendable {
         stateLock.unlock()
         guard let current else { return }
 
-        let streamConfig = SCStreamConfiguration()
-        streamConfig.width = Int(pixelSize.width)
-        streamConfig.height = Int(pixelSize.height)
-        streamConfig.pixelFormat = configuration.pixelFormat
-        streamConfig.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
-        streamConfig.showsCursor = configuration.showsCursor
-        streamConfig.queueDepth = 6
-        current.updateConfiguration(streamConfig) { _ in }
+        let streamConfig = makeStreamConfiguration(
+            width: Int(pixelSize.width), height: Int(pixelSize.height), fps: fps)
+        current.updateConfiguration(streamConfig) { error in
+            guard let error else { return }
+            // The stream keeps running at its previous rate, so `configuration.fps`
+            // now overstates what is actually being captured. Nothing downstream can
+            // recover from that, but silence would leave a wrong frame rate looking
+            // like a successful one.
+            FileHandle.standardError.write(Data(
+                "[DisplayShare] capture: frame rate change to \(fps)fps failed: \(error)\n".utf8))
+        }
     }
+
+    /// The single `SCStreamConfiguration` both paths build.
+    ///
+    /// It exists because there were two of these and they disagreed: `start()`
+    /// set `queueDepth` 3 while `updateFrameRate(_:)` set 6, so a live frame rate
+    /// change silently reverted the shallower queue. Every field here has to be
+    /// set on both paths anyway — `updateConfiguration` replaces the whole
+    /// configuration, so a field omitted from the update is a field changed by
+    /// it — which makes one builder both the fix and the thing that stops it
+    /// happening again.
+    func makeStreamConfiguration(width: Int, height: Int, fps: Int) -> SCStreamConfiguration {
+        let config = SCStreamConfiguration()
+        config.width = width
+        config.height = height
+        config.pixelFormat = configuration.pixelFormat
+        config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
+        config.showsCursor = configuration.showsCursor
+        config.queueDepth = Self.streamQueueDepth
+        return config
+    }
+
+    /// ScreenCaptureKit's own buffer pool, in frames.
+    ///
+    /// This was 6 under a comment claiming the queue was "kept small" — at 60fps,
+    /// up to 100ms of frames waiting their turn. Depth only helps a consumer that
+    /// stalls and then catches up; ours is a `FrameQueue` of 2 that drops the
+    /// oldest, so anything SCK holds back is staleness we can never use. 3 is the
+    /// documented practical floor.
+    static let streamQueueDepth = 3
 }
 
 extension CaptureSession: SCStreamOutput, SCStreamDelegate {
