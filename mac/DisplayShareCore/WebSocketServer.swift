@@ -12,6 +12,11 @@ public final class WebSocketServer: @unchecked Sendable {
         public var connected: Bool = false
         public var rejectedConnections: Int = 0
         public var framesSent: Int = 0
+        /// Access units shed by the send gate because the socket had not yet
+        /// taken the previous one. This is the number that must move when a
+        /// link goes slow — if it stays at zero while latency climbs, the
+        /// stream is buffering again.
+        public var framesDropped: Int = 0
         public var keyframesSent: Int = 0
         public var bytesSent: Int = 0
         public var sentFPS: Double = 0
@@ -32,6 +37,9 @@ public final class WebSocketServer: @unchecked Sendable {
     /// is keyed off this, never off mere connectedness — otherwise the PIN would
     /// be advisory and an unpaired device would still receive the stream.
     private var authorised = false
+    /// Guarded by `lock`. Bounds how far the encoder may run ahead of the
+    /// socket; see SendGate for the policy and why it exists.
+    private var gate = SendGate()
     private var stats = Statistics()
     /// Previous cumulative counters, so drop rate is measured per interval.
     private var previousDecodedFrames = 0
@@ -40,6 +48,7 @@ public final class WebSocketServer: @unchecked Sendable {
     private var windowStart = CFAbsoluteTimeGetCurrent()
     private var windowFrames = 0
     private var windowBytes = 0
+    private var windowDropsAtStart = 0
 
     public private(set) var isRunning = false
 
@@ -47,6 +56,10 @@ public final class WebSocketServer: @unchecked Sendable {
     /// this to force an IDR so the client can decode from its very first frame.
     public var onClientReady: ((ReceiverPanel?) -> Void)?
     public var onKeyframeRequested: (() -> Void)?
+    /// Raised when the send gate shed a frame, which breaks the receiver's
+    /// reference chain. Nothing on the receiver can detect that — the wire
+    /// format has no sequence number — so the pipeline answers with an IDR.
+    public var onKeyframeNeededAfterDrop: (() -> Void)?
     public var onResizeRequested: ((Int, Int) -> Void)?
     public var onClientDisconnected: (() -> Void)?
     /// (roundTripMillis, dropRate) from each receiver `stats` message.
@@ -87,7 +100,15 @@ public final class WebSocketServer: @unchecked Sendable {
     // MARK: - Lifecycle
 
     public func start() throws {
-        let parameters = NWParameters.tcp
+        // Nagle holds a small write back waiting for the previous ACK, while
+        // the peer's delayed ACK holds that ACK back waiting for more data.
+        // This socket carries the input channel — a stream of small mouse and
+        // keyboard messages — so the two wait for each other and add the
+        // classic ~40ms before a click lands. The receiver disables it too;
+        // either end left on is enough to cause the stall.
+        let tcp = NWProtocolTCP.Options()
+        tcp.noDelay = true
+        let parameters = NWParameters(tls: nil, tcp: tcp)
         parameters.allowLocalEndpointReuse = true
         let websocket = NWProtocolWebSocket.Options()
         websocket.autoReplyPing = true
@@ -137,6 +158,7 @@ public final class WebSocketServer: @unchecked Sendable {
         } else {
             client = connection
             authorised = false
+            gate.reset()
             // A new receiver starts its counters from zero.
             previousDecodedFrames = 0
             previousDroppedFrames = 0
@@ -175,6 +197,7 @@ public final class WebSocketServer: @unchecked Sendable {
         }
         client = nil
         authorised = false
+        gate.reset()
         stats.connected = false
         lock.unlock()
         onClientDisconnected?()
@@ -371,23 +394,49 @@ public final class WebSocketServer: @unchecked Sendable {
             content: data, contentContext: context, isComplete: true, completion: .idempotent)
     }
 
-    /// Sends one encoded access unit. Uses `.idempotent` so a slow receiver
-    /// cannot apply back-pressure to the encoder thread — shed frames rather
-    /// than accumulate latency.
+    /// Sends one encoded access unit, or sheds it.
+    ///
+    /// A slow receiver must not be able to push latency into the stream, so the
+    /// encoder is never allowed to run more than one access unit ahead of the
+    /// socket: while a send is outstanding the newest frame is dropped instead
+    /// of queued. `SendGate` carries the policy and the reasoning; the short
+    /// version is that `.contentProcessed` is what makes the back-pressure
+    /// observable at all, because its completion is delayed while the send
+    /// buffer is full.
     public func send(video message: WireProtocol.VideoMessage) {
         lock.lock()
         let current = client
         let allowed = authorised
-        lock.unlock()
         // Enforced HERE as well as at the encode gate, so no future call path
         // can leak video to an unpaired receiver.
-        guard let current, allowed else { return }
+        guard let current, allowed else {
+            lock.unlock()
+            return
+        }
+        // Decided before encoding: framing a frame we are about to drop would
+        // copy the whole payload for nothing, and under congestion most frames
+        // are dropped.
+        let decision = gate.offer()
+        if decision == .drop {
+            stats.framesDropped += 1
+            let note = rollMeasurementWindowLocked()
+            lock.unlock()
+            if let note { log(note) }
+            return
+        }
+        lock.unlock()
 
         let framed = WireProtocol.encode(message)
         let metadata = NWProtocolWebSocket.Metadata(opcode: .binary)
         let context = NWConnection.ContentContext(identifier: "video", metadata: [metadata])
         current.send(
-            content: framed, contentContext: context, isComplete: true, completion: .idempotent)
+            content: framed, contentContext: context, isComplete: true,
+            completion: .contentProcessed { [weak self] _ in
+                // An error here is not handled: the connection's state handler
+                // already tears the client down, and reopening the gate is
+                // correct either way — the send is no longer outstanding.
+                self?.finishVideoSend(on: current)
+            })
 
         lock.lock()
         stats.framesSent += 1
@@ -395,15 +444,56 @@ public final class WebSocketServer: @unchecked Sendable {
         stats.bytesSent += framed.count
         windowFrames += 1
         windowBytes += framed.count
+        let note = rollMeasurementWindowLocked()
+        lock.unlock()
+        if let note { log(note) }
+    }
+
+    /// Rolls the one-second measurement window. Caller holds `lock`. Returns a
+    /// line to log, once the lock is dropped, when frames were shed in it.
+    ///
+    /// Reached from both outcomes of `send(video:)`, not just the sending one.
+    /// A receiver that has stalled completely produces no sends at all, and
+    /// that is exactly when the numbers must not go quiet: hanging this off the
+    /// send path alone would leave `sentFPS` reporting the last healthy figure
+    /// for as long as the stall lasted, and shed nothing to the log.
+    private func rollMeasurementWindowLocked() -> String? {
         let now = CFAbsoluteTimeGetCurrent()
         let elapsed = now - windowStart
-        if elapsed >= 1.0 {
-            stats.sentFPS = Double(windowFrames) / elapsed
-            stats.megabitsPerSecond = Double(windowBytes) * 8.0 / elapsed / 1_000_000.0
-            windowStart = now
-            windowFrames = 0
-            windowBytes = 0
+        guard elapsed >= 1.0 else { return nil }
+
+        stats.sentFPS = Double(windowFrames) / elapsed
+        stats.megabitsPerSecond = Double(windowBytes) * 8.0 / elapsed / 1_000_000.0
+        let shed = stats.framesDropped - windowDropsAtStart
+        windowDropsAtStart = stats.framesDropped
+        windowStart = now
+        windowFrames = 0
+        windowBytes = 0
+
+        guard shed > 0 else { return nil }
+        // Only when it happens: a healthy stream stays silent. Without this the
+        // shedding is invisible outside a debugger, which is how the opposite
+        // behaviour went unnoticed for so long.
+        return String(
+            format: "shed %d frames in the last second (sent %.0f) — receiver is not keeping up",
+            shed, stats.sentFPS)
+    }
+
+    /// Runs when the stack has taken the access unit — consumed, not
+    /// transmitted. The distinction matters less than the timing: while the
+    /// send buffer is full this callback is delayed, and that delay is what
+    /// closes the gate and makes the next frame a drop instead of a queue entry.
+    private func finishVideoSend(on connection: NWConnection) {
+        lock.lock()
+        // A completion arriving from a socket we have since replaced must not
+        // reopen the gate for its successor.
+        guard client === connection else {
+            lock.unlock()
+            return
         }
+        let needsKeyframe = gate.completed(at: Date())
         lock.unlock()
+        // Fired outside the lock: the handler reaches into the encoder.
+        if needsKeyframe { onKeyframeNeededAfterDrop?() }
     }
 }
