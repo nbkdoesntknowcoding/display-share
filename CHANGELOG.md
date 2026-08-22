@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.4](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.3...v0.14.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* the send path promised to shed frames and did the opposite ([#54](https://github.com/nbkdoesntknowcoding/display-share/issues/54)) ([c56730b](https://github.com/nbkdoesntknowcoding/display-share/commit/c56730b70cf21c06fef490d9c432bd150e4abad1))
+
 ## [0.14.3](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.2...v0.14.3) (2026-08-22)
 
 
