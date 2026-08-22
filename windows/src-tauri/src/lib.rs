@@ -169,6 +169,15 @@ pub async fn run_session(
     // guessed from the sender's address: a machine with Wi-Fi and a cable both
     // up has two answers, and only the socket knows which one is carrying this.
     if let tokio_tungstenite::MaybeTlsStream::Plain(tcp) = stream.get_ref() {
+        // Nagle holds a small write back waiting for the previous ACK, while
+        // the peer's delayed ACK holds that ACK back waiting for more data.
+        // This socket carries the input channel — a stream of small mouse and
+        // keyboard messages — so the two wait for each other and add the
+        // classic ~40ms before a click reaches the Mac. The sender disables it
+        // too; either end left on is enough to cause the stall. Best-effort:
+        // a refusal here costs latency, not correctness.
+        let _ = tcp.set_nodelay(true);
+
         let described = tcp.local_addr().ok().and_then(|addr| link::describe(addr.ip()));
         *state.link.lock().unwrap() = described;
     }

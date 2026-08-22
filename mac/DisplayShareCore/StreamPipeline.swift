@@ -71,6 +71,15 @@ public final class StreamPipeline: @unchecked Sendable {
         self.socketServer.onKeyframeRequested = { [weak self] in
             self?.h264Encoder.requestKeyframe()
         }
+        // A frame the send gate shed leaves the receiver decoding against a
+        // reference it never got, and nothing over there can detect that — the
+        // wire format has no sequence number, so its decoder does not
+        // necessarily error, it just goes wrong and stays wrong until the next
+        // natural keyframe two seconds later. The side that dropped the frame
+        // is the only side that knows, so it repairs.
+        self.socketServer.onKeyframeNeededAfterDrop = { [weak self] in
+            self?.h264Encoder.requestKeyframe()
+        }
         // Adaptive bitrate: degrade sharpness under congestion rather than let
         // latency accumulate. Queue depth is bounded elsewhere, so this only
         // ever changes quality.

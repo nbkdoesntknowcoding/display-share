@@ -16,9 +16,13 @@ import Foundation
 /// * **Cooldown after every change.** A bitrate change takes a second or two to
 ///   show up in the receiver's reports; reacting before then would compound.
 /// * **Frames are dropped, never buffered.** This controller only sets quality.
-///   Queue depth is bounded elsewhere (FrameQueue drops oldest, sends are
-///   `.idempotent`), so congestion degrades sharpness — it does not accumulate
-///   lag. That division of responsibility is the point.
+///   Queue depth is bounded elsewhere — `FrameQueue` drops oldest before the
+///   encoder, and `SendGate` sheds frames after it rather than let the encoder
+///   run ahead of the socket — so congestion degrades sharpness and it does not
+///   accumulate lag. That division of responsibility is the point, and it is
+///   load-bearing for everything below: this controller reads round-trip time,
+///   which only reports congestion honestly while nothing downstream is
+///   silently queueing.
 public struct AdaptiveBitrateController: Sendable {
 
     public struct Limits: Sendable {
