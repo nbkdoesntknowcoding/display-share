@@ -49,7 +49,11 @@ import Foundation
 /// One consequence worth stating, because it looks like a gap until you follow
 /// it through: the repair is raised from `completed(at:)`, so while a link is
 /// fully stalled — no completions at all — no IDR is requested. That is the
-/// behaviour we want. An IDR minted mid-stall could only be shed like every
+/// behaviour we want. Note the qualifier: this holds once the send buffer is
+/// FULL, not from the first frame of a stall. While the buffer is still
+/// filling, sends complete normally, so a completion arriving just after the
+/// first drop does raise one repair — correctly, since at that point it can
+/// still reach the receiver. An IDR minted mid-stall could only be shed like every
 /// other frame, and it is the most expensive frame to waste. The owed repair is
 /// remembered and goes out on the first completion after the link recovers,
 /// which is the first moment it can actually reach the receiver.

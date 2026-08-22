@@ -281,13 +281,17 @@ final class SendBackPressureTests: XCTestCase {
 
         Thread.sleep(forTimeInterval: 0.2)
 
-        // Stall for 3 seconds at ~60fps of 32KB frames — 5.6MB offered.
+        // Driven by COUNT, like the sibling test above, not by wall clock.
+        // A time-boxed loop offers however much the machine manages in the
+        // window: this offered 5120KB here and 2240KB on a loaded CI runner,
+        // which then failed a precondition rather than testing anything. The
+        // property under test is about the VOLUME offered while nobody reads,
+        // so the volume is what the test should fix. 200 x 32KB is 6.4MB on any
+        // hardware.
         let frameBytes = 32 * 1024
-        var offered = 0
-        let stallUntil = Date().addingTimeInterval(3.0)
-        while Date() < stallUntil {
+        let offered = 200
+        for _ in 0..<offered {
             server.send(video: makeFrame(bytes: frameBytes))
-            offered += 1
             usleep(16_000)
         }
         let offeredBytes = offered * frameBytes
@@ -299,7 +303,6 @@ final class SendBackPressureTests: XCTestCase {
             "[3s stall, then resume] offered \(offeredBytes / 1024)KB,"
                 + " drained \(drained / 1024)KB on recovery,"
                 + " shed \(server.statistics.framesDropped)/\(offered) frames")
-        XCTAssertGreaterThan(offeredBytes, 4 * 1024 * 1024, "the stall was too short to be a test")
         XCTAssertLessThan(
             drained, offeredBytes / 3,
             "drained \(drained) of \(offeredBytes) offered bytes — the stall accumulated "
@@ -328,15 +331,32 @@ final class SendBackPressureTests: XCTestCase {
         }
         XCTAssertGreaterThan(server.statistics.framesDropped, 0, "precondition: frames were shed")
 
-        // No repair is expected *during* a total stall: the request is raised
-        // from the send completion, and while the socket takes nothing there is
-        // no completion to raise it from. That is the right behaviour rather
-        // than a gap — an IDR minted mid-stall would be shed like everything
-        // else, and keyframes are the most expensive thing to waste.
+        // Nothing is asserted about the repair count DURING the stall, and the
+        // reason is worth writing down.
+        //
+        // An earlier version asserted zero, reasoning that the repair is raised
+        // from the send completion and a stalled socket produces none. That is
+        // true only once the buffer is FULL: it is empty when this loop starts,
+        // so the first sends complete normally and a completion landing just
+        // after the first drop raises one repair — correctly. How much of the
+        // loop that filling phase occupies is machine-dependent, so the
+        // assertion passed locally and failed on a slower CI runner.
+        //
+        // Replacing it with a bound on repairs-per-drop was no better: with
+        // almost no completions there is nothing for the rate limit to suppress,
+        // so deleting the rate limit outright does not move this number. It was
+        // an assertion that could not fail, which is worse than no assertion.
+        //
+        // The rate limit is tested where it can be tested honestly — against the
+        // pure state machine with an injected clock, in SendGateTests. This test
+        // is for the integration property below: that a repair actually reaches
+        // the sender once the link recovers.
         repairs.lock()
         let duringStall = repairCount
         repairs.unlock()
-        XCTAssertEqual(duringStall, 0, "an IDR was minted mid-stall, where it could only be shed")
+        print(
+            "[repair] \(duringStall) raised during the stall,"
+                + " \(server.statistics.framesDropped) frames shed")
 
         // Now the link recovers, which is when the repair can actually land.
         let draining = Thread { client.drain(for: 3.0) }
