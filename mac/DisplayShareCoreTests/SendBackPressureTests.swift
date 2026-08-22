@@ -200,21 +200,38 @@ final class SendBackPressureTests: XCTestCase {
         let draining = Thread { client.drain(for: 4.0) }
         draining.start()
 
-        // ~60fps of 20KB frames: about 10 Mbps, which loopback does not notice.
-        let offered = 120
+        // Paced an order of magnitude below the interesting rate, on purpose.
+        //
+        // This was ~60fps of 20KB frames, on the reasoning that loopback would
+        // not notice 10 Mbps. A two-core CI runner does notice: the drain thread
+        // contends with this one, completions fall behind the 16ms frame
+        // interval, and frames are shed — correctly, because the socket really
+        // could not take them. It shed 44/120 there and 0/120 here.
+        //
+        // Whether a given machine sustains 60fps is therefore not a property of
+        // the gate and cannot be asserted as a fixed threshold. What IS
+        // hardware-independent is that a link with plenty of headroom sheds
+        // nothing, and that is the regression worth guarding: a gate that stops
+        // reopening sheds everything after the first frame, which looks like a
+        // working stream that has simply gone quiet.
+        let offered = 30
         for _ in 0..<offered {
             server.send(video: makeFrame(bytes: 20 * 1024))
-            usleep(16_000)
+            usleep(60_000)
         }
         Thread.sleep(forTimeInterval: 0.5)
 
         let stats = server.statistics
+        print(
+            "[healthy reader] offered \(offered), sent \(stats.framesSent),"
+                + " shed \(stats.framesDropped)")
         XCTAssertEqual(
             stats.framesSent + stats.framesDropped, offered,
             "every offered frame must be accounted for as sent or shed")
         XCTAssertLessThan(
             Double(stats.framesDropped) / Double(offered), 0.10,
-            "an uncongested link shed \(stats.framesDropped)/\(offered) frames")
+            "a link with 4x headroom shed \(stats.framesDropped)/\(offered) frames — "
+                + "the gate is not reopening on completion")
     }
 
     /// The headline behaviour. A receiver that stops reading fills the send
