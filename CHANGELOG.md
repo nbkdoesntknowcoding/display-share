@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.3](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.2...v0.14.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **mac:** a live fps change put the deep capture queue back ([#52](https://github.com/nbkdoesntknowcoding/display-share/issues/52)) ([73d1a0b](https://github.com/nbkdoesntknowcoding/display-share/commit/73d1a0ba99571b624e744c80f0d4d08b8ad167d6))
+
 ## [0.14.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.1...v0.14.2) (2026-08-21)
 
 
