@@ -83,12 +83,12 @@ public final class StreamPipeline: @unchecked Sendable {
         // Adaptive bitrate: degrade sharpness under congestion rather than let
         // latency accumulate. Queue depth is bounded elsewhere, so this only
         // ever changes quality.
-        self.socketServer.onReceiverReport = { [weak self] rtt, dropRate in
+        self.socketServer.onReceiverReport = { [weak self] signal in
             guard let self else { return }
             self.bitrateLock.lock()
-            let decision = self.bitrate.ingest(
-                .init(roundTripMillis: rtt, dropRate: dropRate, at: Date()))
+            let decision = self.bitrate.ingest(.init(signal: signal, at: Date()))
             let target = self.bitrate.currentBitrate
+            let slope = self.bitrate.backlogSlope
             self.bitrateLock.unlock()
 
             switch decision {
@@ -96,9 +96,19 @@ public final class StreamPipeline: @unchecked Sendable {
                 break
             case .decrease, .increase:
                 self.h264Encoder.setBitrate(target)
-                FileHandle.standardError.write(Data(
-                    String(format: "[DisplayShare] bitrate -> %.1f Mbps (rtt %.0fms, drops %.1f%%)\n",
-                           Double(target) / 1e6, rtt, dropRate * 100).utf8))
+                // Every signal, not just the one that tripped. A bitrate change
+                // with no explanation next to it is unreadable after the fact,
+                // and these lines are what a bug report contains.
+                FileHandle.standardError.write(
+                    Data(
+                        String(
+                            format:
+                                "[DisplayShare] bitrate -> %.1f Mbps (backlog %.0fms"
+                                + " %+.0fms/s, shed %.1f%%, decodeq %d, drops %.1f%%)\n",
+                            Double(target) / 1e6, signal.backlogMillis, slope ?? 0,
+                            signal.shedRate * 100, signal.decodeQueueDepth,
+                            signal.receiverDropRate * 100
+                        ).utf8))
             }
         }
         self.h264Encoder.onEncodedFrame = { [weak self] frame in
@@ -228,6 +238,18 @@ public final class StreamPipeline: @unchecked Sendable {
                     dropped: session.frames.statistics.droppedOldest)
             }
         }
+    }
+
+    /// Forgets what was learned about the link.
+    ///
+    /// A new receiver is a new path — possibly a different machine on a
+    /// different network — and the bitrate controller's trend, counters and
+    /// cooldown all describe the old one. Carrying them over means the first
+    /// report from a fresh receiver is judged against a link it was never on.
+    public func resetLinkEstimate() {
+        bitrateLock.lock()
+        bitrate.resetLink()
+        bitrateLock.unlock()
     }
 
     public func updateFrameRate(_ fps: Int) {
