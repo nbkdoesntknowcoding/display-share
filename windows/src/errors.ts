@@ -121,3 +121,47 @@ export function backoffFor(attempt: number): number | null {
   if (attempt < 1) return RETRY_BACKOFF_MS[0];
   return attempt <= RETRY_BACKOFF_MS.length ? RETRY_BACKOFF_MS[attempt - 1] : null;
 }
+
+/**
+ * An explanation from the SENDER that has to outlive the disconnect it causes.
+ *
+ * The Mac refuses a second receiver with `busy` and then closes the socket. Both
+ * halves of that are correct — but the close fires `ds://disconnected`, whose
+ * handler wrote "Disconnected. Reconnecting…" straight over the explanation. So
+ * the receiver knew exactly what was wrong, said so, and then erased it about a
+ * hundred milliseconds later.
+ *
+ * What the user is left with is a spinner that never resolves, which reads as a
+ * broken app rather than an occupied one. It cost a real session to diagnose,
+ * and the information needed was on screen the whole time.
+ *
+ * Returns `null` for codes that should not survive a disconnect — a transient
+ * failure must not leave a stale explanation pinned to the screen once it stops
+ * being true.
+ */
+export function refusalExplanation(code: string): string | null {
+  switch (code) {
+    case "busy":
+      // Deliberately not the raw "another receiver is already connected": that
+      // says what happened, not what to do about it, and retrying continues in
+      // the background so the wait is a real option.
+      return (
+        "Another screen is already connected to this Mac. " +
+        "Close it, or wait — this keeps trying."
+      );
+    default:
+      return null;
+  }
+}
+
+/**
+ * What to show when a session ends.
+ *
+ * `sticky` is whatever `refusalExplanation` last produced. Passing it here
+ * rather than checking at the call site is the point: there is now one place
+ * that decides whether a disconnect may overwrite what is on screen, instead of
+ * one flag per reason, added each time somebody notices another one.
+ */
+export function disconnectStatus(sticky: string | null): string {
+  return sticky ?? "Disconnected. Reconnecting…";
+}
