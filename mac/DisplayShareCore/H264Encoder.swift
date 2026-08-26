@@ -86,6 +86,11 @@ public final class H264Encoder: @unchecked Sendable {
     /// looks like a machine-specific mystery.
     public private(set) var encoderID: String?
 
+    /// How long the encoder may go without emitting a keyframe unasked.
+    ///
+    /// A backstop, not a mechanism — see `start(width:height:fps:)`.
+    static let keyframeBackstopSeconds = 10
+
     /// The encoder specification that selects the low-latency H.264 encoder.
     ///
     /// Built here so it can be asserted without creating a session.
@@ -187,12 +192,30 @@ public final class H264Encoder: @unchecked Sendable {
             kVTProfileLevel_H264_High_AutoLevel, "ProfileLevel")
         try set(kVTCompressionPropertyKey_AverageBitRate, NSNumber(value: bitrate), "AverageBitRate")
         try set(kVTCompressionPropertyKey_ExpectedFrameRate, NSNumber(value: fps), "ExpectedFrameRate")
-        // A keyframe every 2s bounds how long a late joiner waits if it cannot
-        // ask for one; the control channel can still force an IDR on demand.
-        try set(kVTCompressionPropertyKey_MaxKeyFrameInterval, NSNumber(value: fps * 2), "MaxKeyFrameInterval")
+        // Keyframes on request, with a long backstop rather than a short one.
+        //
+        // An IDR is several times the size of a delta frame, so every periodic
+        // one is a burst the link has to absorb at once. At the old two-second
+        // interval that burst arrived thirty times a minute, and each one is a
+        // chance to fill the send buffer, shed frames and put a hitch on screen
+        // — a cost paid continuously against a case that hardly ever happens.
+        //
+        // Nothing actually depends on the periodic ones. Every real path asks:
+        // a receiver requests an IDR when it connects, when it cannot decode,
+        // and when the format changes, and the send gate requests a repair
+        // after it sheds. The transport is TCP, so there is no packet loss to
+        // recover from without the connection going with it.
+        //
+        // Ten seconds, then, as insurance against a request that never arrives
+        // rather than as the mechanism. Five times fewer bursts, and a worst
+        // case nobody should ever reach.
+        try set(
+            kVTCompressionPropertyKey_MaxKeyFrameInterval,
+            NSNumber(value: fps * Self.keyframeBackstopSeconds), "MaxKeyFrameInterval")
         try set(
             kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration,
-            NSNumber(value: 2.0), "MaxKeyFrameIntervalDuration")
+            NSNumber(value: Double(Self.keyframeBackstopSeconds)),
+            "MaxKeyFrameIntervalDuration")
         // Cap instantaneous rate so a scene change cannot spike the wire and
         // blow the latency budget: bitrate bytes over 1 second.
         let limits = [NSNumber(value: bitrate / 8), NSNumber(value: 1.0)] as CFArray
