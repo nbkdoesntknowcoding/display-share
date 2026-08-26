@@ -462,7 +462,11 @@ private struct ControlPanel: View {
             needsScreenRecording: controller.needsScreenRecordingPermission,
             needsAccessibility: controller.needsAccessibilityPermission,
             hasUpdate: controller.availableUpdate != nil,
-            hasBrowserFallback: controller.streamURL != nil
+            hasBrowserFallback: controller.streamURL != nil,
+            // Only when there is something to release, or something to bring
+            // back. Otherwise it is a standing apology for a problem most
+            // sessions never meet.
+            canReleaseDisplay: controller.state.isActive || controller.displayReleased
         )
     }
 
@@ -494,6 +498,7 @@ private struct ControlPanel: View {
         case .update: updateSection
         case .browserFallback: browserFallbackSection
         case .otherDirection: otherDirectionSection
+        case .protectedContent: protectedContentSection
         case .actions: actions
         }
     }
@@ -665,6 +670,67 @@ private struct ControlPanel: View {
         }
         .font(.system(size: DSFont.f2))
         .foregroundStyle(DSColor.textMuted)
+    }
+
+    /// Phase 5. The one thing this app cannot fix, said plainly.
+    ///
+    /// Protected video is refused whenever any attached output cannot carry the
+    /// copy protection it asks for, and it is refused on every display rather
+    /// than only the offending one — so a virtual display stops Netflix on the
+    /// Mac's own built-in screen. Filtering what we capture cannot help: the
+    /// trigger is the display existing.
+    ///
+    /// Which leaves a choice, not a fix. What this section does is make it a
+    /// choice the user makes deliberately, instead of one they discover through
+    /// a playback error that explains nothing and names nothing.
+    private var protectedContentSection: some View {
+        Group {
+            if controller.displayReleased {
+                VStack(alignment: .leading, spacing: DSSpacing.s2) {
+                    Text("Display released")
+                        .font(.system(size: DSFont.f2, weight: .semibold))
+                    Text(
+                        "Protected video will play again. Your PC is still paired, "
+                            + "so bringing the display back takes one click."
+                    )
+                    .font(.system(size: DSFont.f2))
+                    .foregroundStyle(DSColor.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    DSButton("Bring the display back", variant: .secondary) {
+                        controller.start()
+                    }
+                }
+            } else {
+                DisclosureGroup("Netflix or Prime Video not playing?") {
+                    VStack(alignment: .leading, spacing: DSSpacing.s2) {
+                        Text(
+                            "Those services check every display attached to your Mac, not "
+                                + "just the one they are playing on. This second screen "
+                                + "cannot carry the copy protection they require, so they "
+                                + "refuse to play anywhere while it exists — including on "
+                                + "this Mac's own screen. Apple's Sidecar behaves the same "
+                                + "way, for the same reason."
+                        )
+                        .font(.system(size: DSFont.f2))
+                        .foregroundStyle(DSColor.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        Text(
+                            "Releasing the screen fixes it straight away. Your windows move "
+                                + "back to this Mac, and your PC stays paired."
+                        )
+                        .font(.system(size: DSFont.f2))
+                        .foregroundStyle(DSColor.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        DSButton("Release the screen", variant: .secondary) {
+                            controller.releaseDisplay()
+                        }
+                    }
+                    .padding(.top, DSSpacing.s1)
+                }
+                .font(.system(size: DSFont.f2))
+                .foregroundStyle(DSColor.textMuted)
+            }
+        }
     }
 
     /// Command 7. Stop is an outline in error red, not a filled accent button —

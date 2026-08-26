@@ -424,6 +424,14 @@ function measureRefreshRate(): Promise<number> {
   });
 }
 
+/// The Mac took its screen away on purpose, so protected video would play.
+///
+/// Held across the disconnect that follows: the socket closes a moment later,
+/// and without this the reconnect handler would replace a true explanation with
+/// "Reconnecting…" — which is both wrong and worrying. Nothing is broken, and
+/// nothing will reconnect until someone at the Mac asks for it.
+let releasedBySender = false;
+
 listen<string>("ds://control", (event) => {
   let message: ControlMessage;
   try {
@@ -433,7 +441,15 @@ listen<string>("ds://control", (event) => {
   }
   switch (message.type) {
     case "welcome":
+      releasedBySender = false;
       setStatus("", false);
+      break;
+    case "display_released":
+      releasedBySender = true;
+      setStatus(
+        "The Mac released this screen so protected video can play. " +
+          "Start sharing there to bring it back."
+      );
       break;
     case "pointer_release":
       // The Mac says the cursor came home. Drop the lock and resume absolute
@@ -486,7 +502,7 @@ listen<HandoffSample>("ds://handoff", (event) => {
 });
 
 listen("ds://disconnected", () => {
-  setStatus("Disconnected. Reconnecting…");
+  if (!releasedBySender) setStatus("Disconnected. Reconnecting…");
   // A new session starts a new sampler on the Rust side, and its stamps must
   // not be paired against this session's arrivals.
   handoffMeter.reset();

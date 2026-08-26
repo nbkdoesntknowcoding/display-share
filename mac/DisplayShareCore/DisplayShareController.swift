@@ -158,6 +158,10 @@ public final class DisplayShareController: ObservableObject {
     }
 
     public func start() {
+        // However the session is started — this button, the menu, a resume —
+        // the display is no longer released. Leaving the flag set would leave
+        // the popover offering to bring back something already present.
+        displayReleased = false
         guard !state.isActive else { return }
         state = .starting
         do {
@@ -240,6 +244,44 @@ public final class DisplayShareController: ObservableObject {
             FileHandle.standardError.write(Data("[DisplayShare] reconfigure failed: \(error)\n".utf8))
             state = .failed("\(error)")
         }
+    }
+
+    /// The user asked for the virtual display to go away so protected video
+    /// would play, and has not asked for it back.
+    ///
+    /// Kept separate from `state` because it is intent, not condition. A stopped
+    /// session and a released display look identical to every other part of this
+    /// app; the difference is that one of them is waiting to be resumed, and
+    /// saying so is the whole point of the control.
+    @Published public private(set) var displayReleased = false
+
+    /// Takes the virtual display out of the Mac's display topology.
+    ///
+    /// Protected video — Netflix, Prime Video, Apple TV+ — is refused whenever
+    /// any attached output cannot carry the copy protection it asks for, and it
+    /// is refused on EVERY display, not merely the offending one. A virtual
+    /// display cannot carry it. So the mere existence of ours stops protected
+    /// playback on the Mac's own built-in screen, and no amount of filtering
+    /// what we capture changes that: the trigger is the display existing, not
+    /// the display being watched. Apple's own Sidecar has the same behaviour
+    /// for the same reason.
+    ///
+    /// There is therefore no fix, only a choice, and this is the control that
+    /// makes it one the user gets to make deliberately instead of discovering
+    /// through a playback error that names nothing.
+    ///
+    /// It really does tear the display down — the helper exits and macOS drops
+    /// it from the topology. Anything less would not work, because a display
+    /// that still exists is still counted.
+    public func releaseDisplay() {
+        // Sent BEFORE the teardown, while there is still a socket to send it
+        // on. Without it the receiver sees an ordinary disconnect and says
+        // "Reconnecting…", which is both untrue and alarming — nothing is
+        // wrong, and it is not going to reconnect until someone here asks it
+        // to.
+        pipeline.socketServer.send(control: ControlMessage(type: "display_released"))
+        stop()
+        displayReleased = true
     }
 
     /// True when the sender should follow whatever panel the receiver reports.
