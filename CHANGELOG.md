@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.15.0...v0.15.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* a Mac left alone came back blurry ([#60](https://github.com/nbkdoesntknowcoding/display-share/issues/60)) ([b4180f2](https://github.com/nbkdoesntknowcoding/display-share/commit/b4180f2d5b3afed6e294a9d4ab498dbe194e4bda))
+
 ## [0.15.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.5...v0.15.0) (2026-08-22)
 
 
