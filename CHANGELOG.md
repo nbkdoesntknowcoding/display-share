@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.15.1...v0.16.0) (2026-08-26)
+
+
+### Features
+
+* measure the last stage before rewriting it ([#64](https://github.com/nbkdoesntknowcoding/display-share/issues/64)) ([2d095ae](https://github.com/nbkdoesntknowcoding/display-share/commit/2d095ae50d11f8631a5872f69dea430d4c0a0003))
+* say why Netflix stops, and offer the only thing that helps ([#62](https://github.com/nbkdoesntknowcoding/display-share/issues/62)) ([efbbc07](https://github.com/nbkdoesntknowcoding/display-share/commit/efbbc070af56a4f51bd273a52233e90f34d76c17))
+
+
+### Performance
+
+* a still desktop is not a broken one ([#63](https://github.com/nbkdoesntknowcoding/display-share/issues/63)) ([d0ae31c](https://github.com/nbkdoesntknowcoding/display-share/commit/d0ae31c2a13b459d050b468173640d9225aac09e))
+
 ## [0.15.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.15.0...v0.15.1) (2026-08-26)
 
 
