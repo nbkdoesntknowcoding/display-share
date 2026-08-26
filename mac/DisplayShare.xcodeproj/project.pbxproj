@@ -19,6 +19,7 @@
 		191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */; };
 		1A1CC8C401DE10F1567903EC /* ViewerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36BF1183BD22B87CCC8CC97B /* ViewerClientTests.swift */; };
 		1BA013F9BF4776D89CB6B589 /* DSButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25B2DC02E3ABDE8E68F4688 /* DSButton.swift */; };
+		1E3E9684AD1B78D269216A3C /* DisplayPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47AD4A34075DD6D4CFFEAF61 /* DisplayPlacement.swift */; };
 		22224DD5384AEE68C9802010 /* InputInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBE4E3EAB2C7F2A84C4B078 /* InputInjector.swift */; };
 		22F6944D68034FD8606F7F07 /* AutoUpdaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3368C74E0990FC9733A9CE1 /* AutoUpdaterTests.swift */; };
 		25F94343E08722F233CC3FDC /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBFA61E802ABC429B866EB8 /* main.swift */; };
@@ -46,6 +47,7 @@
 		67ACE413F33E8A4FD236FA66 /* vd_helper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = D64520181389425E0876F924 /* vd_helper */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		72AE37F09E9422CA303C32F8 /* AdaptiveBitrate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A807FA4085741AD0E902444 /* AdaptiveBitrate.swift */; };
 		737EDE391098F6FBA77243AE /* AnnexB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F208D6A8D52D56D3387A878 /* AnnexB.swift */; };
+		759D6F367E0B0DC776D1CE07 /* DisplayPlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20D46CD3D2A9001342BA7E6 /* DisplayPlacementTests.swift */; };
 		7F45C79AE031ECE5BACBE5A3 /* UpdateCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2C6E5977F3295D00E6C349 /* UpdateCheckerTests.swift */; };
 		800CF1428F4191B0863D5BBE /* CaptureSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */; };
 		814EAACB1F9CE679613AF9E2 /* SendBackPressureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163614246029A1F2DD98831C /* SendBackPressureTests.swift */; };
@@ -178,6 +180,7 @@
 		36BF1183BD22B87CCC8CC97B /* ViewerClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewerClientTests.swift; sourceTree = "<group>"; };
 		3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueueTests.swift; sourceTree = "<group>"; };
 		42B3E46961F40B0A4245C5BE /* Cadence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cadence.swift; sourceTree = "<group>"; };
+		47AD4A34075DD6D4CFFEAF61 /* DisplayPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayPlacement.swift; sourceTree = "<group>"; };
 		4CB2164BA0D66DD6A5C6FEC3 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameQueue.swift; sourceTree = "<group>"; };
 		4FD219E38307861BED3C1FA9 /* LineSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSocket.swift; sourceTree = "<group>"; };
@@ -240,6 +243,7 @@
 		DF94B2E6662744A3FC80AFC4 /* H264Dump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264Dump.swift; sourceTree = "<group>"; };
 		E1D918B6A34E41BA47C3FD17 /* DisplayShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DisplayShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1E0A1018FC2A639B0ED6B20 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
+		E20D46CD3D2A9001342BA7E6 /* DisplayPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayPlacementTests.swift; sourceTree = "<group>"; };
 		E3F83080C1F57F9924D89B3C /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		E73BA65C147F0759185CF603 /* InputEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputEvents.swift; sourceTree = "<group>"; };
 		E7D93ED257B4998C87306BDF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -328,6 +332,7 @@
 				3169965999D370874F1D93D5 /* CadenceTests.swift */,
 				7E2D2FF4EC6CFC2CE7BE0907 /* CaptureSessionTests.swift */,
 				6F579333895925E8ABEAD0DE /* CongestionSignalTests.swift */,
+				E20D46CD3D2A9001342BA7E6 /* DisplayPlacementTests.swift */,
 				EFFE79E3FDC1E9A1E97805E5 /* DSButtonTests.swift */,
 				3886DF372EA4C60956F2D2B4 /* FrameQueueTests.swift */,
 				927652D6CA7E852FCCCEA3CD /* H264EncoderTests.swift */,
@@ -459,6 +464,7 @@
 				42B3E46961F40B0A4245C5BE /* Cadence.swift */,
 				AE8F91DFAC29AB5561E417DF /* CaptureSession.swift */,
 				87809306C9A6439265F67D2A /* CongestionSignal.swift */,
+				47AD4A34075DD6D4CFFEAF61 /* DisplayPlacement.swift */,
 				993F6B512F2560DD3EB1D7F6 /* DisplayShareController.swift */,
 				4F933202A0E898EE0C7DAB3B /* FrameQueue.swift */,
 				0DF270C9CEBD2FAC96C68F47 /* H264Encoder.swift */,
@@ -660,6 +666,7 @@
 				1BA013F9BF4776D89CB6B589 /* DSButton.swift in Sources */,
 				33E922A97A9BF88B4CAE79BC /* DSTextField.swift in Sources */,
 				C20F9C39059D8DDC7B32D84C /* DesignTokens.swift in Sources */,
+				1E3E9684AD1B78D269216A3C /* DisplayPlacement.swift in Sources */,
 				A3AFDFBB04ADE15D67477635 /* DisplayShareController.swift in Sources */,
 				EE75D37ED12C44BCA9D6E7BD /* FrameQueue.swift in Sources */,
 				5DC2EAF03A230AB3D347B690 /* H264Encoder.swift in Sources */,
@@ -726,6 +733,7 @@
 				D74824A3B0782D62B839B6BD /* CaptureSessionTests.swift in Sources */,
 				8C6C6364F6BBF51894DC28D8 /* CongestionSignalTests.swift in Sources */,
 				CCE4F9EEAF3B819228505867 /* DSButtonTests.swift in Sources */,
+				759D6F367E0B0DC776D1CE07 /* DisplayPlacementTests.swift in Sources */,
 				191265899BC41B51512B4D4F /* FrameQueueTests.swift in Sources */,
 				E9AE99F78920EA7CE20A4BF1 /* H264EncoderTests.swift in Sources */,
 				353310699F054EBAAE28F19F /* KeyMapTests.swift in Sources */,
@@ -931,7 +939,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.15.0;
+				MARKETING_VERSION = 0.16.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1047,7 +1055,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.15.0;
+				MARKETING_VERSION = 0.16.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;

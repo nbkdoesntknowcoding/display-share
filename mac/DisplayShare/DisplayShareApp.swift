@@ -611,6 +611,25 @@ private struct ControlPanel: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            // Where macOS put it. The app chooses a size, not a position, and
+            // never used to say where the display landed — so the cursor did
+            // not cross the edge people pushed against, and the obvious
+            // conclusion was that input forwarding had failed. It had not.
+            if let placement = controller.placement {
+                Divider().overlay(DSColor.border)
+                VStack(alignment: .leading, spacing: DSSpacing.s1) {
+                    Text(placement.describedForUser)
+                        .font(.system(size: DSFont.f2, weight: .medium))
+                    Text("Push your cursor that way to reach it.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    DSButton("Rearrange in Display Settings…", variant: .ghost) {
+                        controller.openDisplaySettings()
+                    }
+                }
+            }
         }
     }
 
