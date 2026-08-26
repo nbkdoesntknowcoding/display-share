@@ -101,6 +101,11 @@ confused, so:
 | **DisplayShare** (sender) | the **Mac** | a **menu bar icon** — no Dock icon, no window | you want an extra screen |
 | **Display Share Receiver** | the **laptop** | a fullscreen window | it is the screen being borrowed |
 
+<div align="center">
+<img src="docs/images/mac-popover.png" width="320" alt="The Display Share menu bar popover on the Mac, showing resolution, frame rate and a Start button">
+<br><sub>The sender, in full. It has no window — this panel is the whole interface.</sub>
+</div>
+
 The sender showing "no window" is not a failure — it is a menu bar app. Look at
 the top-right of the screen for a display icon.
 
@@ -221,8 +226,9 @@ USEFUL TO KNOW:
 **On the Mac**
 
 1. Launch **Display Share**. It lives in the menu bar — no Dock icon and no
-   window, so look at the top-right of the screen. First run explains the one
-   permission it needs and detects the grant without a restart.
+   window, so look at the top-right of the screen for a display icon
+   ([this is the whole interface](#two-apps-and-which-one-you-need)). First run
+   explains the one permission it needs and detects the grant without a restart.
 2. Click **Start**. A second display appears immediately: open System Settings →
    Displays and it is there, arrangeable like any monitor.
 
