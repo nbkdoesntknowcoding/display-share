@@ -20,10 +20,11 @@ to a receiver app on the laptop.
 
 Not a mirror. Not a remote desktop. A second desktop.
 
-![A macOS desktop on the second display, streamed as H.264 to the receiver](docs/images/second-display.png)
+![A Windows 11 laptop displaying a macOS desktop as its screen](docs/images/windows-second-screen.jpg)
 
-<div align="center"><sub>What the receiver shows: a real macOS desktop, captured and streamed as H.264.<br>
-The menu bar is the giveaway — macOS is drawing a whole second screen, not copying the first.</sub></div>
+<div align="center"><sub>A Windows laptop, running the receiver. The taskbar at the bottom is Windows;
+everything above it is macOS — its own menu bar, its own Finder window, its own desktop.<br>
+Not a picture of the Mac's screen. A second one.</sub></div>
 
 ```
    Mac                                          Windows laptop
@@ -547,8 +548,9 @@ Found a security issue? Please open a private advisory through GitHub's
 Stated plainly, because everything above was measured and these were not:
 
 * **End-to-end latency on real hardware is unmeasured.** Every figure here is
-  localhost. The per-stage instrumentation exists and reports on the HUD; nobody
-  has run it on a real LAN.
+  localhost. The picture above is a real Mac-to-Windows session over a LAN, so
+  the path works — but nobody has recorded the per-stage numbers the HUD reports
+  while it runs.
 * **Cursor roaming past the screen edge is unverified.** The clamping is covered
   by tests, but the pointer-lock handoff has been reasoned about, not used.
 * **No real sleep/wake cycle.** The recovery path was exercised through the same
