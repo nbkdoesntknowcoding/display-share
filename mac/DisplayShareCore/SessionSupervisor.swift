@@ -42,15 +42,36 @@ public final class SessionSupervisor: @unchecked Sendable {
     private var asleep = false
     private var recovering = false
 
-    /// How long capture may produce nothing before it is treated as stalled.
-    /// Generous enough not to fire on a genuinely idle desktop, where
-    /// ScreenCaptureKit legitimately sends nothing.
+    /// How long capture may show no sign of life before it is treated as
+    /// stalled.
+    ///
+    /// This used to be measured against ENCODED frames, and a long timeout was
+    /// the defence against a still desktop: ScreenCaptureKit encodes nothing
+    /// while nothing changes, so six seconds of reading a document looked
+    /// exactly like a dead stream. It did not work — it only postponed the
+    /// mistake. Past the timeout, capture was torn down and restarted and a
+    /// keyframe forced, every six seconds, for as long as nobody touched the
+    /// machine. The user's reward for sitting still was a hitch and an IDR
+    /// burst on repeat.
+    ///
+    /// It is now measured against `captureHeartbeat`, which advances for idle
+    /// frames too. A still desktop proves the stream is alive without producing
+    /// a single pixel, so the timeout can go back to meaning what it says.
     public var stallTimeout: TimeInterval = 6.0
 
     /// Asked to restart capture (and force a keyframe). Returns true on success.
     public var onRecoverCapture: (() -> Bool)?
-    /// Asked for the current cumulative frame count, to detect progress.
-    public var frameCountProvider: (() -> Int)?
+    /// Asked for a counter that advances whenever capture is delivering —
+    /// including frames that carry no new pixels.
+    ///
+    /// Named for what it must be given, because nothing can check. This used to
+    /// be `frameCountProvider`, and an encoded-frame count satisfied it
+    /// perfectly while being the wrong question: "has anything changed on
+    /// screen" and "is the capture stream alive" are different, and only the
+    /// second is a fault when the answer is no. Handing this a throughput
+    /// counter is now visibly wrong at the call site, which is the only place
+    /// the mistake can be caught.
+    public var captureHeartbeatProvider: (() -> Int)?
     /// True while a receiver is attached; no receiver means no frames are
     /// expected and a stall is not a fault.
     public var hasReceiver: (() -> Bool)?
@@ -144,14 +165,17 @@ public final class SessionSupervisor: @unchecked Sendable {
     /// Call when a session starts, so the watchdog does not fire on startup.
     public func noteSessionStarted() {
         lock.lock()
-        lastFrameCount = frameCountProvider?() ?? 0
+        lastFrameCount = captureHeartbeatProvider?() ?? 0
         lastProgressAt = Date()
         lock.unlock()
     }
 
     // MARK: - Health
 
-    private func checkProgress() {
+    /// Internal rather than private so the stall decision can be driven
+    /// directly in tests. Waiting on a two-second timer to observe a
+    /// six-second timeout is not a test anyone runs twice.
+    func checkProgress() {
         lock.lock()
         let sleeping = asleep
         let busy = recovering
@@ -165,7 +189,7 @@ public final class SessionSupervisor: @unchecked Sendable {
             return
         }
 
-        let current = frameCountProvider?() ?? 0
+        let current = captureHeartbeatProvider?() ?? 0
         lock.lock()
         if current != lastFrameCount {
             lastFrameCount = current
@@ -205,7 +229,7 @@ public final class SessionSupervisor: @unchecked Sendable {
 
         lock.lock()
         recovering = false
-        lastFrameCount = frameCountProvider?() ?? 0
+        lastFrameCount = captureHeartbeatProvider?() ?? 0
         lastProgressAt = Date()
         if ok { recoveries += 1 }
         lock.unlock()

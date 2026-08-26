@@ -240,6 +240,16 @@ public final class StreamPipeline: @unchecked Sendable {
         }
     }
 
+    /// Evidence that ScreenCaptureKit is still delivering, whether or not the
+    /// desktop has changed.
+    ///
+    /// Zero when nothing is capturing, which is correct: there is no stream to
+    /// vouch for.
+    public var captureHeartbeat: Int {
+        lock.lock(); let session = capture; lock.unlock()
+        return session?.captureHeartbeat ?? 0
+    }
+
     /// Forgets what was learned about the link.
     ///
     /// A new receiver is a new path — possibly a different machine on a

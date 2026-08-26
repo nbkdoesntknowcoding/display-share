@@ -126,7 +126,9 @@ public final class DisplayShareController: ObservableObject {
 
         // Task 4.2: keep the session alive across sleep/wake, Wi-Fi drops and
         // display reconfiguration.
-        supervisor.frameCountProvider = { [weak self] in self?.pipeline.framesProcessed ?? 0 }
+        // The heartbeat, not the encoded-frame count. A desktop nobody is
+        // touching encodes nothing and is not broken.
+        supervisor.captureHeartbeatProvider = { [weak self] in self?.pipeline.captureHeartbeat ?? 0 }
         supervisor.hasReceiver = { [weak self] in self?.pipeline.socketServer.hasAuthorisedClient ?? false }
         supervisor.onRecoverCapture = { [weak self] in
             guard let self else { return false }
@@ -287,11 +289,28 @@ public final class DisplayShareController: ObservableObject {
             FileHandle.standardError.write(Data(
                 "[DisplayShare] panel \(panel.width)x\(panel.height) exceeds the reliable virtual-display envelope; using \(width)x\(height) at the same aspect ratio\n".utf8))
         }
-        guard width != configuration.width || height != configuration.height else { return }
+        // The panel also decides which frame rates it can show evenly. A rate
+        // that does not divide its refresh is held for alternating numbers of
+        // refreshes, which reads as stutter while every number in the HUD stays
+        // perfect — so it is worth re-deciding whenever the panel changes.
+        let cadence = UInt32(
+            Cadence.rate(preferred: Int(configuration.refreshRate), panelRefresh: panel.refreshRate)
+        )
+        if cadence != UInt32(configuration.refreshRate) {
+            let note =
+                "[DisplayShare] \(Int(configuration.refreshRate))fps cannot be shown evenly on a "
+                + "\(panel.refreshRate)Hz panel; using \(cadence)fps\n"
+            FileHandle.standardError.write(Data(note.utf8))
+        }
+
+        guard width != configuration.width || height != configuration.height
+            || Double(cadence) != configuration.refreshRate
+        else { return }
 
         var next = configuration
         next.width = width
         next.height = height
+        next.refreshRate = Double(cadence)
         update(configuration: next)
     }
 
@@ -305,8 +324,13 @@ public final class DisplayShareController: ObservableObject {
     }
 
     public func setFrameRate(_ fps: Int) {
+        // Snapped to something the receiver's panel can hold steady. A chosen
+        // 60 on a 144Hz panel becomes 48, which is fewer frames and a better
+        // picture: the alternative is not 60 smooth frames but 60 uneven ones.
+        // With no panel reported yet, the choice stands as made.
+        let chosen = Cadence.rate(preferred: fps, panelRefresh: receiverPanel?.refreshRate ?? 0)
         var next = configuration
-        next.refreshRate = Double(fps)
+        next.refreshRate = Double(chosen)
         update(configuration: next)
     }
 

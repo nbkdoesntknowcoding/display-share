@@ -69,6 +69,42 @@ public final class CaptureSession: NSObject, @unchecked Sendable {
     /// dropped frames and must not be counted as throughput.
     public private(set) var idleFrames = 0
 
+    /// Frames arriving while capture is suspended or stopped.
+    ///
+    /// Counted apart from `idleFrames` because they mean the opposite thing.
+    /// An idle frame says "nothing changed"; a suspended one says "you are not
+    /// being shown anything" — a locked screen, a display asleep, a stream
+    /// macOS has paused. Both look like silence downstream, and treating the
+    /// second as ordinary quiet is how a genuinely dead capture goes unnoticed.
+    public private(set) var suspendedFrames = 0
+
+    /// Evidence that ScreenCaptureKit is still delivering.
+    ///
+    /// Advances for every frame that arrives with something to say, whether or
+    /// not it carries pixels — so a desktop nobody is touching still proves the
+    /// stream is alive. Deliberately excludes suspended and stopped frames:
+    /// those are not the stream working, and counting them would suppress the
+    /// recovery they should trigger.
+    ///
+    /// This exists because the supervisor cannot otherwise tell "nothing
+    /// changed" from "nothing is coming", and it was resolving that ambiguity
+    /// the expensive way — restarting capture and forcing a keyframe every six
+    /// seconds while somebody read a document.
+    public var captureHeartbeat: Int {
+        countersLock.lock(); defer { countersLock.unlock() }
+        return heartbeat
+    }
+    private var heartbeat = 0
+
+    /// Its own lock, not `stateLock`.
+    ///
+    /// These counters are written from the capture callback, which is
+    /// documented below as never blocking. `stateLock` is held across session
+    /// teardown, so borrowing it here would make the delivery thread wait on
+    /// work that has nothing to do with counting. This one is only ever held
+    /// for an increment or a read.
+    private let countersLock = NSLock()
+
     /// Raised when the stream stops on its own (display went away, permission revoked).
     public var onStreamStopped: ((Error) -> Void)?
 
@@ -210,16 +246,36 @@ extension CaptureSession: SCStreamOutput, SCStreamDelegate {
     ) {
         guard type == .screen else { return }
 
-        // Anything other than .complete carries no new pixels.
+        // Anything other than .complete carries no new pixels — but WHICH of
+        // them it is decides whether silence downstream is normal.
         if let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
             as? [[SCStreamFrameInfo: Any]],
             let raw = attachments.first?[.status] as? Int,
             let status = SCFrameStatus(rawValue: raw),
             status != .complete
         {
-            idleFrames += 1
+            switch status {
+            case .suspended, .stopped:
+                // Not the stream working. Nothing is being shown to us, and the
+                // supervisor should be free to act on the silence that follows.
+                countersLock.lock()
+                suspendedFrames += 1
+                countersLock.unlock()
+            default:
+                // .idle, .blank, .started — the stream is alive and has nothing
+                // to add. Proof of life, and the reason a still desktop no
+                // longer reads as a fault.
+                countersLock.lock()
+                idleFrames += 1
+                heartbeat += 1
+                countersLock.unlock()
+            }
             return
         }
+
+        countersLock.lock()
+        heartbeat += 1
+        countersLock.unlock()
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         // The ONLY work done on the capture thread. Never blocks.
