@@ -13,7 +13,7 @@ import {
   type ReceiverPanel,
 } from "./protocol";
 import { InputCapture } from "./input";
-import { backoffFor, humanise } from "./errors";
+import { backoffFor, disconnectStatus, humanise, refusalExplanation } from "./errors";
 import { installDisabledGuard, setEnabled, setVariant } from "./components/controls";
 import { applyWindowClasses } from "./components/window";
 import {
@@ -441,13 +441,14 @@ function measureRefreshRate(): Promise<number> {
   });
 }
 
-/// The Mac took its screen away on purpose, so protected video would play.
+/// An explanation from the Mac that must outlive the disconnect it causes.
 ///
-/// Held across the disconnect that follows: the socket closes a moment later,
-/// and without this the reconnect handler would replace a true explanation with
-/// "Reconnecting…" — which is both wrong and worrying. Nothing is broken, and
-/// nothing will reconnect until someone at the Mac asks for it.
-let releasedBySender = false;
+/// Every reason the sender closes a session arrives as a control message and is
+/// then followed, immediately, by the close itself — so without somewhere to
+/// keep it, the reconnect handler overwrites the one useful thing on screen.
+/// Started as a single flag for "the screen was released"; it needed to be
+/// general the moment a second reason turned up, and `busy` was that reason.
+let stickyStatus: string | null = null;
 
 listen<string>("ds://control", (event) => {
   let message: ControlMessage;
@@ -458,15 +459,15 @@ listen<string>("ds://control", (event) => {
   }
   switch (message.type) {
     case "welcome":
-      releasedBySender = false;
+      // Connected, so nothing from a previous attempt still applies.
+      stickyStatus = null;
       setStatus("", false);
       break;
     case "display_released":
-      releasedBySender = true;
-      setStatus(
+      stickyStatus =
         "The Mac released this screen so protected video can play. " +
-          "Start sharing there to bring it back."
-      );
+        "Start sharing there to bring it back.";
+      setStatus(stickyStatus);
       break;
     case "pointer_release":
       // The Mac says the cursor came home. Drop the lock and resume absolute
@@ -502,7 +503,11 @@ listen<string>("ds://control", (event) => {
       } else if (message.code === "pair_rejected") {
         showPinPrompt(message.message ?? "Incorrect PIN.", true);
       } else {
-        setStatus(`${message.code}: ${message.message}`);
+        // A refusal the sender means to stick: shown now AND kept, because the
+        // close that follows would otherwise wipe it.
+        const explained = refusalExplanation(message.code ?? "");
+        stickyStatus = explained;
+        setStatus(explained ?? `${message.code}: ${message.message}`);
       }
       break;
     default:
@@ -519,7 +524,7 @@ listen<HandoffSample>("ds://handoff", (event) => {
 });
 
 listen("ds://disconnected", () => {
-  if (!releasedBySender) setStatus("Disconnected. Reconnecting…");
+  setStatus(disconnectStatus(stickyStatus));
   // A new session starts a new sampler on the Rust side, and its stamps must
   // not be paired against this session's arrivals.
   handoffMeter.reset();

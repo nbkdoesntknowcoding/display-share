@@ -112,6 +112,12 @@ jobs:
         working-directory: windows
         run: node --experimental-strip-types scripts/verify-timing.mjs
 
+      # A refusal that gets overwritten by the disconnect it caused is only
+      # reachable with two receivers and one Mac, which is how it reached a user.
+      - name: Verify sender refusals survive the disconnect
+        working-directory: windows
+        run: node --experimental-strip-types scripts/verify-refusals.mjs
+
       # Signing only when the secrets exist. A fork PR has none, and must still
       # get a green build rather than a confusing failure.
       - name: Import Developer ID certificate
@@ -201,6 +207,7 @@ jobs:
           node scripts/verify-vectors.mjs
           node --experimental-strip-types scripts/verify-window-states.mjs
           node --experimental-strip-types scripts/verify-timing.mjs
+          node --experimental-strip-types scripts/verify-refusals.mjs
 
       # Ahead of the bundle step on purpose. The Rust backend uses Windows-only
       # APIs (DXGI Desktop Duplication, Task 8.1) that cannot be compiled on a
