@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.2...v0.17.0) (2026-08-26)
+
+
+### Features
+
+* say which side the second screen is on ([#71](https://github.com/nbkdoesntknowcoding/display-share/issues/71)) ([fdfa9ba](https://github.com/nbkdoesntknowcoding/display-share/commit/fdfa9baeaf54bdfc31bba37cf00cbd45e69a4b33))
+
+
+### Bug Fixes
+
+* the receiver erased the one thing that explained the failure ([#70](https://github.com/nbkdoesntknowcoding/display-share/issues/70)) ([5514de4](https://github.com/nbkdoesntknowcoding/display-share/commit/5514de4266d704a9efae543b28c60295de309e7c))
+
 ## [0.16.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.1...v0.16.2) (2026-08-26)
 
 
