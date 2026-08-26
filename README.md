@@ -232,6 +232,12 @@ USEFUL TO KNOW:
 2. Click **Start**. A second display appears immediately: open System Settings →
    Displays and it is there, arrangeable like any monitor.
 
+> **macOS decides where to put it, and it usually lands on the left.** That is
+> the edge your cursor has to cross to reach it — pushing right does nothing and
+> looks exactly like input forwarding being broken. The popover names the side
+> it went to; to move it, open System Settings → Displays and drag the second
+> screen where you want it.
+
 **On the laptop**
 
 3. Launch the receiver. It finds the Mac over Bonjour, so there is no address to

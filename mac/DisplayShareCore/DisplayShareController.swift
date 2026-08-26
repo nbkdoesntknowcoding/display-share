@@ -180,6 +180,7 @@ public final class DisplayShareController: ObservableObject {
             supervisor.start()
             supervisor.noteSessionStarted()
             streamURL = "http://\(Self.primaryIPv4Address() ?? "localhost"):\(port)"
+            refreshPlacement(displayID: displayID)
             state = .active(displayID: displayID)
         } catch let error as CaptureSession.CaptureError {
             FileHandle.standardError.write(Data("[DisplayShare] capture failed: \(error)\n".utf8))
@@ -213,6 +214,7 @@ public final class DisplayShareController: ObservableObject {
     }
 
     public func stop() {
+        placement = nil
         supervisor.stop()
         pipeline.stop()
         pipeline.stopServers()
@@ -241,11 +243,48 @@ public final class DisplayShareController: ObservableObject {
             }
             // Geometry changed, so the coordinate mapping must follow it.
             injector.setDisplay(displayID)
+            refreshPlacement(displayID: displayID)
             state = .active(displayID: displayID)
         } catch {
             FileHandle.standardError.write(Data("[DisplayShare] reconfigure failed: \(error)\n".utf8))
             state = .failed("\(error)")
         }
+    }
+
+    /// Which side of the main screen macOS put the second display on.
+    ///
+    /// `nil` until there is one. Published because the answer decides which way
+    /// the user pushes their cursor, and getting it wrong looks exactly like
+    /// input forwarding being broken.
+    @Published public private(set) var placement: DisplayPlacement?
+
+    /// Reads the placement back from the window server rather than assuming it.
+    ///
+    /// macOS positions a virtual display itself — the app asks for a size, not
+    /// a location — so the only honest source is where it actually ended up.
+    private func refreshPlacement(displayID: UInt32) {
+        let screens = NSScreen.screens
+        let key = NSDeviceDescriptionKey("NSScreenNumber")
+        let secondary = screens.first {
+            ($0.deviceDescription[key] as? NSNumber)?.uint32Value == displayID
+        }
+        guard let secondary,
+            let main = screens.first(where: {
+                ($0.deviceDescription[key] as? NSNumber)?.uint32Value != displayID
+            })
+        else {
+            placement = nil
+            return
+        }
+        placement = DisplayPlacement.of(secondary.frame, relativeTo: main.frame)
+    }
+
+    /// Opens the pane where the arrangement is changed, since telling someone
+    /// where a thing is without offering the way to move it is half an answer.
+    public func openDisplaySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.displays")
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// The user asked for the virtual display to go away so protected video
