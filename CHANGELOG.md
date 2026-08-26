@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.5...v0.15.0) (2026-08-22)
+
+
+### Features
+
+* where the milliseconds actually go ([#58](https://github.com/nbkdoesntknowcoding/display-share/issues/58)) ([e861d5f](https://github.com/nbkdoesntknowcoding/display-share/commit/e861d5fb710c487326a85cde13bcd7f343b9474b))
+
 ## [0.14.5](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.14.4...v0.14.5) (2026-08-22)
 
 
