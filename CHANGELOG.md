@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.2](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.1...v0.16.2) (2026-08-26)
+
+
+### Documentation
+
+* show the sender, since it is the half people cannot find ([#68](https://github.com/nbkdoesntknowcoding/display-share/issues/68)) ([89e73ba](https://github.com/nbkdoesntknowcoding/display-share/commit/89e73bac6ec9ee336161d396870396f958f192d3))
+
 ## [0.16.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.0...v0.16.1) (2026-08-26)
 
 
