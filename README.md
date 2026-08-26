@@ -20,6 +20,11 @@ to a receiver app on the laptop.
 
 Not a mirror. Not a remote desktop. A second desktop.
 
+![A macOS desktop on the second display, streamed as H.264 to the receiver](docs/images/second-display.png)
+
+<div align="center"><sub>What the receiver shows: a real macOS desktop, captured and streamed as H.264.<br>
+The menu bar is the giveaway — macOS is drawing a whole second screen, not copying the first.</sub></div>
+
 ```
    Mac                                          Windows laptop
  ┌───────────────────────┐                     ┌──────────────────────┐
@@ -211,13 +216,30 @@ USEFUL TO KNOW:
 
 ## Using it
 
-1. Launch **Display Share** on the Mac. First run explains the one permission it
-   needs and detects the grant without a restart.
-2. Click **Start** in the menu bar.
-3. Launch the receiver on the laptop. It finds the Mac over Bonjour — no IP
-   address to type.
-4. Enter the 4-digit PIN shown on the Mac. Once per device.
-5. Press **F** for fullscreen. Drag windows onto the new display.
+### Connecting, once
+
+**On the Mac**
+
+1. Launch **Display Share**. It lives in the menu bar — no Dock icon and no
+   window, so look at the top-right of the screen. First run explains the one
+   permission it needs and detects the grant without a restart.
+2. Click **Start**. A second display appears immediately: open System Settings →
+   Displays and it is there, arrangeable like any monitor.
+
+**On the laptop**
+
+3. Launch the receiver. It finds the Mac over Bonjour, so there is no address to
+   type — pick it from the list. If your network blocks mDNS (guest and
+   AP-isolated Wi-Fi usually do), type the Mac's IP instead.
+4. Enter the 4-digit PIN the Mac is showing. Once per device, then that laptop
+   goes straight through every time.
+
+Press **F** for fullscreen, then drag windows onto the new display from the Mac.
+Nothing else needs configuring — resolution follows the laptop's own panel as
+soon as it connects.
+
+> If the receiver says **"busy — another receiver is already connected"**, one is
+> already attached. Only one at a time, by design.
 
 ### Keys in the receiver
 
