@@ -12,7 +12,10 @@
  */
 import assert from "node:assert/strict";
 
-const { HandoffMeter, StageMeter, stageRow, ARRIVAL_HISTORY, PLAUSIBLE_HANDOFF_MS } =
+const {
+  HandoffMeter, StageMeter, PresentMeter, stageRow,
+  ARRIVAL_HISTORY, PLAUSIBLE_HANDOFF_MS, PLAUSIBLE_PRESENT_MS,
+} =
   await import("../src/timing.ts");
 
 let checks = 0;
@@ -159,6 +162,81 @@ check("the row warns on the median, not on one bad moment", () => {
 
   const [sustained] = stageRow("handoff", { medianMs: 40, worstMs: 45, count: 9 }, 12);
   assert.equal(sustained[2], "warn", "but a stage that is always slow must show it");
+});
+
+// ------------------------------------------------------------- the present
+
+check("the wait for the compositor is what gets measured", () => {
+  const meter = new PresentMeter();
+  // Drawn at 1000; the compositor picked it up at 1008.
+  meter.noteDrawn(1000, (cb) => cb(1008));
+  assert.equal(meter.summary().medianMs, 8);
+});
+
+check("only one measurement is in flight at a time", () => {
+  const meter = new PresentMeter();
+  const pending = [];
+  // Frames arrive faster than the compositor runs. Measuring every one would
+  // queue callbacks that outlive the frames they describe, and the cost of
+  // measuring would start showing up in the thing being measured.
+  for (let i = 0; i < 10; i++) meter.noteDrawn(1000 + i, (cb) => pending.push(cb));
+  assert.equal(pending.length, 1, "one draw should be under measurement, not ten");
+
+  // Once it completes, the next draw is measured again.
+  pending[0](1020);
+  meter.noteDrawn(1030, (cb) => pending.push(cb));
+  assert.equal(pending.length, 2);
+});
+
+check("a callback from a frame already in flight is not a negative wait", () => {
+  const meter = new PresentMeter();
+  // The compositor was already mid-frame when the draw happened, so its
+  // timestamp predates it. That describes an earlier frame, not a wait of -5ms.
+  meter.noteDrawn(1000, (cb) => cb(995));
+  assert.equal(meter.summary(), undefined, "nonsense must not become a data point");
+});
+
+check("a reconnect forgets the presentation history too", () => {
+  const meter = new PresentMeter();
+  meter.noteDrawn(1000, (cb) => cb(1010));
+  assert.notEqual(meter.summary(), undefined);
+  meter.reset();
+  assert.equal(meter.summary(), undefined);
+
+  // And a measurement left in flight across the reset must not block the next.
+  const meter2 = new PresentMeter();
+  meter2.noteDrawn(1000, () => {});
+  meter2.reset();
+  let scheduled = false;
+  meter2.noteDrawn(2000, () => {
+    scheduled = true;
+  });
+  assert.ok(scheduled, "reset must clear the in-flight flag or nothing is measured again");
+});
+
+check("a window that was minimised does not report the interruption as latency", () => {
+  const meter = new PresentMeter();
+  // Drawn, then the window is hidden. Browsers run no animation callbacks for
+  // a hidden page, so this one resumes two minutes later.
+  meter.noteDrawn(1000, (cb) => cb(1000 + 120_000));
+  assert.equal(
+    meter.summary(),
+    undefined,
+    "two minutes behind a minimised window would own the worst-case column"
+  );
+
+  // And measuring resumes normally afterwards.
+  meter.noteDrawn(2000, (cb) => cb(2009));
+  assert.equal(meter.summary().medianMs, 9);
+});
+
+check("a genuinely slow present is still reported", () => {
+  const meter = new PresentMeter();
+  // 200ms to composite is a disaster and exactly what this exists to catch.
+  // The bound rejects suspended pages, not slowness.
+  meter.noteDrawn(1000, (cb) => cb(1200));
+  assert.equal(meter.summary().medianMs, 200);
+  assert.ok(200 < PLAUSIBLE_PRESENT_MS.max);
 });
 
 console.log(`\n${checks} checks passed`);

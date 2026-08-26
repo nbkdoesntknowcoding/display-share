@@ -16,7 +16,13 @@ import { InputCapture } from "./input";
 import { backoffFor, humanise } from "./errors";
 import { installDisabledGuard, setEnabled, setVariant } from "./components/controls";
 import { applyWindowClasses } from "./components/window";
-import { HandoffMeter, StageMeter, stageRow, type HandoffSample } from "./timing";
+import {
+  HandoffMeter,
+  PresentMeter,
+  StageMeter,
+  stageRow,
+  type HandoffSample,
+} from "./timing";
 
 /**
  * Display Share receiver frontend.
@@ -193,6 +199,13 @@ const handoffMeter = new HandoffMeter();
  * eventually be missed.
  */
 const paintMeter = new StageMeter();
+/**
+ * Draw finished to the compositor picking the frame up.
+ *
+ * The last stage on this side, and the one a native presentation surface would
+ * exist to remove — so it is measured before anything is rewritten around it.
+ */
+const presentMeter = new PresentMeter();
 
 function noteArrival(senderTimestampMicros: number) {
   const now = performance.now();
@@ -231,7 +244,11 @@ function setupDecoder(codec: string) {
       // the whole of what this window costs a frame. `drawImage` returning is
       // not the same as the pixels being on screen, so this is a floor, not
       // the full story; the compositor's share is not visible from here.
-      if (started !== undefined) paintMeter.note(performance.now() - started);
+      const drawn = performance.now();
+      if (started !== undefined) paintMeter.note(drawn - started);
+      // Handing the frame over is not putting it on screen. This measures the
+      // wait between the two, which is the part that is ours.
+      presentMeter.noteDrawn(drawn, (callback) => requestAnimationFrame(callback));
       paintedInWindow++;
       frame.close();
       hideConnecting();
@@ -507,6 +524,7 @@ listen("ds://disconnected", () => {
   // not be paired against this session's arrivals.
   handoffMeter.reset();
   paintMeter.reset();
+  presentMeter.reset();
 });
 
 // --- Input forwarding (SPEC §4.10) ------------------------------------------
@@ -552,6 +570,7 @@ setInterval(() => {
     ["decode", `${lastDecodeMs.toFixed(1)} ms`],
     ...stageRow("handoff", handoffMeter.summary(), 12),
     ...stageRow("to paint", paintMeter.summary(), 25),
+    ...stageRow("to screen", presentMeter.summary(), 25),
     ["peak / gap", `${peakQueueingMs.toFixed(0)} / ${worstGapMs.toFixed(0)} ms`,
       worstGapMs > 120 ? "warn" : undefined],
     ["bandwidth", `${mbps.toFixed(1)} Mbps`],
