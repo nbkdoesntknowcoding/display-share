@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Why the app is unsigned, and what the warnings mean
+    url: https://github.com/nbkdoesntknowcoding/display-share/blob/main/docs/distribution.md
+    about: The macOS and SmartScreen warnings on first launch are expected and explained here.
+  - name: Security vulnerability
+    url: https://github.com/nbkdoesntknowcoding/display-share/security/advisories/new
+    about: Please report these privately rather than as a public issue.

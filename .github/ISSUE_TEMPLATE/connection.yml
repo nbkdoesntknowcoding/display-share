@@ -1,0 +1,76 @@
+name: It will not connect
+description: The receiver cannot find the Mac, or connects and immediately drops
+labels: ["connection"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most connection reports come down to one of a handful of causes, and the
+        questions below are the ones that separate them. Answering them saves a
+        round trip each.
+
+        **Two worth ruling out before filing**, because they look like faults and
+        are not:
+
+        - **Is the Mac actually sharing?** Running is not the same as sharing.
+          The menu bar panel has to say it is sharing — if it says *Press Start
+          to begin*, the receiver has nothing to connect to.
+        - **Is another receiver already attached?** Only one at a time is
+          allowed. A second one is refused, and the receiver will keep retrying.
+          Close any other receiver, including a browser tab open on the Mac's
+          own viewer page.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Both halves. The receiver shows its version on the connect card.
+      placeholder: "Mac 0.16.1, receiver 0.16.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: How far does it get?
+      options:
+        - The receiver never lists the Mac at all
+        - It lists the Mac, but connecting fails
+        - It connects, then drops straight away
+        - It connects and then drops after a while
+        - It asks for a PIN and the PIN is refused
+    validations:
+      required: true
+  - type: textarea
+    id: message
+    attributes:
+      label: What does the receiver say, word for word?
+      description: >
+        The exact text matters. "Disconnected. Reconnecting…" and a named
+        refusal are different problems with different causes.
+    validations:
+      required: true
+  - type: textarea
+    id: mac-state
+    attributes:
+      label: What does the Mac's menu bar panel say?
+      placeholder: "Sharing, or Not sharing — and anything under it"
+    validations:
+      required: true
+  - type: dropdown
+    id: network
+    attributes:
+      label: How are the two machines connected?
+      options:
+        - Same Wi-Fi network
+        - Same router, one or both on Ethernet
+        - A cable straight between the two machines
+        - Different networks, or not sure
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: >
+        Guest or workplace Wi-Fi often blocks the discovery protocol, which
+        shows up as the Mac never being listed. Typing the Mac's address by
+        hand tells the two cases apart — please say whether that works.
