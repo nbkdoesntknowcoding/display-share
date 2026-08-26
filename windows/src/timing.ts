@@ -136,6 +136,76 @@ export class HandoffMeter {
 }
 
 /**
+ * Measures how long a drawn frame waits for the compositor.
+ *
+ * `drawImage` returning does not mean anything is on screen. The frame is
+ * handed to the compositor, which puts it up on its own schedule, and that wait
+ * is the last unmeasured stage on the receiver — the one a native presentation
+ * surface would exist to remove. Deciding whether to build that without knowing
+ * what it costs would be guessing at the most user-visible code in the app.
+ *
+ * `requestAnimationFrame` fires with the timestamp of the frame about to be
+ * rendered, on the same clock as `performance.now()`, so the gap between
+ * finishing the draw and that timestamp is how long the frame sat waiting.
+ *
+ * It remains a floor. The callback runs when the browser begins compositing,
+ * not when pixels are lit, so the panel's own latency and the final scanout are
+ * still outside it. What it does capture is the buffering — which is the part
+ * that is ours to fix, and the part a rewrite would target.
+ */
+export const PLAUSIBLE_PRESENT_MS = { min: 0, max: 1_000 };
+
+export class PresentMeter {
+  private readonly stage: StageMeter;
+  private pending = false;
+
+  constructor(keep = 60) {
+    this.stage = new StageMeter(keep);
+  }
+
+  /**
+   * Call immediately after drawing. `schedule` is injected so this can be
+   * tested without a compositor.
+   *
+   * At most one measurement is in flight at a time. Frames arrive faster than
+   * the compositor runs, so measuring every one would queue callbacks that
+   * outlive the frames they describe — and the cost of measuring would start
+   * showing up in the thing being measured.
+   */
+  noteDrawn(at: number, schedule: (callback: (timestamp: number) => void) => void): void {
+    if (this.pending) return;
+    this.pending = true;
+    schedule((timestamp) => {
+      this.pending = false;
+      const waited = timestamp - at;
+      // A timestamp before the draw means the callback belongs to a frame
+      // already in flight when the draw happened. It describes an earlier
+      // frame, not a negative wait.
+      //
+      // And an enormous one is not a slow compositor: browsers stop running
+      // animation callbacks entirely for a hidden page, so a window minimised
+      // with a measurement in flight resumes minutes later and reports the
+      // whole interruption as presentation latency. One such sample would own
+      // the worst-case column for the rest of the rolling window. Confirmed
+      // the hard way — a page reporting `document.hidden` runs no callbacks at
+      // all until it is shown again.
+      if (waited >= PLAUSIBLE_PRESENT_MS.min && waited <= PLAUSIBLE_PRESENT_MS.max) {
+        this.stage.note(waited);
+      }
+    });
+  }
+
+  summary(): Summary | undefined {
+    return this.stage.summary();
+  }
+
+  reset(): void {
+    this.stage.reset();
+    this.pending = false;
+  }
+}
+
+/**
  * A rolling window of durations, for stages this window times end to end.
  *
  * Same reasoning as above: the median describes the common case and the worst
