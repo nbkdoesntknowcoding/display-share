@@ -129,4 +129,51 @@ final class PopoverLayoutTests: XCTestCase {
         XCTAssertEqual(DSPopoverMetrics.padding, 16)
         XCTAssertEqual(DSPopoverMetrics.dividerMargin, 12)
     }
+
+    // MARK: - Protected content (Phase 5)
+
+    /// Present only when there is a display to release or one to bring back.
+    ///
+    /// This section exists to explain the one thing the app cannot fix. Shown
+    /// permanently it would be a standing apology, at the bottom of every idle
+    /// popover, for a problem most sessions never meet.
+    func testTheProtectedContentSectionAppearsOnlyWhenItCanDoSomething() {
+        let idle = PopoverSection.ordered(
+            isPairing: false, needsScreenRecording: false, needsAccessibility: false,
+            hasUpdate: false, hasBrowserFallback: false, canReleaseDisplay: false)
+        XCTAssertFalse(
+            idle.contains(.protectedContent),
+            "nothing to release and nothing to restore: \(idle)")
+
+        let sharing = PopoverSection.ordered(
+            isPairing: false, needsScreenRecording: false, needsAccessibility: false,
+            hasUpdate: false, hasBrowserFallback: false, canReleaseDisplay: true)
+        XCTAssertTrue(sharing.contains(.protectedContent))
+    }
+
+    /// Above the actions, so releasing the screen is never mistaken for the
+    /// control that ends the session — they do different things and one of them
+    /// is reversible in a click.
+    func testTheProtectedContentSectionSitsAboveTheActions() {
+        let sections = PopoverSection.ordered(
+            isPairing: false, needsScreenRecording: false, needsAccessibility: false,
+            hasUpdate: false, hasBrowserFallback: false, canReleaseDisplay: true)
+        guard let explainer = sections.firstIndex(of: .protectedContent),
+            let actions = sections.firstIndex(of: .actions)
+        else {
+            return XCTFail("expected both sections: \(sections)")
+        }
+        XCTAssertLessThan(explainer, actions)
+        XCTAssertEqual(sections.last, .actions, "the actions must still be last")
+    }
+
+    /// The urgent things stay urgent. A PIN on screen is the most important
+    /// thing in the popover and must not be pushed down by an explainer.
+    func testAPendingPINStillOutranksTheExplainer() {
+        let sections = PopoverSection.ordered(
+            isPairing: true, needsScreenRecording: false, needsAccessibility: false,
+            hasUpdate: false, hasBrowserFallback: false, canReleaseDisplay: true)
+        XCTAssertLessThan(
+            sections.firstIndex(of: .pairing)!, sections.firstIndex(of: .protectedContent)!)
+    }
 }

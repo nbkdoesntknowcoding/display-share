@@ -26,6 +26,12 @@ public enum PopoverSection: String, CaseIterable, Sendable {
     case browserFallback
     /// Viewing a Windows PC from this Mac, collapsed.
     case otherDirection
+    /// Why Netflix and Prime Video stop playing, and how to get them back.
+    ///
+    /// Present only while there is a display to release or one to bring back.
+    /// Collapsed the rest of the time it would be a permanent apology for a
+    /// thing most sessions never hit.
+    case protectedContent
     /// Start/Stop and Quit. Always last.
     case actions
 
@@ -39,7 +45,8 @@ public enum PopoverSection: String, CaseIterable, Sendable {
         needsScreenRecording: Bool,
         needsAccessibility: Bool,
         hasUpdate: Bool,
-        hasBrowserFallback: Bool
+        hasBrowserFallback: Bool,
+        canReleaseDisplay: Bool = false
     ) -> [PopoverSection] {
         var sections: [PopoverSection] = [.header, .status]
         if isPairing { sections.append(.pairing) }
@@ -49,6 +56,7 @@ public enum PopoverSection: String, CaseIterable, Sendable {
         if hasUpdate { sections.append(.update) }
         if hasBrowserFallback { sections.append(.browserFallback) }
         sections.append(.otherDirection)
+        if canReleaseDisplay { sections.append(.protectedContent) }
         sections.append(.actions)
         return sections
     }
