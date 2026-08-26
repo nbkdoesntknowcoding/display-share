@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.0...v0.16.1) (2026-08-26)
+
+
+### Documentation
+
+* rewrite the README around what it is and what we learned ([#66](https://github.com/nbkdoesntknowcoding/display-share/issues/66)) ([ef07147](https://github.com/nbkdoesntknowcoding/display-share/commit/ef07147cbb4d43faf2d39e8121216fdfdab2f32b))
+
 ## [0.16.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.15.1...v0.16.0) (2026-08-26)
 
 
