@@ -1,0 +1,51 @@
+name: Bug report
+description: Something behaves differently from how it is documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check **Known limits** in the README first. The 60 Hz ceiling, the
+        ~1920×1200 geometry ceiling, and protected video refusing to play are
+        properties of the private display API rather than defects, and are not
+        going to change.
+
+        If the receiver cannot connect at all, the *It will not connect*
+        template asks better questions than this one.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "Mac 0.16.1, receiver 0.16.1, macOS 26.2, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can it be reproduced?
+      description: >
+        Including what was on the second display at the time. An idle desktop
+        legitimately sends almost no frames, so "0 fps" on an empty screen is
+        correct rather than a fault.
+    validations:
+      required: true
+  - type: textarea
+    id: hud
+    attributes:
+      label: The receiver's HUD, if the stream was running
+      description: >
+        Press H to show it. The per-stage rows say far more than a description
+        of the symptom can.
+      render: text

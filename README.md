@@ -159,64 +159,11 @@ xcodebuild -scheme DisplayShare -configuration Release -derivedDataPath ./.build
 cd windows && npm ci && npx tauri build
 ```
 
-<details>
-<summary><b>Or hand it to a coding agent</b> — a prompt that knows where the human steps are</summary>
+### Or hand it to a coding agent
 
-Paste this into Claude Code, Cursor, or any agent with shell access. The
-important part is that it stops before the permission grant, because no script
-can grant macOS permissions:
-
-````text
-Set up Display Share on this machine. It turns a Windows laptop into a real
-second display for a Mac. Repo: https://github.com/nbkdoesntknowcoding/display-share
-
-MAC SENDER (only runs on macOS 14+):
-1. git clone https://github.com/nbkdoesntknowcoding/display-share.git && cd display-share
-2. Run ./install.sh and show me its output. It installs xcodegen if needed,
-   builds a Release build, and installs to /Applications.
-3. If it fails, read the build log path it prints and fix or report the error.
-   Do NOT skip failures or fall back to a Debug build.
-
-THEN STOP AND ASK ME. You cannot do the next part:
-macOS permissions are granted by a human in System Settings — no command,
-script, or API can grant them, and a freshly built copy counts as a NEW app
-identity even if I granted them before. Tell me to:
-  - System Settings > Privacy & Security > Screen Recording > enable Display Share
-  - (only if I want to control the Mac from the laptop)
-    Privacy & Security > Accessibility > enable Display Share
-Then wait for me to confirm.
-
-VERIFY (after I confirm):
-4. Launch /Applications/DisplayShare.app. It is a MENU BAR app — no Dock icon,
-   no window. Click its icon and press Start.
-5. Confirm a virtual display exists: `system_profiler SPDisplaysDataType | grep -i display`
-   should show one more display than the physical monitors.
-6. Open http://localhost:8787 in a browser on the Mac. Expect a black canvas and
-   a HUD. It stays black until something is actually on that display — drag a
-   window onto the new display, then the HUD should show ~58 fps.
-   A near-black screen with capture near 0 fps is CORRECT for an empty desktop
-   — that is not a bug.
-
-WINDOWS RECEIVER (run this part on the Windows laptop):
-7. Install Rust (https://rustup.rs) and Node 22+.
-8. cd windows && npm ci && npx tauri build
-9. Run the installer from windows/src-tauri/target/release/bundle/nsis/
-   SmartScreen will warn because it is unsigned: More info > Run anyway.
-10. The app finds the Mac over Bonjour. Enter the 4-digit PIN the Mac shows.
-    Both machines must be on the same network, on 5 GHz Wi-Fi or Ethernet.
-
-USEFUL TO KNOW:
-- Ports 8787 (viewer page) and 8788 (video + control) must not be blocked.
-- Keys in the receiver: F fullscreen, H toggle HUD, K force a keyframe,
-  A cycle decode mode, F8 forward input to the Mac.
-- Read README.md "Known limits" before reporting a bug — the 60 Hz cap, the
-  ~1920x1200 geometry ceiling and no-HDCP are properties of Apple's private
-  API, not defects.
-- If anything is ambiguous, read docs/distribution.md and protocol/SPEC.md
-  rather than guessing.
-````
-
-</details>
+[AGENTS.md](AGENTS.md) has a setup prompt written for agents with shell access.
+It stops before the permission grant, because no script can grant macOS
+permissions — that part is always a human in System Settings.
 
 ---
 
@@ -538,8 +485,9 @@ see [What isn't proven yet](#what-isnt-proven-yet). A HUD screenshot from a real
 Mac-to-Windows session over a real LAN would settle several open questions at
 once.
 
-Found a security issue? Please open a private advisory through GitHub's
-**Security** tab rather than a public issue.
+Found a security issue? [SECURITY.md](SECURITY.md) says how to report it
+privately, and what counts — the unsigned binaries and the private API use are
+deliberate, documented trade-offs rather than vulnerabilities.
 
 ---
 
