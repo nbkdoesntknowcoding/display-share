@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.1](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.17.0...v0.17.1) (2026-08-26)
+
+
+### Documentation
+
+* the actual thing, on actual Windows ([#73](https://github.com/nbkdoesntknowcoding/display-share/issues/73)) ([bf20bd3](https://github.com/nbkdoesntknowcoding/display-share/commit/bf20bd38cab51b9a576ce28b1addb1fec6ce36aa))
+* the furniture an open source repo is expected to have ([#74](https://github.com/nbkdoesntknowcoding/display-share/issues/74)) ([92a2f34](https://github.com/nbkdoesntknowcoding/display-share/commit/92a2f34b765b30585731199dac46512a239c4d76))
+
 ## [0.17.0](https://github.com/nbkdoesntknowcoding/display-share/compare/v0.16.2...v0.17.0) (2026-08-26)
 
 
